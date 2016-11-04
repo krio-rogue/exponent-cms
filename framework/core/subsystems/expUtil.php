@@ -1,7 +1,7 @@
 <?php
 ##################################################
 #
-# Copyright (c) 2004-2014 OIC Group, Inc.
+# Copyright (c) 2004-2016 OIC Group, Inc.
 #
 # This file is part of Exponent
 #
@@ -260,8 +260,8 @@ class expUtil {
         // (e.g. "Firefox/2.0" or "MSIE 6.0" (This only matches the major and minor
         // version numbers.  E.g. "2.0.0.6" is parsed as simply "2.0"
         $agent = strtolower($agent ? $agent : $_SERVER['HTTP_USER_AGENT']);
-        $pattern = '#(?<browser>' . join('|', $known) .
-            ')[/ ]+(?<version>[0-9]+(?:\.[0-9]+)?)#';
+        $pattern = '#(?P<browser>' . join('|', $known) .
+            ')[/ ]+(?P<version>[0-9]+(?:\.[0-9]+)?)#';
 
         // Find all phrases (or return empty array if none found)
         if (!preg_match_all($pattern, $agent, $matches)) {

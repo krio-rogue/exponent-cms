@@ -1,7 +1,7 @@
 <?php
 ##################################################
 #
-# Copyright (c) 2004-2014 OIC Group, Inc.
+# Copyright (c) 2004-2016 OIC Group, Inc.
 #
 # This file is part of Exponent
 #
@@ -82,7 +82,7 @@ class expLDAP {
         // populate user data
         if (!empty($user)) {
             $userdata = array('username'  => $username,
-                              'password'  => md5($password),
+                              'password'  => user::encryptPassword($password),
                               'firstname' => $user['givenname'][0],
                               'lastname'  => $user['sn'][0],
                               'email'     => $user['mail'][0],

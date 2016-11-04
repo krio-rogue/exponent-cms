@@ -2,7 +2,7 @@
 
 ##################################################
 #
-# Copyright (c) 2004-2014 OIC Group, Inc.
+# Copyright (c) 2004-2016 OIC Group, Inc.
 #
 # This file is part of Exponent
 #
@@ -27,8 +27,10 @@ if (!defined('SITE_KEYWORDS')) define('SITE_KEYWORDS','');
 if (!defined('SITE_DESCRIPTION')) define('SITE_DESCRIPTION','');
 
 if (!defined('SITE_WYSIWYG_EDITOR')) define('SITE_WYSIWYG_EDITOR','ckeditor');
+if (!defined('EDITOR_FAST_SAVE')) define('EDITOR_FAST_SAVE','0');
 
 if (!defined('LESS_COMPILER')) define('LESS_COMPILER','less.php');
 if (!defined('LESS_COMPILER_MAP')) define('LESS_COMPILER_MAP','0');
+if (!defined('SCSS_COMPILER')) define('SCSS_COMPILER','scssphp');
 
 ?>

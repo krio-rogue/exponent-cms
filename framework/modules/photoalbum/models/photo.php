@@ -2,7 +2,7 @@
 
 ##################################################
 #
-# Copyright (c) 2004-2014 OIC Group, Inc.
+# Copyright (c) 2004-2016 OIC Group, Inc.
 #
 # This file is part of Exponent
 #
@@ -50,6 +50,8 @@ class photo extends expRecord {
                 $this->alt = $this->expFile[0]->alt;
             } elseif (!empty($this->title)) {
                 $this->alt = $this->title;
+            } elseif (!empty($this->expFile[0]->filename)) {
+                $this->alt = $this->expFile[0]->filename;
             }
         }
     }

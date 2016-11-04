@@ -2,7 +2,7 @@
 
 ##################################################
 #
-# Copyright (c) 2004-2014 OIC Group, Inc.
+# Copyright (c) 2004-2016 OIC Group, Inc.
 #
 # This file is part of Exponent
 #
@@ -134,8 +134,16 @@ function smarty_function_getnav($params,&$smarty) {
                 $nav = 0;
             }
             break;
+        case "top" :
+            $nav = section::navhierarchy(!empty($params['notyui'])?true:false);
+            foreach ($nav as $key=>$value) {
+                unset($nav[$key]->itemdata);
+                unset($nav[$key]->maxdepth);
+                unset($nav[$key]->maxitems);
+            }
+            break;
         case "hierarchy" :
-            $nav = navigationController::navhierarchy(!empty($params['notyui'])?true:false);
+            $nav = section::navhierarchy(!empty($params['notyui'])?true:false);
             break;
         default :
             $nav = $sections;

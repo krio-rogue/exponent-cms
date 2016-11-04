@@ -1,5 +1,5 @@
 {*
- * Copyright (c) 2004-2014 OIC Group, Inc.
+ * Copyright (c) 2004-2016 OIC Group, Inc.
  *
  * This file is part of Exponent
  *
@@ -13,25 +13,35 @@
  *
  *}
  
-{css unique="storeListing" link="`$asset_path`css/storefront.css" corecss="button,clearfix"}
+{css unique="storefront" link="`$asset_path`css/storefront.css" corecss="button,clearfix"}
 
 {/css}
  
 <div class="module store showall">
+    <div class="category-breadcrumb">
+        <a href="{link controller=store action=showall}" title="{'View the Store'|gettext}">{'Store'|gettext}</a>{if count($ancestors)}&#160;&#160;&raquo;&#160;{/if}
+        {foreach from=$ancestors item=ancestor name=path}
+            {if !$smarty.foreach.path.last}
+                <a href="{link controller=store action=showall title=$ancestor->sef_url}" title="{'View this Product Category'|gettext}'>{$ancestor->title}</a>&#160;&#160;&raquo;&#160;
+            {else}
+                {$ancestor->title}
+            {/if}
+        {/foreach}
+    </div>
     {if $moduletitle && !($config.hidemoduletitle xor $smarty.const.INVERT_HIDE_TITLE)}<{$config.heading_level|default:'h1'}>{$moduletitle}</{$config.heading_level|default:'h1'}>
     {else}
         <{$config.heading_level|default:'h1'}>{$current_category->title}</{$config.heading_level|default:'h1'}>
     {/if}
     {permissions}
-    <div class="module-actions">
-        {if $permissions.create}
-            {icon class="add" action=create text="Add a Product"|gettext}
-        {/if}
-        {if $permissions.manage}
-            {icon action=manage text="Manage Products"|gettext}
-            {icon controller=storeCategory action=manage text="Manage Store Categories"|gettext}
-        {/if}
-    </div>
+        <div class="module-actions">
+            {if $permissions.create}
+                {icon class="add" action=create text="Add a Product"|gettext}
+            {/if}
+            {if $permissions.manage}
+                {icon action=manage text="Manage Products"|gettext}
+                {icon controller=storeCategory action=manage text="Manage Store Categories"|gettext}
+            {/if}
+        </div>
     {/permissions}
     {if $config.moduledescription != ""}
         {$config.moduledescription}
@@ -39,7 +49,7 @@
     {$myloc=serialize($__loc)}
 
     {* current category image *}
-    {if $current_category->expFile[0]->id && $config.banner_width}
+    {if $current_category->expFile[0]->id}
         <div class="category-banner">
             {img file_id=$current_category->expFile[0]->id w=522 h=100}
         </div>
@@ -51,9 +61,9 @@
                 {if $permissions.edit}
                     {icon action=edit module=storeCategory record=$current_category title="Edit `$current_category->title`" text="Edit this Store Category"|gettext}{br}
                 {/if}
-                {*if $permissions.manage}
-                    {icon action=configure module=storeCategory record=$current_category title="Configure `$current_category->title`" text="Configure this Store Category"}{br}
-                {/if*}
+                {if $permissions.manage}
+                    {icon action=configure module=storeCategory record=$current_category title="Configure `$current_category->title`" text="Configure this Store Category"|gettext}{br}
+                {/if}
                 {*if $permissions.manage}
                     {icon action=configure module=ecomconfig hash="#tab2" title="Configure Categories Globally" text="Configure Categories Globally"}{br}
                 {/if*}
@@ -94,13 +104,16 @@
                             {if $permissions.edit}
                                 {icon controller=storeCategory action=edit record=$cat title="Edit `$cat->title`"}
                             {/if}
+                            {if $permissions.manage}
+                                {icon controller=storeCategory action=configure record=$cat title="Configure `$cat->title`"}
+                            {/if}
                             {if $permissions.delete}
                                 {icon controller=storeCategory action=delete record=$cat title="Delete `$cat->title`" onclick="return confirm('"|cat:("Are you sure you want to delete this category?"|gettext)|cat:"');"}
                             {/if}
                         </div>
                         {/permissions}
 
-                        <a href="{link controller=store action=showall title=$cat->sef_url}" class="cat-img-link">
+                        <a href="{link controller=store action=showall title=$cat->sef_url}" class="cat-img-link" title="{$cat->body|summarize:"html":"para"}">
                             {if $cat->expFile[0]->id}
                                 {img file_id=$cat->expFile[0]->id w=$config.category_thumbnail|default:100 class="cat-image"}
                             {elseif $page->records[0]->expFile.mainimage[0]->id}
@@ -108,14 +121,17 @@
                             {else}
                                 {img src="`$asset_path`images/no-image.jpg" w=$config.category_thumbnail|default:100 class="cat-image" alt="'No Image Available'|gettext"}
                             {/if}
-                        </a>
+                        {*</a>*}
 
                         <h3>
-                            <a href="{link controller=store action=showall title=$cat->sef_url}">
+                            {*<a href="{link controller=store action=showall title=$cat->sef_url}">*}
                                 {$cat->title}
-                            </a>
+                            {*</a>*}
                         </h3>
-
+                        {*<div class="body-copy">*}
+                            {*{$cat->body}*}
+                        {*</div>*}
+                        </a>
                     </div>
 
                     {if $smarty.foreach.cats.last || $ipcr%2==0}
@@ -133,21 +149,20 @@
                 {$open_c_row=1}
             {/if}
         </div>
-    {else}
+    {/if}
+    {if !$categories|@count || $config.show_products}
         <{$config.item_level|default:'h2'}>{"All Products"|gettext} {if $current_category->id}{"Under"|gettext} {$current_category->title}{/if}</{$config.item_level|default:'h2'}>
-        {pagelinks paginate=$page top=1}
-        {*control type="dropdown" name="sortme" items=$page->sort_dropdown default=$defaultSort*}
-
-        {*script unique="sort-submit"}
+        <div class="row"><div class="span7 offset5"><div class="row">{control type="dropdown" name="sortme" label="Sort By"|gettext items=$page->sort_dropdown default=$defaultSort horizontal=1}</div></div></div>
+        {script unique="sort-submit"}
         {literal}
-        YUI(EXPONENT.YUI3_CONFIG).use('node', function(Y) {
-            Y.all('select[name="sortme"]').on('change',function(e){
-                window.location = e.target.get('value');
+            YUI(EXPONENT.YUI3_CONFIG).use('node', function(Y) {
+                Y.all('select[name="sortme"]').on('change',function(e){
+                    window.location = e.target.get('value');
+                });
             });
-
-        });
         {/literal}
-        {/script*}
+        {/script}
+        {pagelinks paginate=$page top=1}
         <div class="products ipr{$config.images_per_row|default:3} listing-row">
             {counter assign="ipr" name="ipr" start=1}
             {foreach from=$page->records item=listing name=listings}
@@ -183,9 +198,9 @@
     {/if}
 </div>
 
-{script unique="expanding-text" yui3mods="yui"}
+{script unique="expanding-text" yui3mods="anim-easing,node,anim"}
 {literal}
-YUI(EXPONENT.YUI3_CONFIG).use("anim-easing","node","anim", function(Y) {
+YUI(EXPONENT.YUI3_CONFIG).use('*', function(Y) {
     
     var modules = Y.all('.showall.store .bodycopy');
 

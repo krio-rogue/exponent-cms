@@ -2,7 +2,7 @@
 <?php
 ##################################################
 #
-# Copyright (c) 2004-2014 OIC Group, Inc.
+# Copyright (c) 2004-2016 OIC Group, Inc.
 #
 # This file is part of Exponent
 #
@@ -45,7 +45,8 @@
  *
  */
 
-if (!defined('DEVELOPMENT')) define('DEVELOPMENT','1');
+if (!defined('DEVELOPMENT'))
+	define('DEVELOPMENT','1');
 define('WRITE_LANG_TEMPLATE', DEVELOPMENT);
 
 // Initialize the exponent environment
@@ -68,7 +69,8 @@ if (!defined('THEME_ABSOLUTE')) {
 // Initialize the language subsystem
 expLang::initialize();
 global $default_lang, $cur_lang;
-if (empty($default_lang)) $default_lang = include(BASE."framework/core/lang/English - US.php");
+if (empty($default_lang))
+	$default_lang = include(BASE."framework/core/lang/English - US.php");
 
 // regex for the gettext smarty modifier
 $regex_gettext_mod='/(?<=["\'])((\\\\.|[^\'"])*)(?=["\']\|gettext)/';
@@ -90,6 +92,8 @@ $extensions = array('tpl','php');
 
 $recur = true;
 
+$custom = false; // for themes
+
 $total_new = 0;
 
 // "fix" string - strip slashes, escape and convert new lines to \n
@@ -105,9 +109,8 @@ function do_extract($file, $regex, $isalist=false) {
     global $total_new;
 
     $content = @file_get_contents($file);
-   	if (empty($content)) {
+   	if (empty($content))
    		return;
-   	}
     preg_match_all(
            $regex,
            $content,
@@ -116,7 +119,7 @@ function do_extract($file, $regex, $isalist=false) {
    	);
     print "$file"." - ";
     $num_added = 0;
-   	for ($i=0; $i < count($matches[0]); $i++) {
+	for ($i = 0, $iMax = count($matches[0]); $i < $iMax; $i++) {
         str_replace('"', "\'", $matches[0][$i]);  // remove the killer double-quotes
         if ($isalist) {
             $phrases = explode(",",$matches[0][$i]);
@@ -176,8 +179,10 @@ function do_dir($dir) {
 
 for ($ac=1; $ac < $_SERVER['argc']; $ac++) {
     print "Extracting Language Phrases\n";
-	if ($_SERVER['argv'][$ac] == '-r'){
-        $recur = false;
+	if ($_SERVER['argv'][$ac] == '-r') {
+		$recur = false;
+	} elseif ($_SERVER['argv'][$ac] == '-t'){
+		$custom = true;
     } elseif (is_dir($_SERVER['argv'][$ac])) { // go through directory
 		do_dir($_SERVER['argv'][$ac]);
 	} else { // do file

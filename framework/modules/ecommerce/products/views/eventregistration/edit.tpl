@@ -1,5 +1,5 @@
 {*
- * Copyright (c) 2004-2014 OIC Group, Inc.
+ * Copyright (c) 2004-2016 OIC Group, Inc.
  *
  * This file is part of Exponent
  *
@@ -27,7 +27,8 @@
         {control type="hidden" name="id" value=$record->id}
         {control type="hidden" name="product_type" value=$record->product_type}
         {control type="hidden" name="product_type_id" value=$record->product_type_id}
-        
+        {control type="hidden" name="no_shipping" value=1}
+
         <div id="editproduct-tabs" class="yui-navset exp-skin-tabview hide">
             <ul class="yui-nav">
 	            <li class="selected"><a href="#tab1"><em>{'General'|gettext}</em></a></li>
@@ -154,7 +155,7 @@
                       {control type="radiogroup" name="multi_registrant" label="Simultaneous Registration"|gettext items="Single Registration,Multiple Registration"|gettxtlist values="0,1" default=$record->multi_registrant|default:0 description='Should we allow multiple similar (same basic cost) registrations at one time?'|gettext}
                   </div>
                 <div id="tab6">
-                    {control type=files name=mainimages label="Main Images"|gettext subtype="mainimage" accept="image/*" value=$record->expFile folder=$config.upload_folder description="Images to show for your event"|gettext}
+                    {control type=files name=mainimages label="Main Image"|gettext subtype="mainimage" accept="image/*" value=$record->expFile limit=1 folder=$config.upload_folder description="Image to show for your event"|gettext}
                     <div class="additional-images">
                         {control type=files name=images label="Additional Images"|gettext subtype="images" accept="image/*" value=$record->expFile folder=$config.upload_folder description="Additional images to show for your event"|gettext}
                     </div>
@@ -185,19 +186,20 @@
 				</div>
             </div>
         </div>
-        <div class="loadingdiv">{'Loading'|gettext}</div>
+        {*<div class="loadingdiv">{'Loading'|gettext}</div>*}
+        {loading}
         {control type="buttongroup" submit="Save Event"|gettext cancel="Cancel"|gettext}
     {/form}
 </div>
 
-{script unique="authtabs" yui3mods=1}
+{script unique="authtabs" yui3mods="get,exptabs,node-load,event-simulate"}
 {literal}
     EXPONENT.YUI3_CONFIG.modules.exptabs = {
         fullpath: EXPONENT.JS_RELATIVE+'exp-tabs.js',
         requires: ['history','tabview','event-custom']
     };
 
-	 YUI(EXPONENT.YUI3_CONFIG).use("get", "exptabs", "node-load","event-simulate", function(Y) {
+	 YUI(EXPONENT.YUI3_CONFIG).use('*', function(Y) {
         Y.expTabs({srcNode: '#editproduct-tabs'});
 		Y.one('#editproduct-tabs').removeClass('hide');
         Y.one('.loadingdiv').remove();

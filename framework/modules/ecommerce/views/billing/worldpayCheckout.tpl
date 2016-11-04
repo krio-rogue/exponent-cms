@@ -1,5 +1,5 @@
 {*
- * Copyright (c) 2004-2014 OIC Group, Inc.
+ * Copyright (c) 2004-2016 OIC Group, Inc.
  *
  * This file is part of Exponent
  *
@@ -13,7 +13,7 @@
  *
  *}
 
-<div class="billing-method">
+<div class="billing-method worldpay creditcard-form form-horizontal">
     {form controller=cart action=preprocess}
         {control type="hidden" name="billingcalculator_id" value=7}
 		<input type="image" name="submit" value="1" src="{$smarty.const.PATH_RELATIVE|cat:'framework/modules/ecommerce/assets/images/worldpay.gif'}">

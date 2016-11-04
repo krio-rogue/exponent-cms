@@ -2,7 +2,7 @@
 
 ##################################################
 #
-# Copyright (c) 2004-2014 OIC Group, Inc.
+# Copyright (c) 2004-2016 OIC Group, Inc.
 #
 # This file is part of Exponent
 #
@@ -28,6 +28,9 @@ class photosController extends expController {
 //        'slideshow'=>'Slideshow',
 //        //'showall_tags'=>"Tag Categories"
 //    );
+    protected $manage_permissions = array(
+        'multi'=>'Bulk Actions',
+    );
     public $remove_configs = array(
         'comments',
         'ealerts',
@@ -41,7 +44,7 @@ class photosController extends expController {
     static function displayname() { return gt("Photo Album"); }
     static function description() { return gt("Displays and manages images."); }
     static function isSearchable() { return true; }
-    
+
     public function showall() {
         expHistory::set('viewable', $this->params);
         $limit = (isset($this->config['limit']) && $this->config['limit'] != '') ? $this->config['limit'] : 10;
@@ -66,25 +69,35 @@ class photosController extends expController {
                 gt('Title')=>'title'
             ),
         ));
-                    
+
         assign_to_template(array(
             'page'=>$page,
+            'params'=>$this->params,
         ));
     }
-    
-    function show() {
-//        global $db;
 
+    function show() {
         expHistory::set('viewable', $this->params);
-        
+
         // figure out if we're looking this up by id or title
         $id = null;
         if (isset($this->params['id'])) {
             $id = $this->params['id'];
         } elseif (isset($this->params['title'])) {
-            $id = $this->params['title'];
+            $id = expString::escape($this->params['title']);
         }
         $record = new photo($id);
+        if (empty($record->id))
+            redirect_to(array('controller'=>'notfound','action'=>'page_not_found','title'=>$this->params['title']));
+
+        $config = expConfig::getConfig($record->location_data);
+        if (empty($this->config))
+            $this->config = $config;
+        if (empty($this->loc->src)) {
+            $r_loc = expUnserialize($record->location_data);
+            $this->loc->src = $r_loc->src;
+        }
+
         $where = $this->aggregateWhereClause();
 //        $maxrank = $db->max($this->model_table,'rank','',$where);
 //
@@ -102,9 +115,6 @@ class photosController extends expController {
 //        }
         $record->addNextPrev($where);
 
-//        $config = expUnserialize($db->selectValue('expConfigs','config',"location_data='".$record->location_data."'"));
-        $config = expConfig::getConfig($record->location_data);
-
         assign_to_template(array(
             'record'=>$record,
             'imgnum'=>$record->rank,
@@ -114,7 +124,7 @@ class photosController extends expController {
             'config'=>$config
         ));
     }
-    
+
     public function slideshow() {
         expHistory::set('viewable', $this->params);
         $order = isset($this->config['order']) ? $this->config['order'] : "rank";
@@ -140,27 +150,27 @@ class photosController extends expController {
             'slides'=>$page->records,
         ));
     }
-    
+
     public function showall_tags() {
         $images = $this->image->find('all');
         $used_tags = array();
         foreach ($images as $image) {
             foreach($image->expTag as $tag) {
                 if (isset($used_tags[$tag->id])) {
-                    $used_tags[$tag->id]->count += 1;
+                    $used_tags[$tag->id]->count++;
                 } else {
                     $exptag = new expTag($tag->id);
                     $used_tags[$tag->id] = $exptag;
                     $used_tags[$tag->id]->count = 1;
                 }
-                
+
             }
         }
-        
+
         assign_to_template(array(
             'tags'=>$used_tags
         ));
-    }           
+    }
 
     /**
      * Returns rich snippet PageMap meta data
@@ -188,7 +198,7 @@ class photosController extends expController {
 
         //populate the alt tag field if the user didn't
         if (empty($this->params['alt'])) $this->params['alt'] = $this->params['title'];
-        
+
         // call expController update to save the image
         parent::update();
     }
@@ -228,11 +238,13 @@ class photosController extends expController {
                 foreach ($tags as $tag) {
                     if (!empty($tag)) {
                         $tag = strtolower(trim($tag));
-                        $tag = str_replace('"', "", $tag); // strip double quotes
-                        $tag = str_replace("'", "", $tag); // strip single quotes
-                        $expTag = new expTag($tag);
-                        if (empty($expTag->id)) $expTag->update(array('title' => $tag));
-                        $params['expTag'][] = $expTag->id;
+                        $tag = str_replace(array('"', "'"), "", $tag); // strip double and single quotes
+                        if (!empty($tag)) {
+                            $expTag = new expTag($tag);
+                            if (empty($expTag->id))
+                                $expTag->update(array('title' => $tag));
+                            $params['expTag'][] = $expTag->id;
+                        }
                     }
                 }
             }
@@ -263,6 +275,37 @@ class photosController extends expController {
                 }
             }
             $this->addContentToSearch();
+        }
+        expHistory::back();
+    }
+
+    function delete_multi() {
+        expHistory::set('manageable', $this->params);
+        $order = isset($this->config['order']) ? $this->config['order'] : "rank";
+        $page = new expPaginator(array(
+            'model'=>'photo',
+            'where'=>$this->aggregateWhereClause(),
+            'order'=>$order,
+            'categorize'=>empty($this->config['usecategories']) ? false : $this->config['usecategories'],
+            'uncat'=>!empty($this->config['uncat']) ? $this->config['uncat'] : gt('Not Categorized'),
+            'groups'=>!isset($this->params['gallery']) ? array() : array($this->params['gallery']),
+            'controller'=>$this->baseclassname,
+            'action'=>$this->params['action'],
+            'src'=>$this->loc->src,
+            'columns'=>array(
+                gt('Title')=>'title'
+            ),
+        ));
+
+        assign_to_template(array(
+            'page'=>$page,
+        ));
+    }
+
+    function delete_multi_act() {
+        foreach ($this->params['pic'] as $pic_id=>$value) {
+            $obj = new photo($pic_id);
+            $obj->delete();
         }
         expHistory::back();
     }

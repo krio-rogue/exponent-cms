@@ -2,7 +2,7 @@
 
 ##################################################
 #
-# Copyright (c) 2004-2014 OIC Group, Inc.
+# Copyright (c) 2004-2016 OIC Group, Inc.
 #
 # This file is part of Exponent
 #
@@ -58,7 +58,7 @@ class popupdatetimecontrol extends formcontrol {
 //	}
 
 	function controlToHTML($name,$label) {
-        $idname = str_replace(array('[',']',']['),'_',$name);
+        $idname = createValidId($name);
 		if ($this->default == 0) {
 			$this->default = time();
 		}
@@ -77,7 +77,7 @@ class popupdatetimecontrol extends formcontrol {
         $img .= "\n";
 
         $html = "";
-		$html .= '<input type="hidden" name="' . $name . '" id="' . $idname . ($this->focus?' autofocus':'') . '" value="' . ($this->default) . '" />';
+		$html .= '<input type="hidden" name="' . $name . '" id="' . $idname . '"' . ($this->focus?' autofocus':'') . '" value="' . ($this->default) . '" />';
 		$html .= "\n";
 		$html .= '<span class="';
 		if ($this->disabled) $html .= 'datefield_disabled';
@@ -115,7 +115,7 @@ class popupdatetimecontrol extends formcontrol {
                 }
             }
 
-            YUI(EXPONENT.YUI3_CONFIG).use('gallery-calendar','datatype-date',function(Y){
+            YUI(EXPONENT.YUI3_CONFIG).use('*',function(Y){
                 var today = new Date(".$this->default."*1000);
 
                 //Popup
@@ -153,7 +153,7 @@ class popupdatetimecontrol extends formcontrol {
 
         expJavascript::pushToFoot(array(
             "unique"  => 'popcal' . $idname,
-            "yui3mods"=> 1,
+            "yui3mods"=> "gallery-calendar,datatype-date",
             "content" => $script,
         ));
 		return $html;
@@ -175,6 +175,8 @@ class popupdatetimecontrol extends formcontrol {
      * @return string
      */
     static function templateFormat($db_data, $ctl) {
+        if (empty($db_data))
+            return gt('No Date Set');
 		if ($ctl->showtime) {
 //			return strftime(DISPLAY_DATETIME_FORMAT,$db_data);
             $datetime = strftime(DISPLAY_DATETIME_FORMAT, $db_data);
@@ -199,8 +201,8 @@ class popupdatetimecontrol extends formcontrol {
 		$form->register("identifier",gt('Identifier/Field'),new textcontrol($object->identifier));
 		$form->register("caption",gt('Caption'), new textcontrol($object->caption));
 		$form->register("showtime",gt('Show Time'), new checkboxcontrol($object->showtime,false));
-
-		$form->register("submit","",new buttongroupcontrol(gt('Save'),"",gt('Cancel'),"",'editable'));
+		if (!expJavascript::inAjaxAction())
+			$form->register("submit","",new buttongroupcontrol(gt('Save'),"",gt('Cancel'),"",'editable'));
 		return $form;
 	}
 
@@ -210,7 +212,7 @@ class popupdatetimecontrol extends formcontrol {
 			$object->default = 0;
 		}
 		if ($values['identifier'] == "") {
-			$post = $_POST;
+			$post = expString::sanitize($_POST);
 			$post['_formError'] = gt('Identifier is required.');
 			expSession::set("last_POST",$post);
 			return null;

@@ -2,7 +2,7 @@
 
 ##################################################
 #
-# Copyright (c) 2004-2014 OIC Group, Inc.
+# Copyright (c) 2004-2016 OIC Group, Inc.
 #
 # This file is part of Exponent
 #
@@ -29,11 +29,8 @@ class dropdowncontrol extends formcontrol {
 
     var $items = array();
     var $size = 1;
-    var $jsHooks = array();
     var $include_blank = false;
     var $type = 'select';
-    var $class = '';
-    var $multiple = false;
 
     static function name() { return "Drop Down List"; }
     static function isSimpleControl() { return true; }
@@ -52,9 +49,9 @@ class dropdowncontrol extends formcontrol {
     }
     
     function controlToHTML($name,$label=null) {
-        $inputID  = (!empty($this->id)) ? ' id="'.$this->id.'"' : (!empty($name)?' id="'.$name.'"':"");
+        $idname  = (!empty($this->id)) ? ' id="'.$this->id.'"' : (!empty($name)?' id="'.$name.'"':"");
         $disabled = $this->disabled != false ? "disabled" : "";
-        $html = '<select'.$inputID.' name="' . $name;
+        $html = '<select'.$idname.' name="' . $name;
         if ($this->multiple) $html.= '[]';
         $html .= '" size="' . $this->size . '"';
         $html .= ' class="'.$this->class.' select form-control '.$disabled.'"';
@@ -68,12 +65,19 @@ class dropdowncontrol extends formcontrol {
         }
         if (!empty($this->multiple)) $html .= ' multiple';
         if (!empty($this->onchange)) $html .= ' onchange="'.$this->onchange.'" ';
+        if (!empty($this->style)) $html .= ' style="' . $this->style . '"';
         $html .= '>';
 
         if (is_bool($this->include_blank) && $this->include_blank == true) {
-            $html .= '<option value=""></option>';
+            $html .= '<option value=""';
+            if (empty($this->default))
+                $html .= ' selected';
+            $html .= '></option>';
         } elseif (is_string($this->include_blank) && !empty($this->include_blank)) {
-            $html .= '<option value="">'.$this->include_blank.'</option>';
+            $html .= '<option value=""';
+            if (empty($this->default))
+                $html .= ' selected';
+            $html .= '>'.$this->include_blank.'</option>';
         }
 
         if (!empty($this->items)) foreach ($this->items as $value=>$caption) {
@@ -81,7 +85,7 @@ class dropdowncontrol extends formcontrol {
             if (is_array($this->default)) {
                 if (in_array($value, $this->default)) $html .= " selected";
             } else {
-                if (!empty($this->default) && $value == $this->default) $html .= " selected";
+                if ($value == $this->default && !empty($this->default)) $html .= " selected";
             }
             $html .= '>' . $caption . '</option>';
         }
@@ -110,13 +114,14 @@ class dropdowncontrol extends formcontrol {
         $form->register("default",gt('Default'), new textcontrol($object->default));
         $form->register("size",gt('Size'), new textcontrol($object->size,3,false,2,"integer"));
         $form->register("required", gt('Make this a required field.'), new checkboxcontrol($object->required,true));
-        $form->register("submit","",new buttongroupcontrol(gt('Save'),'',gt('Cancel'),"",'editable'));
+        if (!expJavascript::inAjaxAction())
+            $form->register("submit","",new buttongroupcontrol(gt('Save'),'',gt('Cancel'),"",'editable'));
         return $form;
     }
     
     static function update($values, $object) {
         if ($values['identifier'] == "") {
-            $post = $_POST;
+            $post = expString::sanitize($_POST);
             $post['_formError'] = gt('Identifier is required.');
             expSession::set("last_POST",$post);
             return null;

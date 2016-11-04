@@ -1,5 +1,5 @@
 {*
- * Copyright (c) 2004-2014 OIC Group, Inc.
+ * Copyright (c) 2004-2016 OIC Group, Inc.
  *
  * This file is part of Exponent
  *
@@ -21,6 +21,10 @@
         <h2>{'Facebook Settings'|gettext}</h2>
 	</div>
 </div>
+{group label='Facebook Meta Tags'|gettext}
+    {control type="checkbox" name="disable_facebook_meta" label="Disable Facebook Meta Tags"|gettext value=1 checked=$config.disable_facebook_meta description='Disables \'Facebook og:xxx\' meta tags on page'|gettext}
+    {control type="files" name="fbimage" subtype=fbimage label="Default Meta Image"|gettext value=$config.expFile folder=$config.upload_folder limit=1 description='Module Default Image for social media (1200px x 630px or 600px x 315px, but larger than 200px x 200px)'|gettext}
+{/group}
 {group label='Auto Facebook Status Posting'|gettext}
     {control type="checkbox" name="enable_auto_status" label="Enable Auto-Facebook Status"|gettext value=1 checked=$config.enable_auto_status description='Allows \'Facebook\'ing new items'|gettext}
     {group label='Facebook Account'|gettext}
@@ -31,13 +35,13 @@
         </blockquote>
         {control type="text" name="app_id" label="App ID"|gettext value=$config.app_id class=title}
         {control type="text" name="app_secret" label="App secret"|gettext value=$config.app_secret class=title}
-        {'Save these settings, then'|gettext} <a href="http://www.facebook.com/dialog/oauth?client_id={$config.app_id}&redirect_uri={urlencode($smarty.const.URL_FULL)}&scope=publish_stream,offline_access,publish_actions,user_photos,photo_upload,user_status,manage_pages,create_event" target="_blank">{'Establish Facebook Permissions'|gettext}</a>
+        {'Save these settings, then'|gettext} <a href="http://www.facebook.com/dialog/oauth?app_id={$config.app_id}&redirect_uri={urlencode($smarty.const.URL_FULL)}&scope=user_posts,user_events,user_photos,user_videos,manage_pages,publish_pages" target="_blank">{'Establish Facebook Permissions'|gettext}</a>
     {/group}
 {/group}
 {group label='Facebook Like Button'|gettext}
     {control type="checkbox" name="enable_facebook_like" label="Enable Facebook Like Button"|gettext value=1 checked=$config.enable_facebook_like description='Displays the \'Like\' button with each item'|gettext}
     {control type="dropdown" name="layout" items="Standard,Button Count,Box Count"|gettxtlist values=",button_count,box_count" label="Layout Style"|gettext value=$config.layout|default:""}
-    {control type="text" name="fblwidth" label="Width"|gettext filter=integer size=3 value=$config.fblwidth|default:"450"}
+    {control type="text" name="fblwidth" label="Width"|gettext filter=integer size=3 value=$config.fblwidth|default:"320"}
     {control type="checkbox" name="showfaces" label="Show Faces"|gettext value=1 checked=$config.showfaces}
     {control type="dropdown" name="font" items="Arial,Lucida Grande,Segoe UI,Tahoma,Trebuchet MS,Verdana" values="arial,lucida grande,segoe ui,tahoma,trebuchet ms,verdana" label="Font"|gettext value=$config.font|default:""}
     {control type="dropdown" name="color_scheme" items="Light,Dark"|gettxtlist values=",dark" label="Color Scheme"|gettext value=$config.color_scheme|default:""}

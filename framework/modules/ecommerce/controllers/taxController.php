@@ -2,7 +2,7 @@
 
 ##################################################
 #
-# Copyright (c) 2004-2014 OIC Group, Inc.
+# Copyright (c) 2004-2016 OIC Group, Inc.
 #
 # This file is part of Exponent
 #
@@ -23,13 +23,6 @@
 
 class taxController extends expController {
     public $basemodel_name = 'taxclass';
-
-    protected $add_permissions = array(
-        'manage_zones' => 'Manages Zones',
-        'edit_zone'    => 'Add/Edit Zone',
-        'update_zone'  => 'Update Zone',
-        'delete_zone'  => 'Delete Zone'
-    );
 
     static function displayname() {
         return gt("e-Commerce Tax Class Manager");
@@ -62,18 +55,21 @@ class taxController extends expController {
 
         $sql = "
             SELECT
-                " . DB_TABLE_PREFIX . "_tax_rate.id,
-                " . DB_TABLE_PREFIX . "_tax_zone.`name` AS zonename,
-                " . DB_TABLE_PREFIX . "_tax_rate.rate as rate,
-                " . DB_TABLE_PREFIX . "_tax_class.`name` AS classname,
-                " . DB_TABLE_PREFIX . "_geo_country.`name` as country,
-                " . DB_TABLE_PREFIX . "_geo_region.`name` as state
-            FROM " . DB_TABLE_PREFIX . "_tax_class
-                INNER JOIN " . DB_TABLE_PREFIX . "_tax_rate ON " . DB_TABLE_PREFIX . "_tax_class.id = " . DB_TABLE_PREFIX . "_tax_rate.class_id
-                INNER JOIN " . DB_TABLE_PREFIX . "_tax_zone ON " . DB_TABLE_PREFIX . "_tax_rate.zone_id = " . DB_TABLE_PREFIX . "_tax_zone.id
-                INNER JOIN " . DB_TABLE_PREFIX . "_tax_geo ON " . DB_TABLE_PREFIX . "_tax_geo.zone_id = " . DB_TABLE_PREFIX . "_tax_zone.id
-                LEFT JOIN " . DB_TABLE_PREFIX . "_geo_country ON " . DB_TABLE_PREFIX . "_tax_geo.country_id = " . DB_TABLE_PREFIX . "_geo_country.id
-                LEFT JOIN " . DB_TABLE_PREFIX . "_geo_region ON " . DB_TABLE_PREFIX . "_tax_geo.region_id = " . DB_TABLE_PREFIX . "_geo_region.id
+                " . $db->prefix . "tax_rate.id,
+                " . $db->prefix . "tax_zone.`name` AS zonename,
+                " . $db->prefix . "tax_rate.rate as rate,
+                " . $db->prefix . "tax_rate.shipping_taxed as shipping_taxed,
+                " . $db->prefix . "tax_rate.origin_tax as origin_tax,
+                " . $db->prefix . "tax_rate.inactive as inactive,
+                " . $db->prefix . "tax_class.`name` AS classname,
+                " . $db->prefix . "geo_country.`name` as country,
+                " . $db->prefix . "geo_region.`name` as state
+            FROM " . $db->prefix . "tax_class
+                INNER JOIN " . $db->prefix . "tax_rate ON " . $db->prefix . "tax_class.id = " . $db->prefix . "tax_rate.class_id
+                INNER JOIN " . $db->prefix . "tax_zone ON " . $db->prefix . "tax_rate.zone_id = " . $db->prefix . "tax_zone.id
+                INNER JOIN " . $db->prefix . "tax_geo ON " . $db->prefix . "tax_geo.zone_id = " . $db->prefix . "tax_zone.id
+                LEFT JOIN " . $db->prefix . "geo_country ON " . $db->prefix . "tax_geo.country_id = " . $db->prefix . "geo_country.id
+                LEFT JOIN " . $db->prefix . "geo_region ON " . $db->prefix . "tax_geo.region_id = " . $db->prefix . "geo_region.id
             ";
 
         return $db->selectObjectsBySql($sql);
@@ -94,6 +90,9 @@ class taxController extends expController {
             $record->class_id = $tax_rate->class_id;
             $record->classname = $tax_class->name;
             $record->rate = $tax_rate->rate;
+            $record->shipping_taxed = $tax_rate->shipping_taxed;
+            $record->origin_tax = $tax_rate->origin_tax;
+            $record->inactive = $tax_rate->inactive;
             $record->zone = $tax_rate->zone_id;
 //            $record->state = $tax_geo->region_id;
 //            $record->country = $tax_geo->country_id;
@@ -142,6 +141,9 @@ class taxController extends expController {
             $tax_rate->zone_id = $this->params['zone'];
             $tax_rate->class_id = $this->params['class'];
             $tax_rate->rate = $this->params['rate'];
+            $tax_rate->shipping_taxed = $this->params['shipping_taxed'];
+            $tax_rate->origin_tax = $this->params['origin_tax'];
+            $tax_rate->inactive = $this->params['inactive'];
             $db->insertObject($tax_rate, 'tax_rate');
 
             // Add data in the tax geo
@@ -162,6 +164,9 @@ class taxController extends expController {
             $tax_rate->zone_id = $this->params['zone'];
             $tax_rate->class_id = $this->params['class'];
             $tax_rate->rate = $this->params['rate'];
+            $tax_rate->shipping_taxed = $this->params['shipping_taxed'] == 1;
+            $tax_rate->origin_tax = $this->params['origin_tax'] == 1;
+            $tax_rate->inactive = $this->params['inactive'] == 1;
             $db->updateObject($tax_rate, 'tax_rate');
 
             // Update the Tax geo table
@@ -284,14 +289,14 @@ class taxController extends expController {
 
         $sql = "
             SELECT
-                " . DB_TABLE_PREFIX . "_tax_zone.id,
-                " . DB_TABLE_PREFIX . "_tax_zone.`name` AS name,
-                " . DB_TABLE_PREFIX . "_geo_country.`name` as country,
-                " . DB_TABLE_PREFIX . "_geo_region.`name` as state
-            FROM " . DB_TABLE_PREFIX . "_tax_zone
-                INNER JOIN " . DB_TABLE_PREFIX . "_tax_geo ON " . DB_TABLE_PREFIX . "_tax_geo.zone_id = " . DB_TABLE_PREFIX . "_tax_zone.id
-                LEFT JOIN " . DB_TABLE_PREFIX . "_geo_country ON " . DB_TABLE_PREFIX . "_tax_geo.country_id = " . DB_TABLE_PREFIX . "_geo_country.id
-                LEFT JOIN " . DB_TABLE_PREFIX . "_geo_region ON " . DB_TABLE_PREFIX . "_tax_geo.region_id = " . DB_TABLE_PREFIX . "_geo_region.id
+                " . $db->prefix . "tax_zone.id,
+                " . $db->prefix . "tax_zone.`name` AS name,
+                " . $db->prefix . "geo_country.`name` as country,
+                " . $db->prefix . "geo_region.`name` as state
+            FROM " . $db->prefix . "tax_zone
+                INNER JOIN " . $db->prefix . "tax_geo ON " . $db->prefix . "tax_geo.zone_id = " . $db->prefix . "tax_zone.id
+                LEFT JOIN " . $db->prefix . "geo_country ON " . $db->prefix . "tax_geo.country_id = " . $db->prefix . "geo_country.id
+                LEFT JOIN " . $db->prefix . "geo_region ON " . $db->prefix . "tax_geo.region_id = " . $db->prefix . "geo_region.id
             ";
 
         return $db->selectObjectsBySql($sql);

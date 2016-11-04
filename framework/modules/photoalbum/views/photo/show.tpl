@@ -1,5 +1,5 @@
 {*
- * Copyright (c) 2004-2014 OIC Group, Inc.
+ * Copyright (c) 2004-2016 OIC Group, Inc.
  *
  * This file is part of Exponent
  *
@@ -12,7 +12,7 @@
  * GPL: http://www.gnu.org/licenses/gpl.txt
  *
  *}
- 
+
 {css unique="photo-album" link="`$asset_path`css/photoalbum.css"}
 
 {/css}
@@ -47,6 +47,6 @@
         {img alt=$record->alt file_id=$record->expFile[0]->id w=$config.pa_showall_enlarged class="img-large float-`$float`" title=$record->alt|default:$record->title style="float:`$float`;"}
         {$record->body}
     </div>
-    
+
     {*{comments record=$record title="Comments"}*}
 </div>

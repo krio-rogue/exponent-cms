@@ -2,7 +2,7 @@
 
 ##################################################
 #
-# Copyright (c) 2004-2014 OIC Group, Inc.
+# Copyright (c) 2004-2016 OIC Group, Inc.
 #
 # This file is part of Exponent
 #
@@ -22,14 +22,15 @@
  */
 
 class billingController extends expController {
-    protected $add_permissions = array(
-        'activate'=>'Activate Payment Options'
+    protected $manage_permissions = array(
+        'select'=>'Select Feature',
+        'toggle'=>'Toggle Feature',
     );
-    
+
     static function displayname() { return gt("e-Commerce Billing Controller"); }
     static function description() { return ""; }
 	static function hasSources() { return false; }
-	
+
 	function selectBillingCalculator() {
 		$billing = new billing();
 		$billing->billingmethod->update($this->params);
@@ -45,12 +46,12 @@ class billingController extends expController {
 	}
 
 	function selectBillingOptions() {
-		
+
 	}
-	
+
 	function manage() {
 	    global $db;
-	    
+
 	    expHistory::set('manageable', $this->params);
 //	    $classes = array();
         $dir = BASE."framework/modules/ecommerce/billingcalculators";
@@ -67,8 +68,8 @@ class billingController extends expController {
                         if ($calcobj->isSelectable() == true) {
                             $obj = new billingcalculator(array(
                                 'title'=>$calcobj->name(),
-                                'user_title'=>$calcobj->title,
-                                'body'=>$calcobj->description(), 
+//                                'user_title'=>$calcobj->title,
+                                'body'=>$calcobj->description(),
                                 'calculator_name'=>$classname,
                                 'enabled'=>false));
                             $obj->save();
@@ -77,18 +78,19 @@ class billingController extends expController {
                 }
             }
         }
-        
+
         $bcalc = new billingcalculator();
         $calculators = $bcalc->find('all');
         assign_to_template(array(
             'calculators'=>$calculators
         ));
 	}
-	
-	public function activate(){	
+
+	public function activate(){
 	    if (isset($this->params['id'])) {
 	        $calc = new billingcalculator($this->params['id']);
 	        $calc->update($this->params);
+            //FIXME we need to ensure our default calculator is still active
 	        if ($calc->calculator->hasConfig() && empty($calc->config)) {
 	            flash('message', $calc->calculator->name().' '.gt('requires configuration. Please do so now.'));
 	            redirect_to(array('controller'=>'billing', 'action'=>'configure', 'id'=>$calc->id));
@@ -117,16 +119,17 @@ class billingController extends expController {
         $calc = new billingcalculator($this->params['id']);
         assign_to_template(array(
             'calculator'=>$calc,
-            'title'=>$this->displayname()
+            'title'=>static::displayname()
         ));
     }
-    
+
     public function saveconfig() {
         $calc = new billingcalculator($this->params['id']);
         $conf = serialize($calc->calculator->parseConfig($this->params));
         $calc->update(array('config'=>$conf));
         expHistory::back();
     }
+
 }
 
 ?>

@@ -1,7 +1,7 @@
 <?php
 ##################################################
 #
-# Copyright (c) 2004-2014 OIC Group, Inc.
+# Copyright (c) 2004-2016 OIC Group, Inc.
 #
 # This file is part of Exponent
 #
@@ -20,7 +20,7 @@
  *
  * This is the MySQLi-specific implementation of the database class.
  * @package Subsystems
- * @subpackage Database = mysqli
+ * @subpackage Database
  */
 /** @define "BASE" "../.." */
 
@@ -43,7 +43,6 @@ class mysqli_database extends database {
      *   a distinctly new connection handle to the server.
      */
 
-//	function connect ($username, $password, $hostname, $database, $new=false) {
 	function __construct($username, $password, $hostname, $database, $new=false) {
 		if (strstr($hostname,':')) {
 			list ( $host, $port ) = @explode (":", $hostname);
@@ -119,7 +118,8 @@ class mysqli_database extends database {
             $sql .= ", PRIMARY KEY ( `" . implode("` , `", $primary) . "`)";
         }
         if (count($fulltext)) {
-            $sql .= ", FULLTEXT ( `" . implode("` , `", $fulltext) . "`)";
+//            $sql .= ", FULLTEXT ( `" . implode("` , `", $fulltext) . "`)";
+            $sql .= ", FULLTEXT `" . $fulltext[0] . "`" . "( `" . implode("` , `", $fulltext) . "`)";
         }
         if (!empty($unique)) foreach ($unique as $key => $value) {
             $sql .= ", UNIQUE `" . $key . "` ( `" . implode("` , `", $value) . "`)";
@@ -180,7 +180,7 @@ class mysqli_database extends database {
                 if (!empty($def[DB_FULLTEXT])) $fulltext[] = $name;
                 if (isset($def[DB_INDEX]) && ($def[DB_INDEX] > 0)) {
                     if ($def[DB_FIELD_TYPE] == DB_DEF_STRING) {
-                        $index[$name] = $def[DB_INDEX];
+                          $index[$name] = $def[DB_INDEX];
                       } else {
                           $index[$name] = 0;
                       }
@@ -228,6 +228,38 @@ class mysqli_database extends database {
                 $sql = substr($sql, 0, -1);
                 @mysqli_query($this->connection, $sql);
             }
+
+            // alter any existing columns here
+            $diff_c = @expCore::array_diff_assoc_recursive($newdatadef, $dd);
+            $sql = "ALTER TABLE `" . $this->prefix . "$tablename` ";
+            $changed = false;
+            if (is_array($diff_c)) {
+                foreach ($diff_c as $name => $def) {
+                    if (!array_key_exists($name, $diff) && (isset($def[DB_FIELD_TYPE]) || isset($def[DB_FIELD_LEN]) || isset($def[DB_DEFAULT]) || isset($def[DB_INCREMENT]))) {  // wasn't a new column
+                        if ($dd[$name][DB_FIELD_TYPE] == DB_DEF_STRING) {
+                            //check for actual lengths vs. exp placeholder lengths
+                            $newlen = $newdatadef[$name][DB_FIELD_LEN];
+                            $len = $dd[$name][DB_FIELD_LEN];
+                            if ($len >= 16777216 && $newlen >= 16777216) {
+                                continue;
+                            }
+                            if ($len >= 65536 && $newlen >= 65536) {
+                                continue;
+                            }
+                            if ($len >= 256 && $newlen >= 256) {
+                                continue;
+                            }
+                        }
+                        $changed = true;
+                        $sql .= ' MODIFY ' . $this->fieldSQL($name,$newdatadef[$name]) . ",";
+                    }
+                }
+            }
+            if ($changed) {
+                $modified = true;
+                $sql = substr($sql, 0, -1);
+                @mysqli_query($this->connection, $sql);
+            }
         }
 
         //Add any new indexes & keys to the table
@@ -240,7 +272,11 @@ class mysqli_database extends database {
         }
         if (count($fulltext)) {
             if ($sep) $sql .= ' ,';
-            $sql .= " FULLTEXT ( `" . implode("` , `", $fulltext) . " `)";
+//            $sql .= " ADD FULLTEXT ( `" . implode("` , `", $fulltext) . "`)";
+            // drop the index first so we don't get dupes
+            $drop = "DROP INDEX " . $fulltext[0] . " ON " . $this->prefix . $tablename;
+            @mysqli_query($this->connection, $drop);
+            $sql .= " ADD FULLTEXT `" . $fulltext[0] . "`" . "( `" . implode("` , `", $fulltext) . "`)";
             $sep = true;
         }
         if (!empty($unique)) foreach ($unique as $key=>$value) {
@@ -256,7 +292,8 @@ class mysqli_database extends database {
 
             // re-add the index
             if ($sep) $sql .= ' ,';
-            $sql .= " ADD INDEX (`" . $key . "`)";
+//            $sql .= " ADD INDEX (`" . $key . "`)";  //FIXME we don't add column length??
+            $sql .= " ADD INDEX (`" . $key . "`" . (($value > 0) ? "(" . $value . ")" : "") . ")";
             $sep = true;
         }
         @mysqli_query($this->connection, $sql);
@@ -314,7 +351,7 @@ class mysqli_database extends database {
 	 * @param int|null $where
 	 * @return void
 	 */
-    function columnUpdate($table, $col, $val, $where=1) {         
+    function columnUpdate($table, $col, $val, $where=1) {
         $res = @mysqli_query($this->connection, "UPDATE `" . $this->prefix . "$table` SET `$col`='" . $val . "' WHERE $where");
         /*if ($res == null)
             return array();
@@ -342,6 +379,8 @@ class mysqli_database extends database {
     function selectObjects($table, $where = null, $orderby = null) {
         if ($where == null)
             $where = "1";
+        else
+            $where = $this->injectProof($where);
         if ($orderby == null)
             $orderby = '';
         else
@@ -351,7 +390,7 @@ class mysqli_database extends database {
         if ($res == null)
             return array();
         $objects = array();
-        for ($i = 0; $i < mysqli_num_rows($res); $i++)
+        for ($i = 0, $iMax = mysqli_num_rows($res); $i < $iMax; $i++)
             $objects[] = mysqli_fetch_object($res);
         return $objects;
     }
@@ -365,13 +404,13 @@ class mysqli_database extends database {
         if ($where == null)
             $where = "1";
 
-        $sql = "SELECT *, MATCH (title,body) AGAINST ('" . $terms . "') as score from " . $this->prefix . "search ";
-        $sql .= "WHERE MATCH(title,body) against ('" . $terms . "' IN BOOLEAN MODE) ORDER BY score DESC";
+        $sql = "SELECT *, MATCH (s.title, s.body) AGAINST ('" . $terms . "*') as score from " . $this->prefix . "search as s ";
+        $sql .= "WHERE MATCH (title, body) against ('" . $terms . "*' IN BOOLEAN MODE) ORDER BY score DESC";
         $res = @mysqli_query($this->connection, $sql);
         if ($res == null)
             return array();
         $objects = array();
-        for ($i = 0; $i < mysqli_num_rows($res); $i++)
+        for ($i = 0, $iMax = mysqli_num_rows($res); $i < $iMax; $i++)
             $objects[] = mysqli_fetch_object($res);
         return $objects;
     }
@@ -431,36 +470,40 @@ class mysqli_database extends database {
         if ($res == null)
             return array();
         $objects = array();
-        for ($i = 0; $i < mysqli_num_rows($res); $i++)
+        for ($i = 0, $iMax = mysqli_num_rows($res); $i < $iMax; $i++)
             $objects[] = mysqli_fetch_object($res);
         return $objects;
     }
 
 	/**
+     * Select a single object by sql
+     *
 	 * @param  $sql
 	 * @return null|void
 	 */
     function selectObjectBySql($sql) {
         //$logFile = "C:\\xampp\\htdocs\\supserg\\tmp\\queryLog.txt";
         //$lfh = fopen($logFile, 'a');
-        //fwrite($lfh, $sql . "\n");    
-        //fclose($lfh);                 
-        $res = @mysqli_query($this->connection, $sql);
+        //fwrite($lfh, $sql . "\n");
+        //fclose($lfh);
+        $res = @mysqli_query($this->connection, $this->injectProof($sql));
         if ($res == null)
             return null;
         return mysqli_fetch_object($res);
     }
 
 	/**
+     * Select a series of objects by sql
+     *
 	 * @param  $sql
 	 * @return array
 	 */
     function selectObjectsBySql($sql) {
-        $res = @mysqli_query($this->connection, $sql);
+        $res = @mysqli_query($this->connection, $this->injectProof($sql));
         if ($res == null)
             return array();
         $objects = array();
-        for ($i = 0; $i < mysqli_num_rows($res); $i++)
+        for ($i = 0, $iMax = mysqli_num_rows($res); $i < $iMax; $i++)
             $objects[] = mysqli_fetch_object($res);
         return $objects;
     }
@@ -486,7 +529,7 @@ class mysqli_database extends database {
         if ($res == null)
             return array();
         $resarray = array();
-        for ($i = 0; $i < mysqli_num_rows($res); $i++) {
+        for ($i = 0, $iMax = mysqli_num_rows($res); $i < $iMax; $i++) {
             $row = mysqli_fetch_array($res, MYSQLI_NUM);
             $resarray[$i] = $row[0];
         }
@@ -507,7 +550,7 @@ class mysqli_database extends database {
         if ($res == null)
             return 0;
         $resarray = array();
-        for ($i = 0; $i < mysqli_num_rows($res); $i++) {
+        for ($i = 0, $iMax = mysqli_num_rows($res); $i < $iMax; $i++) {
             $row = mysqli_fetch_array($res, MYSQLI_NUM);
             $resarray[$i] = $row[0];
         }
@@ -533,7 +576,7 @@ class mysqli_database extends database {
         if ($res == null)
             return array();
         $resarray = array();
-        for ($i = 0; $i < mysqli_num_rows($res); $i++) {
+        for ($i = 0, $iMax = mysqli_num_rows($res); $i < $iMax; $i++) {
             $row = mysqli_fetch_object($res);
             $resarray[$row->id] = $row->$col;
         }
@@ -597,6 +640,8 @@ class mysqli_database extends database {
     function selectObjectsIndexedArray($table, $where = null, $orderby = null) {
         if ($where == null)
             $where = "1";
+        else
+            $where = $this->injectProof($where);
         if ($orderby == null)
             $orderby = '';
         else
@@ -606,7 +651,7 @@ class mysqli_database extends database {
         if ($res == null)
             return array();
         $objects = array();
-        for ($i = 0; $i < mysqli_num_rows($res); $i++) {
+        for ($i = 0, $iMax = mysqli_num_rows($res); $i < $iMax; $i++) {
             $o = mysqli_fetch_object($res);
             $objects[$o->id] = $o;
         }
@@ -681,6 +726,7 @@ class mysqli_database extends database {
      * @return object/null|void
      */
     function selectObject($table, $where) {
+        $where = $this->injectProof($where);
         $res = mysqli_query($this->connection, "SELECT * FROM `" . $this->prefix . "$table` WHERE $where LIMIT 0,1");
         if ($res == null)
             return null;
@@ -694,8 +740,8 @@ class mysqli_database extends database {
 	 */
 	function lockTable($table,$lockType="WRITE") {
         $sql = "LOCK TABLES `" . $this->prefix . "$table` $lockType";
-       
-        $res = mysqli_query($this->connection, $sql); 
+
+        $res = mysqli_query($this->connection, $sql);
         return $res;
     }
 
@@ -704,11 +750,11 @@ class mysqli_database extends database {
 	 */
 	function unlockTables() {
         $sql = "UNLOCK TABLES";
-        
+
         $res = mysqli_query($this->connection, $sql);
         return $res;
     }
-    
+
 	/**
      * Insert an Object into some table in the Database
      *
@@ -722,7 +768,7 @@ class mysqli_database extends database {
      * @return int|void
      */
     function insertObject($object, $table) {
-        //if ($table=="text") eDebug($object,true); 
+        //if ($table=="text") eDebug($object,true);
         $sql = "INSERT INTO `" . $this->prefix . "$table` (";
         $values = ") VALUES (";
         foreach (get_object_vars($object) as $var => $val) {
@@ -732,7 +778,7 @@ class mysqli_database extends database {
                 if ($values != ") VALUES (") {
                     $values .= ",";
                 }
-                $values .= "'" . mysqli_real_escape_string($this->connection, $val) . "'";
+                $values .= "'" . $this->escapeString($val) . "'";
             }
         }
         $sql = substr($sql, 0, -1) . substr($values, 0) . ")";
@@ -782,7 +828,7 @@ class mysqli_database extends database {
             $object->revision_id++;
             //if ($table=="text") eDebug($object);
             $res = $this->insertObject($object, $table);
-            //if ($table=="text") eDebug($object,true); 
+            //if ($table=="text") eDebug($object,true);
             $this->trim_revisions($table, $object->$identifier, WORKFLOW_REVISION_LIMIT);
             return $res;
         }
@@ -792,19 +838,19 @@ class mysqli_database extends database {
             //if($is_revisioned && $var=='revision_id') $val++;
             if ($var{0} != '_') {
                 if (is_array($val) || is_object($val)) {
-                    $val = serialize($val);   
+                    $val = serialize($val);
                     $sql .= "`$var`='".$val."',";
                 } else {
-                    $sql .= "`$var`='".mysqli_real_escape_string($this->connection,$val)."',";
+                    $sql .= "`$var`='" . $this->escapeString($val) . "',";
                 }
             }
         }
         $sql = substr($sql, 0, -1) . " WHERE ";
         if ($where != null)
-            $sql .= $where;
+            $sql .= $this->injectProof($where);
         else
             $sql .= "`" . $identifier . "`=" . $object->$identifier;
-        //if ($table == 'text') eDebug($sql,true);        
+        //if ($table == 'text') eDebug($sql,true);
         $res = (@mysqli_query($this->connection, $sql) != false);
         return $res;
     }
@@ -976,7 +1022,7 @@ class mysqli_database extends database {
             return array();
         $res = @mysqli_query($this->connection, "DESCRIBE `" . $this->prefix . "$table`");
         $dd = array();
-        for ($i = 0; $i < mysqli_num_rows($res); $i++) {
+        for ($i = 0, $iMax = mysqli_num_rows($res); $i < $iMax; $i++) {
             $fieldObj = mysqli_fetch_object($res);
 
             $fieldObj->ExpFieldType = $this->getDDFieldType($fieldObj);
@@ -1008,7 +1054,7 @@ class mysqli_database extends database {
 
         $res = @mysqli_query($this->connection, "DESCRIBE `" . $this->prefix . "$table`");
         $dd = array();
-        for ($i = 0; $i < mysqli_num_rows($res); $i++) {
+        for ($i = 0, $iMax = mysqli_num_rows($res); $i < $iMax; $i++) {
             $fieldObj = mysqli_fetch_object($res);
 
             $field = array();
@@ -1016,6 +1062,14 @@ class mysqli_database extends database {
             if ($field[DB_FIELD_TYPE] == DB_DEF_STRING) {
                 $field[DB_FIELD_LEN] = $this->getDDStringLen($fieldObj);
             }
+            //additional field attributes
+            $default = $this->getDDDefault($fieldObj);
+            if ($default != null)
+                $field[DB_DEFAULT] = $default;
+            $field[DB_INCREMENT] = $this->getDDAutoIncrement($fieldObj);
+            $key = $this->getDDKey($fieldObj);
+            if ($key)
+                $field[$key] = true;
 
             $dd[$fieldObj->Field] = $field;
         }
@@ -1055,7 +1109,7 @@ class mysqli_database extends database {
     }
 
 	/**
-	 * Unescape a string based on the database connection
+	 * Escape a string based on the database connection
 	 * @param $string
 	 * @return string
 	 */
@@ -1081,6 +1135,8 @@ class mysqli_database extends database {
     function selectArrays($table, $where = null, $orderby = null) {
         if ($where == null)
             $where = "1";
+        else
+            $where = $this->injectProof($where);
         if ($orderby == null)
             $orderby = '';
         else
@@ -1090,7 +1146,7 @@ class mysqli_database extends database {
         if ($res == null)
             return array();
         $arrays = array();
-        for ($i = 0; $i < mysqli_num_rows($res); $i++)
+        for ($i = 0, $iMax = mysqli_num_rows($res); $i < $iMax; $i++)
             $arrays[] = mysqli_fetch_assoc($res);
         return $arrays;
     }
@@ -1106,12 +1162,12 @@ class mysqli_database extends database {
      * @param string $sql The name of the table/object to look at
      * @return array
      */
-    function selectArraysBySql($sql) {        
-        $res = @mysqli_query($this->connection, $sql);
+    function selectArraysBySql($sql) {
+        $res = @mysqli_query($this->connection, $this->injectProof($sql));
         if ($res == null)
             return array();
         $arrays = array();
-        for ($i = 0; $i < mysqli_num_rows($res); $i++)
+        for ($i = 0, $iMax = mysqli_num_rows($res); $i < $iMax; $i++)
             $arrays[] = mysqli_fetch_assoc($res);
         return $arrays;
     }
@@ -1136,6 +1192,8 @@ class mysqli_database extends database {
     function selectArray($table, $where = null, $orderby = null, $is_revisioned=false, $needs_approval=false) {
         if ($where == null)
             $where = "1";
+        else
+            $where = $this->injectProof($where);
         $as = '';
         if ($is_revisioned) {
    //            $where.= " AND revision_id=(SELECT MAX(revision_id) FROM `" . $this->prefix . "$table` WHERE $where)";
@@ -1153,7 +1211,7 @@ class mysqli_database extends database {
     }
 
     /**
-     * Select records from the database
+     * Instantiate objects from selected records from the database
      *
      * @param string $table The name of the table/object to look at
      * @param string $where Criteria used to narrow the result set.  If this
@@ -1174,6 +1232,8 @@ class mysqli_database extends database {
     function selectExpObjects($table, $where=null, $classname, $get_assoc=true, $get_attached=true, $except=array(), $cascade_except=false, $order=null, $limitsql=null, $is_revisioned=false, $needs_approval=false) {
         if ($where == null)
             $where = "1";
+        else
+            $where = $this->injectProof($where);
         $as = '';
         if ($is_revisioned) {
    //            $where.= " AND revision_id=(SELECT MAX(revision_id) FROM `" . $this->prefix . "$table` WHERE $where)";
@@ -1190,7 +1250,7 @@ class mysqli_database extends database {
             return array();
         $arrays = array();
         $numrows = mysqli_num_rows($res);
-        for ($i = 0; $i < $numrows; $i++) {
+        for ($i = 0; $i < $numrows; $i++) {  //FIXME this can run us out of memory with too many rows
             $assArr = mysqli_fetch_assoc($res);
             $assArr['except'] = $except;
             if($cascade_except) $assArr['cascade_except'] = $cascade_except;
@@ -1200,6 +1260,8 @@ class mysqli_database extends database {
     }
 
     /**
+     * Instantiate objects from selected records from the database
+
      * @param string $sql The sql statement to run on the model/classname
      * @param string $classname Can be $this->baseclassname
      * Returns an array of fields
@@ -1208,7 +1270,7 @@ class mysqli_database extends database {
      * @return array
      */
     function selectExpObjectsBySql($sql, $classname, $get_assoc=true, $get_attached=true) {
-        $res = @mysqli_query($this->connection, $sql);
+        $res = @mysqli_query($this->connection, $this->injectProof($sql));
         if ($res == null)
             return array();
         $arrays = array();
@@ -1232,7 +1294,7 @@ class mysqli_database extends database {
 		while($row = mysqli_fetch_object($res)) {
 			$records[] = $row->Field;
 		}
-		
+
 		return $records;
 	}
 

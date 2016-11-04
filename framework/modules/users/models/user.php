@@ -2,7 +2,7 @@
 
 ##################################################
 #
-# Copyright (c) 2004-2014 OIC Group, Inc.
+# Copyright (c) 2004-2016 OIC Group, Inc.
 #
 # This file is part of Exponent
 #
@@ -39,7 +39,8 @@ class user extends expRecord {
     );
 
     function __construct($params = null, $get_assoc = false, $get_attached = false) {
-        if (is_array($params) && isset($params['pass1'])) $params['password'] = $this->encryptPassword($params['pass1']);
+        if (is_array($params) && isset($params['pass1']))
+            $params['password'] = user::encryptPassword($params['pass1']);
         parent::__construct($params, $get_assoc, $get_attached);
         $this->getUserProfile();
         $this->groups = $this->getGroupMemberships();
@@ -101,21 +102,41 @@ class user extends expRecord {
             //Update the last login timestamp for this user.
             $user->updateLastLogin();
         }
-//		$obj = new stdClass();
-//		$obj->user_id = $user->id;
-//		$obj->timestamp = time();
-//		$obj->ip_address = exponent_users_getRealIpAddr();
-//		$obj->authenticated = $authenticated;
-//		$db->insertObject($obj, "user_loginAttempts");
-//
+        if (ENABLE_TRACKING) {
+            // save user login attempts
+    		$obj = new stdClass();
+    		$obj->user_id = $user->id;
+    		$obj->timestamp = time();
+    		$obj->ip_address = self::getRealIpAddr();
+    		$obj->authenticated = $authenticated;
+    		$db->insertObject($obj, "user_loginAttempts");
+        }
+
 //		return $user;
     }
 
     public function authenticate($password) {
-        if (MAINTENANCE_MODE && !$this->isAdmin()) return false; // if MAINTENANCE_MODE only allow admins
-        if (empty($this->id)) return false; // if the user object is null then fail the login
+        if (MAINTENANCE_MODE && !$this->isAdmin())
+            return false; // if MAINTENANCE_MODE only allow admins
+        if (empty($this->id))
+            return false; // if the user object is null then fail the login
         // check password, if account is locked, or is admin(account locking doesn't to administrators)
-        return (($this->is_admin == 1 || $this->is_locked == 0) && $this->password == md5($password)) ? true : false;
+//        return (($this->is_admin == 1 || $this->is_locked == 0) && $this->password == user::encryptPassword($password)) ? true : false;
+
+        // fallback if md5() correct but crypt() incorrect, then auto-update password once
+        if ($this->is_admin == 1 || $this->is_locked == 0) {
+            if ($this->password == user::encryptPassword($password, $this->password)) {
+                return true;
+            } elseif ($this->password == md5($password)) {
+                // convert old md5() password hash to more secure crypt() blowfish hash
+                $params['password'] = user::encryptPassword($password);
+                $params['is_admin'] = !empty($this->is_admin);
+                $params['is_acting_admin'] = !empty($this->is_acting_admin);
+                $this->update($params);
+                return true;
+            }
+        }
+        return false;
     }
 
     public function updateLastLogin() {
@@ -144,7 +165,7 @@ class user extends expRecord {
      * @return bool
      */
     public function isSystemAdmin() {
-        return $this->is_system_admin;
+        return $this->is_system_user;
     }
 
     /**
@@ -203,24 +224,55 @@ class user extends expRecord {
         if (empty($pass1) || empty($pass2)) {
             return gt('You must fill out both password fields.');
         } elseif ($pass1 != $pass2) {
-            return 'Your passwords do not match';
+            return 'The passwords do not match';
         }
 
         if (strcasecmp($this->username, $pass1) == 0) {
-            return gt('Your password cannot be the same as your username');
+            return gt('The password cannot be the same as the username');
         }
         # For example purposes, the next line forces passwords to be over 8 characters long.
-        if (strlen($pass1) < 8) {
-            return gt('Passwords must be at least 8 characters longs');
+//        if (strlen($pass1) < MIN_PWD_LEN) {
+//            return gt('Passwords must be at least') . ' ' . MIN_PWD_LEN . ' ' . gt('characters long');
+//        }
+        $pw_check = expValidator::checkPasswordStrength($pass1);
+        if (!empty($pw_check)) {
+            return $pw_check;
         }
 
         // if we get here the password must be good
-        $this->password = $this->encryptPassword($pass1);
+        $this->password = user::encryptPassword($pass1);
         return true;
     }
 
-    public function encryptPassword($password) {
-        return md5($password);
+    /**
+     * Generate password hash
+     *
+     * @param $password
+     * @return string
+     */
+    public static function encryptPassword($password, $salt = null) {
+        if (!defined('NEW_PASSWORD') || !NEW_PASSWORD) {
+            return md5($password);
+        } else {
+            if (empty($salt)) {
+                if (is_integer(NEW_PASSWORD) && NEW_PASSWORD > 0) {
+                    $cost = NEW_PASSWORD;
+                } else {
+                    $cost = 10;
+                }
+                $salt = substr(base64_encode(openssl_random_pseudo_bytes(17)), 0, 22);
+                $salt = str_replace("+", ".", $salt);
+                $salt = '$' . implode(
+                        '$',
+                        array(
+                            "2y",
+                            str_pad($cost, 2, "0", STR_PAD_LEFT),
+                            $salt
+                        )
+                    );
+            }
+            return crypt($password, $salt);
+        }
     }
 
     public function getGroupMemberships() {
@@ -249,7 +301,7 @@ class user extends expRecord {
 
         //FIXME who should get a slingbar? any non-view permissions? new group setting?
         // check userpermissions to see if the user has the ability to edit anything
-        if ($db->selectValue('userpermission', 'uid', 'uid=\'' . $this->id . '\' AND permission!=\'view\'')) return true;
+        if (!empty($this->id) && $db->selectValue('userpermission', 'uid', 'uid=\'' . $this->id . '\' AND permission!=\'view\'')) return true;
         // check groups to see if assigned groups have the ability to edit anything
         foreach ($this->groups as $group) {
             if ($db->selectValue('grouppermission', 'gid', 'gid=\'' . $group->id . '\' AND permission!=\'view\'')) return true;
@@ -260,6 +312,42 @@ class user extends expRecord {
 
     public function isTempUser() {
         return is_numeric(expUtil::right($this->username, 10)) ? true : false;
+    }
+
+    function getRealIpAddr()
+    {
+        if (!empty($_SERVER['HTTP_CLIENT_IP']))   //check ip from share internet
+        {
+          $ip=$_SERVER['HTTP_CLIENT_IP'];
+        }
+        elseif (!empty($_SERVER['HTTP_X_FORWARDED_FOR']))   //to check ip is pass from proxy
+        {
+          $ip=$_SERVER['HTTP_X_FORWARDED_FOR'];
+        }
+        else
+        {
+          $ip=$_SERVER['REMOTE_ADDR'];
+        }
+        return $ip;
+    }
+
+    public function customerInfo() {
+        global $db;
+
+        // build out a SQL query that gets all the data we need and is sortable.
+        $sql = 'SELECT o.*, b.firstname as firstname, b.billing_cost as total, b.middlename as middlename, b.lastname as lastname, os.title as status, ot.title as order_type ';
+        $sql .= 'FROM ' . $db->prefix . 'orders o, ' . $db->prefix . 'billingmethods b, ';
+        $sql .= $db->prefix . 'order_status os, ';
+        $sql .= $db->prefix . 'order_type ot ';
+        $sql .= 'WHERE o.id = b.orders_id AND o.order_status_id = os.id AND o.order_type_id = ot.id AND o.purchased > 0 AND user_id =' . $this->id;
+        $customer = new stdClass();
+        $customer->records = $db->selectObjectsBySql($sql);
+        $customer->total_orders = count($customer->records);
+        $customer->total_spent = 0;
+        foreach ($customer->records as $invoice) {
+            $customer->total_spent += $invoice->grand_total;
+        }
+        return $customer;
     }
 
     /** exdoc
@@ -409,10 +497,17 @@ class user extends expRecord {
              case "first":
                  $str = $u->firstname;
                  break;
+             case "last":
+                 $str = $u->lastname;
+                 break;
              case "username":
              default:
                  $str = $u->username;
                  break;
+            }
+            $str = trim($str);
+            if (empty($str)) {
+                $str = $u->username;
             }
         } else {
             $str = gt('Anonymous User');
@@ -428,7 +523,7 @@ class user extends expRecord {
      * @return bool
      */
     public function globalPerm($perm) {
-        if ($this->isAdmin()) return false;
+        if ($this->isAdmin()) return false;  //fixme might cause issues, admin users never tax exempt?
 //        $groups = $this->getGroupMemberships();
         foreach ($this->groups as $group) {
             if (!empty($group->$perm)) {

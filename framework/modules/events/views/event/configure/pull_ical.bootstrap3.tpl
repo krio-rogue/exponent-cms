@@ -1,5 +1,5 @@
 {*
- * Copyright (c) 2004-2014 OIC Group, Inc.
+ * Copyright (c) 2004-2016 OIC Group, Inc.
  *
  * This file is part of Exponent
  *
@@ -23,16 +23,23 @@
     	</div>
     </div>
     <h3>{"Add External iCal/ics Feeds"|gettext}</h3>
+    <blockquote>
+        {'External Event Cache requires setting up a server cron task such as:'|gettext}{br}
+        <code> curl -G -s {$smarty.const.URL_FULL}event/build_cache/title/CALENDAR_SEF_URL</code>
+    </blockquote>
     {*{control type="text" id="icalfeedmaker" name="icalfeedmaker" label="iCal Feed URL"|gettext}*}
     {control type=url id="icalfeedmaker" name="icalfeedmaker" label="iCal Feed URL"|gettext}
-    {if (BTN_SIZE == 'large')}
-        {$btn_size = ''}
+    {if $smarty.const.BTN_SIZE == 'large'}
+        {$btn_size = 'btn-lg'}
         {$icon_size = 'fa-lg'}
-    {elseif (BTN_SIZE == 'small')}
+    {elseif $smarty.const.BTN_SIZE == 'small'}
+        {$btn_size = 'btn-sm'}
+        {$icon_size = ''}
+    {elseif $smarty.const.BTN_SIZE == 'extrasmall'}
         {$btn_size = 'btn-xs'}
         {$icon_size = ''}
     {else}
-        {$btn_size = 'btn-sm'}
+        {$btn_size = ''}
         {$icon_size = 'fa-lg'}
     {/if}
     <a id="addtoicallist" class="btn btn-success {$btn_size}" href="#"><i class="fa fa-plus-circle {$icon_size}"></i> {'Add to list'|gettext}</a>{br}{br}
@@ -49,9 +56,9 @@
         <li id="noicalfeeds">{'You don\'t have any iCal feeds configured'|gettext}</li>
     </ul>
 
-    {script unique="icalfeedpicker3" yui3mods=1}
+    {script unique="icalfeedpicker3" yui3mods="node,io"}
     {literal}
-    YUI(EXPONENT.YUI3_CONFIG).use('node','io', function(Y) {
+    YUI(EXPONENT.YUI3_CONFIG).use('*', function(Y) {
         if (Y.one('#icalpull-feeds').get('children').size() > 1) Y.one('#noicalfeeds').setStyle('display','none');
         Y.one('#addtoicallist').on('click', function(e){
             e.halt();
@@ -75,7 +82,7 @@
             var list = Y.one('#icalpull-feeds');
             list.appendChild(newli);
 
-            $("input[type=color]").spectrum();
+//            $("input[type=color]").spectrum();
 
             feedtoadd = '';
         });

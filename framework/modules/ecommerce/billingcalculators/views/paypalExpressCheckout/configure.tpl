@@ -1,5 +1,5 @@
 {*
- * Copyright (c) 2004-2014 OIC Group, Inc.
+ * Copyright (c) 2004-2016 OIC Group, Inc.
  *
  * This file is part of Exponent
  *
@@ -25,14 +25,16 @@
         </ul>            
         <div class="yui-content">
 	        <div id="tab1">
+                {control type="checkbox" name="incontext" label="Enable In-Context Checkout?"|gettext value=1 checked=$calculator->configdata.incontext}
 	            {control type="text" name="username" label="API Username"|gettext value=$calculator->configdata.username}
 	            {control type="password" name="password" label="API Password"|gettext value=$calculator->configdata.password}
 	            {control type="text" name="signature" label="Signature"|gettext value=$calculator->configdata.signature}
 	            {control type="radiogroup" name="process_mode" label="Processing Mode"|gettext items="Sale, Authorization, Order"|gettxtlist values="Sale,Authorization,Order" default=$calculator->configdata.process_mode|default:'Sale'}
                 <ul>
                     <li><strong>{'Sale'|gettext}</strong> – {'the funds are credited to the merchants account immediately at the end of the checkout flow.'|gettext}</li>
-                    <li><strong>{'Authorization'|gettext}</strong> – {'the merchant obtains an authorization (a hold) for the transaction amount and the merchant then captures the funds against this authorization at a later date. Authorizations are valid for up to 3 days. The fund capture can then be done from the PayPal account.'|gettext}</li>
-                    <li><strong>{'Order'|gettext}</strong> – {'the merchant does not have a hold on the funds. The merchant has to authorize against the order and then capture the funds.'|gettext}</li>
+                    <li><strong>{'Authorization'|gettext}</strong> – {'the merchant obtains an authorization (a hold) for the transaction amount and the merchant must then capture the funds against this authorization at a later date. Authorization funds are held for up to 3 days and valid for up to 29 days.'|gettext}</li>
+                    <li><strong>{'Order'|gettext}</strong> – {'the merchant does not have a hold on the funds. The merchant must later authorize against the order and then capture the funds.'|gettext}</li>
+                    <li><strong style="color:red;">{'Note'|gettext}</strong>! {'There is no interface within Exponent to authorize or reauthorize transactions initiated by the Authorization and Order modes.'|gettext} <a href="https://developer.paypal.com/docs/classic/paypal-payments-standard/integration-guide/authcapture/" target="_blank">{'Using PayPal Authorization & Capture'|gettext}</a></li>
                 </ul>
                 <hr>
 	            {control type="checkbox" name="testmode" label="Enable Sandbox (Test) Mode?"|gettext value=1 checked=$calculator->configdata.testmode}
@@ -49,27 +51,13 @@
 	        </div>
 	        <div id="tab3">
 	            {control type="checkbox" name="email_admin" label="Send a notification that a new order was received?"|gettext value=1 checked=$calculator->configdata.email_admin}
-                {control type=email name="notification_addy" label="Email addresses to send notifications to (comma separated list of email addresses)"|gettext value=$calculator->configdata.notification_addy}
+                {control type=text name="notification_addy" label="Email addresses to send notifications to (comma separated list of email addresses)"|gettext value=$calculator->configdata.notification_addy}
 	        </div>
         </div>
     </div>
-	<div class="loadingdiv">{'Loading'|gettext}</div>
+	{*<div class="loadingdiv">{'Loading'|gettext}</div>*}
+    {loading}
 </div>
-
-{*{script unique="authtabs" yui3mods=1}*}
-{*{literal}*}
-    {*EXPONENT.YUI3_CONFIG.modules.exptabs = {*}
-        {*fullpath: EXPONENT.JS_RELATIVE+'exp-tabs.js',*}
-        {*requires: ['history','tabview','event-custom']*}
-    {*};*}
-
-	{*YUI(EXPONENT.YUI3_CONFIG).use('exptabs', function(Y) {*}
-        {*Y.expTabs({srcNode: '#paypal-tabs'});*}
-		{*Y.one('#paypal-tabs').removeClass('hide');*}
-		{*Y.one('.loadingdiv').remove();*}
-    {*});*}
-{*{/literal}*}
-{*{/script}*}
 
 {script unique="paypal-`$id`" jquery="jqueryui"}
 {literal}

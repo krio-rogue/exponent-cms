@@ -2,7 +2,7 @@
 
 ##################################################
 #
-# Copyright (c) 2004-2014 OIC Group, Inc.
+# Copyright (c) 2004-2016 OIC Group, Inc.
 #
 # This file is part of Exponent
 #
@@ -35,10 +35,12 @@
 function smarty_function_scaffold($params,&$smarty) {
 	if (isset($params['model']) ) {
 		global $db;
+        //load the {control} plugin
         foreach ($smarty->smarty->plugins_dir as $value) {
             $filepath = $value ."/function.control.php";
             if (file_exists($filepath)) {
                 require_once $filepath;
+                break;
             }
         }
 

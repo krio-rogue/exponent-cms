@@ -1,5 +1,5 @@
 {*
- * Copyright (c) 2004-2014 OIC Group, Inc.
+ * Copyright (c) 2004-2016 OIC Group, Inc.
  *
  * This file is part of Exponent
  *
@@ -26,16 +26,37 @@
 {/css}
 
 <div class="module cart confirm exp-ecom-table">
+    {$breadcrumb = [
+        0 => [
+            "title" => "{'Summary'|gettext}",
+            "link"  => makeLink(['controller'=>'cart','action'=>'show'])
+        ],
+        1 => [
+            "title" => "{'Sign In'|gettext}",
+            "link"  => ""
+        ],
+        2 => [
+            "title" => "{'Shipping/Billing'|gettext}",
+            "link"  => makeLink(['controller'=>'cart','action'=>'checkout'])
+        ],
+        3 => [
+            "title" => "{'Confirmation'|gettext}",
+            "link"  => ""
+        ],
+        4 => [
+            "title" => "{'Complete'|gettext}",
+            "link"  => ""
+        ]
+    ]}
+    {breadcrumb items=$breadcrumb active=3 style=flat}
     <h1>{ecomconfig var='checkout_title_top' default="Confirm Your Secure Order"|gettext}</h1>
-
     <div id="cart-message">{ecomconfig var='checkout_message_top' default=""}</div>
-{br}
     <div class="confirmationlinks">
         <a href="{if $nologin}{link controller=cart action=process nologin=1}{else}{link controller=cart action=process}{/if}"
-           class="{button_style color=green} next">
+           class="{button_style color=green size=large} next">
         {"Looks good, submit my order!"|gettext} &raquo;
         </a>
-        <a href="{securelink controller=cart action=checkout}" class="{button_style color=yellow} back">
+        <a href="{securelink controller=cart action=checkout}" class="{button_style color=yellow size=large} back">
             &laquo; {"Let me edit something"|gettext}
         </a>
     </div>
@@ -44,7 +65,7 @@
         <h2>{'Billing Information'|gettext}</h2>
 
         <div class="payment-info">
-        {$billinginfo}
+            {$billinginfo}
         </div>
         <div class="address-info">
             <table border="0" cellspacing="0" cellpadding="0">
@@ -56,7 +77,7 @@
                     </tr>
                 </thead>
                 <tbody>
-                    <tr class="even">
+                    <tr class="{cycle values="odd, even"}">
                         <td>
                         {$order->billingmethod[0]->addresses_id|address}
                         </td>
@@ -103,17 +124,17 @@
             </ul>
             <hr>
         {/foreach*}
-            {else}
+        {else}
             <table border="0" cellspacing="0" cellpadding="0">
                 <thead>
                     <tr>
                         <th>
-                            <strong>{$shipping->shippingmethod->option_title}</strong> to:
+                            <strong>{if !empty($shipping->shippingmethod->carrier)}{$shipping->shippingmethod->carrier} {/if}{$shipping->shippingmethod->option_title}</strong> to:
                         </th>
                     </tr>
                 </thead>
                 <tbody>
-                    <tr class="even">
+                    <tr class="{cycle values="odd, even"}">
                         <td>
                             {$shipping->shippingmethod->addresses_id|address}
                             {if $shipping->shippingmethod->to != "" || $shipping->shippingmethod->from != "" || $shipping->shippingmethod->message != ""}
@@ -130,7 +151,7 @@
         {/if}
     {/if}
 
-        <!--div {if $shipping->splitshipping == true}class="hide"{/if}>
+    <!--div {if $shipping->splitshipping == true}class="hide"{/if}>
     <h2>Are you sending this order as gift?:</h2>
     <p>If you are send this order as a gift to someone you can put a note to the recipient</p>
     </div-->
@@ -169,21 +190,22 @@
                     </tr>
                 </thead>
                 <tbody>
-                    <tr class="even">
+                    <tr class="{cycle values="odd, even"}">
                         <td class="right">{'Subtotal'|gettext}:</td>
                         <td class="totals subtotal">{$order->subtotal|currency}</td>
                     </tr>
                         {if $order->total_discounts > 0}
-                        <tr class="odd">
+                        <tr class="{cycle values="odd, even"}">
                             <td class="right">{'Discounts'|gettext}:</td>
                             <td class="totals discounts">-{$order->total_discounts|currency}</td>
                         </tr>
-                        <tr class="even">
+                        <tr class="{cycle values="odd, even"}">
                             <td class="right">{'Total'|gettext}:</td>
                             <td class="totals subtotal">{$order->total|currency}</td>
                         </tr>
                         {/if}
-                    <tr class="odd">
+                    {if !$order->shipping_taxed}
+                    <tr class="{cycle values="odd, even"}">
                         <td class="right">
                             {"Tax"|gettext} -
                             {foreach from=$order->taxzones item=zone}
@@ -194,29 +216,43 @@
                         </td>
                         <td class="totals tax">{$order->tax|currency}</td>
                     </tr>
+                    {/if}
                         {if $order->shipping_required == true}
-                        <tr class="even">
+                        <tr class="{cycle values="odd, even"}">
                             <td class="right">{'Shipping'|gettext}:</td>
                             <td class="totals shipping">{$order->shipping_total_before_discounts|currency}</td>
                         </tr>
                             {if $order->shippingDiscount > 0}
-                            <tr class="odd">
+                            <tr class="{cycle values="odd, even"}">
                                 <td class="right">{'Shipping'|gettext}<br/>{'Discount'|gettext}:</td>
                                 <td class="totals shipping">-{$order->shippingDiscount|currency}</td>
                             </tr>
-                            <tr class="even">
+                            <tr class="{cycle values="odd, even"}">
                                 <td class="right">{'Total Shipping'|gettext}:</td>
                                 <td class="totals shipping">{$order->shipping_total|currency}</td>
                             </tr>
                             {/if}
                         {/if}
                         {if $order->surcharge_total != 0}
-                        <tr class="even">
+                        <tr class="{cycle values="odd, even"}">
                             <td class="right">{'Freight Surcharge'|gettext}:</td>
                             <td class="totals shipping">{$order->surcharge_total|currency}</td>
                         </tr>
                         {/if}
-                    <tr class="odd">
+                    {if $order->shipping_taxed}
+                    <tr class="{cycle values="odd, even"}">
+                        <td class="right">
+                            {"Tax"|gettext} -
+                            {foreach from=$order->taxzones item=zone}
+                                {$zone->name} ({$zone->rate}%):
+                            {foreachelse}
+                                ({'N/A'|gettext}):
+                            {/foreach}
+                        </td>
+                        <td class="totals tax">{$order->tax|currency}</td>
+                    </tr>
+                    {/if}
+                    <tr class="{cycle values="odd, even"}">
                         <td class="right">{'Final Total'|gettext}:</td>
                         <td class="totals total">{$order->grand_total|currency}</td>
                     </tr>
@@ -227,12 +263,13 @@
     {/if}
     </div>
 {clear}
+    {br}
     <div class="confirmationlinks">
         <a href="{if $nologin}{link controller=cart action=process nologin=1}{else}{link controller=cart action=process}{/if}"
-            class="{button_style color=green} next">
+            class="{button_style color=green size=large} next">
             {"Looks good, submit my order!"|gettext} &raquo;
         </a>
-        <a href="{securelink controller=cart action=checkout}" class="{button_style color=yellow} back">
+        <a href="{securelink controller=cart action=checkout}" class="{button_style color=yellow size=large} back">
             &laquo; {"Let me edit something"|gettext}
         </a>
     </div>

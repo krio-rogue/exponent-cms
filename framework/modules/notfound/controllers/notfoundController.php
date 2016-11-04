@@ -2,7 +2,7 @@
 
 ##################################################
 #
-# Copyright (c) 2004-2014 OIC Group, Inc.
+# Copyright (c) 2004-2016 OIC Group, Inc.
 #
 # This file is part of Exponent
 #
@@ -45,8 +45,10 @@ class notfoundController extends expController {
 
         header(':', true, 404);
         $params = $router->params;
-        unset($params['controller']);
-        unset($params['action']);
+        unset(
+            $params['controller'],
+            $params['action']
+        );
         $terms = empty($params[0]) ? '' : $params[0];
         if (empty($terms) && !empty($params['title'])) $terms = $params['title'];
         expCSS::pushToHead(array(
@@ -60,12 +62,21 @@ class notfoundController extends expController {
         }
         $terms = htmlspecialchars($terms);
 
+        // check for server requested error documents here instead of treating them as a search request
+        if ($terms == SITE_404_FILE) {
+            self::handle_not_found();
+        } elseif ($terms == SITE_403_FILE) {
+            self::handle_not_authorized();
+        } elseif ($terms == SITE_500_FILE) {
+            self::handle_internal_error();
+        }
+
         $search = new search();
 		$page = new expPaginator(array(
 			'model'=>'search',
 			'controller'=>$this->params['controller'],
 			'action'=>$this->params['action'],
-			'records'=>$search->getSearchResults($terms),
+			'records'=>$search->getSearchResults($terms, false, 0, 30),
 			//'sql'=>$sql,
             'limit'=>10,
 			'order'=>'score',
@@ -81,8 +92,8 @@ class notfoundController extends expController {
 
     public static function handle_not_found() {
         header(':', true, 404);
-        echo '<h1>' . SITE_404_TITLE . '</h1><br />';
-        echo '<p>' . SITE_404_HTML . '</p>';
+        echo '<h1>', SITE_404_TITLE, '</h1><br />';
+        echo SITE_404_HTML;
     }
 
     public static function handle_not_authorized() {
@@ -92,7 +103,7 @@ class notfoundController extends expController {
 
     public static function handle_internal_error() {
         header(':', true, 500);
-        echo '<h1>' . gt('An Internal Server Error was Encountered!') . '</h1>';
+        echo '<h1>', gt('An Internal Server Error was Encountered!'), '</h1>';
     }
 
 }

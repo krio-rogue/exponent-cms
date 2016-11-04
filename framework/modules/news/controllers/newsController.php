@@ -2,7 +2,7 @@
 
 ##################################################
 #
-# Copyright (c) 2004-2014 OIC Group, Inc.
+# Copyright (c) 2004-2016 OIC Group, Inc.
 #
 # This file is part of Exponent
 #
@@ -26,6 +26,14 @@ class newsController extends expController {
         'showall'=>'Show all News',
         'tags'=>"Tags",
     );
+    protected $add_permissions = array(
+        'showUnpublished'=>'View Unpublished News',
+        'showExpired'=>'View Unpublished News',
+    );
+    protected $manage_permissions = array(
+        'import'=>'Import News Items',
+        'export'=>'Export News Items'
+    );
     public $remove_configs = array(
         'categories',
         'comments',
@@ -33,11 +41,6 @@ class newsController extends expController {
 //        'facebook',
 //        'twitter',
     );  // all options: ('aggregation','categories','comments','ealerts','facebook','files','pagination','rss','tags','twitter',)
-    protected $add_permissions = array(
-        'showUnpublished'=>'View Unpublished News',
-        'import'=>'Import News Items',
-        'export'=>'Export News Items'
-    );
 
     static function displayname() { return gt("News"); }
     static function description() { return gt("Display & manage news type content on your site."); }
@@ -58,7 +61,7 @@ class newsController extends expController {
             $limit = $this->params['limit'] == 'none' ? null : $this->params['limit'];
         } else {
             $limit = (isset($this->config['limit']) && $this->config['limit'] != '') ? $this->config['limit'] : 10;
-        }       
+        }
         $order = isset($this->config['order']) ? $this->config['order'] : 'publish DESC';
 
         // pull the news posts from the database
@@ -66,7 +69,7 @@ class newsController extends expController {
 
         // merge in any RSS news and perform the sort and limit the number of posts we return to the configured amount.
         if (!empty($this->config['pull_rss'])) $items = $this->mergeRssData($items);
-        
+
         // setup the pagination object to paginate the news stories.
         $page = new expPaginator(array(
             'records'=>$items,
@@ -78,11 +81,12 @@ class newsController extends expController {
             'src'=>$this->loc->src,
             'view'=>empty($this->params['view']) ? null : $this->params['view']
         ));
-            
+
         assign_to_template(array(
             'page'=>$page,
             'items'=>$page->records,
-            'rank'=>($order==='rank')?1:0
+            'rank'=>($order==='rank')?1:0,
+            'params'=>$this->params,
         ));
     }
 
@@ -127,21 +131,26 @@ class newsController extends expController {
 	}
 
     public function show() {
-//        global $db;
-
         expHistory::set('viewable', $this->params);
-
         // figure out if we're looking this up by id or title
         $id = null;
         if (isset($this->params['id'])) {
             $id = $this->params['id'];
         } elseif (isset($this->params['title'])) {
-            $id = $this->params['title'];
+            $id = expString::escape($this->params['title']);
         }
 
         $record = new news($id);
-//        $config = expUnserialize($db->selectValue('expConfigs','config',"location_data='".$record->location_data."'"));
+        if (empty($record->id))
+            redirect_to(array('controller'=>'notfound','action'=>'page_not_found','title'=>$this->params['title']));
+
         $config = expConfig::getConfig($record->location_data);
+        if (empty($this->config))
+            $this->config = $config;
+        if (empty($this->loc->src)) {
+            $r_loc = expUnserialize($record->location_data);
+            $this->loc->src = $r_loc->src;
+        }
 
         $order = !empty($config['order']) ? $config['order'] : 'publish DESC';
         if (strstr($order," ")) {
@@ -163,13 +172,14 @@ class newsController extends expController {
 
         assign_to_template(array(
             'record'=>$record,
-            'config'=>$config
+            'config'=>$config,
+            'params'=>$this->params
         ));
     }
 
     public function showUnpublished() {
         expHistory::set('viewable', $this->params);
-        
+
         // setup the where clause for looking up records.
         $where = parent::aggregateWhereClause();
         $where = "((unpublish != 0 AND unpublish < ".time().") OR (publish > ".time().")) AND ".$where;
@@ -190,48 +200,50 @@ class newsController extends expController {
                 gt('Status')=>'unpublish'
             ),
         ));
-            
+
         assign_to_template(array(
             'page'=>$page
         ));
     }
-    
+
     public function showExpired() {
         redirect_to(array('controller'=>'news', 'action'=>'showUnpublished','src'=>$this->params['src']));
     }
-    
+
 //    public function configure() {
 //        parent::configure();
 //        assign_to_template(array('sortopts'=>$this->sortopts));
 //    }
-    
-    public function saveConfig() { 
+
+    public function saveconfig() {
         if (!empty($this->params['aggregate']) || !empty($this->params['pull_rss'])) {
             if ($this->params['order'] == 'rank ASC') {
                 expValidator::failAndReturnToForm(gt('User defined ranking is not allowed when aggregating or pull RSS data feeds.'), $this->params);
             }
         }
-        
-        parent::saveConfig();
+
+        parent::saveconfig();
     }
-    
-    public function getRSSContent() {
+
+    public function getRSSContent($limit = 0) {
         // pull the news posts from the database
-        $order = isset($this->config['order']) ? $this->config['order'] : 'publish DESC';
-        $items = $this->news->find('all', $this->aggregateWhereClause(), $order);
+        $items = $this->news->find('all', $this->aggregateWhereClause(), isset($this->config['order']) ? $this->config['order'] : 'publish DESC', $limit);
 
         //Convert the newsitems to rss items
         $rssitems = array();
-        foreach ($items as $key => $item) { 
+        foreach ($items as $key => $item) {
             $rss_item = new FeedItem();
-            $rss_item->title = $item->title;
-            $rss_item->link = makeLink(array('controller'=>'news', 'action'=>'show', 'title'=>$item->sef_url));
-            $rss_item->description = $item->body;
+            $rss_item->title = expString::convertSmartQuotes($item->title);
+            $rss_item->link = $rss_item->guid = makeLink(array('controller'=>'news', 'action'=>'show', 'title'=>$item->sef_url));
+            $rss_item->description = expString::convertSmartQuotes($item->body);
             $rss_item->author = user::getUserById($item->poster)->firstname.' '.user::getUserById($item->poster)->lastname;
             $rss_item->authorEmail = user::getEmailById($item->poster);
 //            $rss_item->date = date(DATE_RSS,$item->publish_date);
             $rss_item->date = $item->publish_date;
             $rssitems[$key] = $rss_item;
+
+            if ($limit && count($rssitems) >= $limit)
+                break;
         }
         return $rssitems;
     }
@@ -243,7 +255,7 @@ class newsController extends expController {
      * @return array
      */
     private function mergeRssData($items) {
-        if (!empty($this->config['pull_rss'])) {    
+        if (!empty($this->config['pull_rss'])) {
             $RSS = new SimplePie();
 	        $RSS->set_cache_location(BASE.'tmp/rsscache');  // default is ./cache
 //	        $RSS->set_cache_duration(3600);  // default is 3600
@@ -269,7 +281,15 @@ class newsController extends expController {
                     $rssObject->isRss = true;
 					$t = explode(' • ',$rssObject->title);
 					$rssObject->forum = $t[0];
-					if (!empty($t[1])) $rssObject->topic = $t[1];
+					if (!empty($t[1])) {
+                        $rssObject->topic = $t[1];
+                    } else {
+                        $t = explode(' &bull; ',$rssObject->title);
+                        $rssObject->forum = $t[0];
+                        if (!empty($t[1])) {
+                            $rssObject->topic = $t[1];
+                        }
+                    }
                     $news[] = $rssObject;
                 }
             }
@@ -315,6 +335,82 @@ class newsController extends expController {
         if (isset($this->config['only_featured'])) $sql .= ' AND is_featured=1';
 
         return $sql;
+    }
+
+    /**
+     * Returns Facebook og: meta data
+     *
+     * @param $request
+     * @param $object
+     *
+     * @return null
+     */
+    public function meta_fb($request, $object, $canonical) {
+        $metainfo = array();
+        $metainfo['type'] = 'article';
+        if (!empty($object->body)) {
+            $desc = str_replace('"',"'",expString::summarize($object->body,'html','para'));
+        } else {
+            $desc = SITE_DESCRIPTION;
+        }
+        $metainfo['title'] = substr(empty($object->meta_fb['title']) ? $object->title : $object->meta_fb['title'], 0, 87);
+        $metainfo['description'] = substr(empty($object->meta_fb['description']) ? $desc : $object->meta_fb['description'], 0, 199);
+        $metainfo['url'] = empty($object->meta_fb['url']) ? $canonical : $object->meta_fb['url'];
+        $metainfo['image'] = empty($object->meta_fb['fbimage'][0]) ? '' : $object->meta_fb['fbimage'][0]->url;
+        if (empty($metainfo['image'])) {
+            if (!empty($object->expFile['images'][0]->is_image)) {
+                $metainfo['image'] = $object->expFile['images'][0]->url;
+            } else {
+                $config = expConfig::getConfig($object->location_data);
+                if (!empty($config['expFile']['fbimage'][0]))
+                    $file = new expFile($config['expFile']['fbimage'][0]);
+                if (!empty($file->id))
+                    $metainfo['image'] = $file->url;
+                if (empty($metainfo['image']))
+                    $metainfo['image'] = URL_BASE . MIMEICON_RELATIVE . 'generic_22x22.png';
+            }
+        }
+        return $metainfo;
+    }
+
+    /**
+     * Returns Twitter twitter: meta data
+     *
+     * @param $request
+     * @param $object
+     *
+     * @return null
+     */
+    public function meta_tw($request, $object, $canonical) {
+        $metainfo = array();
+        $metainfo['card'] = 'summary';
+        if (!empty($object->body)) {
+            $desc = str_replace('"',"'",expString::summarize($object->body,'html','para'));
+        } else {
+            $desc = SITE_DESCRIPTION;
+        }
+        $config = expConfig::getConfig($object->location_data);
+        if (!empty($object->meta_tw['twsite'])) {
+            $metainfo['site'] = $object->meta_tw['twsite'];
+        } elseif (!empty($config['twsite'])) {
+            $metainfo['site'] = $config['twsite'];
+        }
+        $metainfo['title'] = substr(empty($object->meta_tw['title']) ? $object->title : $object->meta_tw['title'], 0, 87);
+        $metainfo['description'] = substr(empty($object->meta_tw['description']) ? $desc : $object->meta_tw['description'], 0, 199);
+        $metainfo['image'] = empty($object->meta_tw['twimage'][0]) ? '' : $object->meta_tw['twimage'][0]->url;
+        if (empty($metainfo['image'])) {
+            if (!empty($object->expFile['images'][0]->is_image)) {
+                $metainfo['image'] = $object->expFile['images'][0]->url;
+            } else {
+                if (!empty($config['expFile']['twimage'][0]))
+                    $file = new expFile($config['expFile']['twimage'][0]);
+                if (!empty($file->id))
+                    $metainfo['image'] = $file->url;
+                if (empty($metainfo['image']))
+                    $metainfo['image'] = URL_BASE . MIMEICON_RELATIVE . 'generic_22x22.png';
+            }
+        }
+        return $metainfo;
     }
 
 //    function import() {

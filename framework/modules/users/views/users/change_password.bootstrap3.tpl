@@ -1,5 +1,5 @@
 {*
- * Copyright (c) 2004-2014 OIC Group, Inc.
+ * Copyright (c) 2004-2016 OIC Group, Inc.
  *
  * This file is part of Exponent
  *
@@ -27,35 +27,11 @@
         {control type="hidden" name="uid" value=$u->id}
         {control type="hidden" name="username" value=$u->username}
         {if $isuser}
-            {control type="password" name="password" label="Current Password"|gettext}
+            {control type="password" name="password" label="Current Password"|gettext required=1}
         {/if}
-        <div class="row">
-            {control class="col-sm-4" type="password" name="new_password1" label="Enter your new password"|gettext}
-            <div class="col-sm-4" style="padding-top: 8px;">
-                <div class="pwstrength_viewport_progress"></div>
-            </div>
-        </div>
-        {control type="password" name="new_password2" label="Confirm your new password"|gettext}
+        {control type="password" name="new_password1" class="col-sm-4" meter=1 label="Enter your new password"|gettext required=1}
+        {control type="password" name="new_password2" label="Confirm your new password"|gettext required=1}
         {br}
         {control type="buttongroup" submit="Change My Password"|gettext cancel="Cancel"|gettext}
     {/form}
 </div>
-
-{script unique="showlogin" jquery='pwstrength-bootstrap-1.2.2'}
-{literal}
-    $(document).ready(function () {
-        "use strict";
-        var options = {};
-        options.ui = {
-            container: ".change-password",
-            showVerdictsInsideProgressBar: true,
-            showErrors: true,
-            viewports: {
-                progress: ".pwstrength_viewport_progress",
-                errors: ".pwstrength_viewport_progress",
-            }
-        };
-        $('#new_password1').pwstrength(options);
-    });
-{/literal}
-{/script}

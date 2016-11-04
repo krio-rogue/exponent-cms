@@ -1,5 +1,5 @@
 {*
- * Copyright (c) 2004-2014 OIC Group, Inc.
+ * Copyright (c) 2004-2016 OIC Group, Inc.
  *
  * This file is part of Exponent
  *
@@ -22,6 +22,6 @@
         {control type="hidden" name="billingcalculator_id" value=$calcid}
         {$billing->form.$calcid}
         {*<button id="continue-checkout" type="submit" class="add-to-cart-btn {button_style}">{"Continue Checkout"|gettext}</button>*}
-        {control type="buttongroup" id="continue-checkout" class="add-to-cart-btn" submit="Continue Checkout"|gettext}
+        {control type="buttongroup" id="continue-checkout" class="shopping-cart" color=green size=large submit="Continue Checkout"|gettext}
     {/form}
 </div>

@@ -1,5 +1,5 @@
 {*
- * Copyright (c) 2004-2014 OIC Group, Inc.
+ * Copyright (c) 2004-2016 OIC Group, Inc.
  *
  * This file is part of Exponent
  *
@@ -26,6 +26,9 @@
         {if $permissions.create}
             {icon class=add action=edit rank=1 text="Add a Slide"|gettext}
             {icon class=add action=multi_add title="Quickly Add Many Images"|gettext text="Add Multiple Images"|gettext}
+        {/if}
+        {if $permissions.delete}
+            {icon class=delete action=delete_multi title="Delete Many Images"|gettext text="Delete Multiple Images"|gettext onclick='null;'}
         {/if}
         {if $permissions.manage}
             {if !$config.disabletags}
@@ -79,9 +82,9 @@
                         <a href="{$slide->link}">
                     {/if}
                     {if $config.quality==100}
-                        <img src="{$slide->expFile[0]->url}" class="slide-image" />
+                        <img src="{$slide->expFile[0]->url}" class="slide-image" alt="{$slide->alt}" />
                     {else}
-                        {img file_id=$slide->expFile[0]->id w=$config.width|default:350 h=$config.height|default:300 class="slide-image" far=TL f=jpeg q=$quality|default:75}
+                        {img file_id=$slide->expFile[0]->id w=$config.width|default:350 h=$config.height|default:300 class="slide-image" far=TL f=jpeg q=$quality|default:75 alt=$slide->alt}
                     {/if}
                     {if $slide->link}
                         </a>
@@ -122,36 +125,34 @@
 </div>
 
 {if $slides|@count > 1}
-{script unique="ss-`$name`" yui3mods="anim"}
+{script unique="ss-`$name`" yui3mods="gallery-yui-slideshow"}
 {literal}
+    EXPONENT.YUI3_CONFIG.modules = {
+        'gallery-yui-slideshow': {
+            fullpath: '{/literal}{$asset_path}js/yui3-slideshow.js{literal}',
+            requires: ['anim','node','slideshow-css'],
+        },
+        'slideshow-css': {
+            fullpath: EXPONENT.PATH_RELATIVE+'framework/modules/photoalbum/assets/css/yui3-slideshow.css',
+            type: 'css'
+        }
+    }
 
-EXPONENT.YUI3_CONFIG.modules = {
-	'gallery-yui-slideshow': {
-		fullpath: '{/literal}{$asset_path}js/yui3-slideshow.js{literal}',
-        requires: ['anim','node','slideshow-css'],
-    },
-    'slideshow-css': {
-        fullpath: EXPONENT.PATH_RELATIVE+'framework/modules/photoalbum/assets/css/yui3-slideshow.css',
-        type: 'css'
-	}
-}
-
-YUI(EXPONENT.YUI3_CONFIG).use('gallery-yui-slideshow', function(Y) {
-    var oSlideshow = new Y.Slideshow('#ss-{/literal}{$name}{literal} .slideshow-frame',
-    {
-        interval:{/literal}{$config.speed|default:5}000{literal},
-//        autoplay:{/literal}{$config.autoplay|default:true}{literal},
-        ti:'{/literal}{$config.anim_in|default:"fadeIn"}{literal}',
-        to:'{/literal}{$config.anim_out|default:"fadeOut"}{literal}',
-        duration:{/literal}{$config.duration|default:0.5}{literal},
-        nextButton:"#ss-{/literal}{$name}{literal} .next_slide",
-        previousButton:"#ss-{/literal}{$name}{literal} .prev_slide",
-        playButton:"#ss-{/literal}{$name}{literal} .play_slide",
-        pauseButton:"#ss-{/literal}{$name}{literal} .pause_slide",
-        pagination:"#ss-{/literal}{$name}{literal} .slideshow-pagination a"
+    YUI(EXPONENT.YUI3_CONFIG).use('*', function(Y) {
+        var oSlideshow = new Y.Slideshow('#ss-{/literal}{$name}{literal} .slideshow-frame',
+        {
+            interval:{/literal}{$config.speed|default:5}000{literal},
+    //        autoplay:{/literal}{$config.autoplay|default:true}{literal},
+            ti:'{/literal}{$config.anim_in|default:"fadeIn"}{literal}',
+            to:'{/literal}{$config.anim_out|default:"fadeOut"}{literal}',
+            duration:{/literal}{$config.duration|default:0.5}{literal},
+            nextButton:"#ss-{/literal}{$name}{literal} .next_slide",
+            previousButton:"#ss-{/literal}{$name}{literal} .prev_slide",
+            playButton:"#ss-{/literal}{$name}{literal} .play_slide",
+            pauseButton:"#ss-{/literal}{$name}{literal} .pause_slide",
+            pagination:"#ss-{/literal}{$name}{literal} .slideshow-pagination a"
+        });
     });
-});
-
 {/literal}
 {/script}
 {/if}

@@ -2,7 +2,7 @@
 
 ##################################################
 #
-# Copyright (c) 2004-2014 OIC Group, Inc.
+# Copyright (c) 2004-2016 OIC Group, Inc.
 #
 # This file is part of Exponent
 #
@@ -65,7 +65,7 @@ class fix_text_tabbedview extends upgradescript {
 		    $cn->internal = serialize($cloc);
 		    $cn->view = 'showall_tabbed';
 	        $db->updateObject($cn,'container');
-	        $modules_converted += 1;
+	        $modules_converted++;
 	    }
 
 		return ($modules_converted?$modules_converted:gt('No'))." ".gt("Text modules with tabbed view were updated.");

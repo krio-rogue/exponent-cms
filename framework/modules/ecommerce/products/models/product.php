@@ -2,7 +2,7 @@
 
 ##################################################
 #
-# Copyright (c) 2004-2014 OIC Group, Inc.
+# Copyright (c) 2004-2016 OIC Group, Inc.
 #
 # This file is part of Exponent
 #
@@ -61,7 +61,7 @@ class product extends expRecord {
 
     protected $attachable_item_types = array(
 //        'content_expCats'=>'expCat',
-//        'content_expComments'=>'expComment',
+        'content_expComments'=>'expComment',
 //        'content_expDefinableFields'=> 'expDefinableField',
         'content_expFiles'      => 'expFile',
         'content_expRatings'    => 'expRating',
@@ -89,6 +89,17 @@ class product extends expRecord {
             $this->expFile = $parent->expFile;
             //eDebug($this); 
         }
+
+        if (!empty($this->meta_fb))
+            $this->meta_fb = expUnserialize($this->meta_fb);
+        if (!empty($this->meta_fb['fbimage']) && !empty($this->expFile['fbimage'][0])) {
+            $this->meta_fb['fbimage'][0] = $this->expFile['fbimage'][0];
+//            unset($this->expFile['fbimage']);
+        }
+        if (!empty($this->meta_tw))
+            $this->meta_tw = expUnserialize($this->meta_tw);
+        if (!empty($this->meta_tw['twimage']) && !empty($this->meta_tw['twimage'][0]))
+            $this->meta_tw['twimage'][0] = new expFile($this->meta_tw['twimage'][0]);
 
         //sort the children by child_rank
         if ($this->hasChildren()) {
@@ -189,6 +200,7 @@ class product extends expRecord {
                 $params['qty'] += $this->minimum_order_quantity - ($qty + $qCheck);
                 $qty = $params['qty'];
             }
+            //FIXME adjust multiple quantity here
         } else {
             foreach ($params['children'] as $idKey => $childQty) {
                 $cprod = new childProduct($idKey);
@@ -218,51 +230,85 @@ class product extends expRecord {
                     $params['children'][$idKey] += $cprod->minimum_order_quantity - ($childQty + $qCheck);
                     //$qty = $params['qty'];
                 }
+                //FIXME adjust multiple quantity here for child products???
             }
         }
 
-        foreach ($this->optiongroup as $og) {
-            if ($og->required) {
-                $err = true;
-                if (!empty($params['options'][$og->id])) {
-                    foreach ($params['options'][$og->id] as $opt) {
-                        //eDebug($opt,true);
-                        //make sure at least one is not empty to cover both single and mult selects
-                        if (!empty($opt)) $err = false;
+        $optional_input = false;
+        if ($this->hasOptions()) {
+            if (empty($params['options_shown'])) {
+                $params['option_error'] = true;
+            } else {
+                $needs_input = false;
+                foreach ($this->optiongroup as $og) {
+                    if ($og->required) {
+                        $err = true;
+                        if (!empty($params['options'][$og->id])) {
+                            foreach ($params['options'][$og->id] as $opt) {
+                                //eDebug($opt,true);
+                                //make sure at least one is not empty to cover both single and mult selects
+                                if (!empty($opt)) {
+                                    $err = false;
+                                }
+                            }
+                        }
+                        if ($err) {
+                            $params['error'] .= gt('You must select an option from the') . ' ' . $og->title . ' ' . gt('options below before you can add this to your cart.') . ' <br/>';
+                            $params['option_error'] = true;
+                        }
+                    }
+                    //eDebug($og->title . ":" .$og->required);
+                    if ($og->input_needed) {
+                        $optional_input = true;
+                        foreach ($params['options'][$og->id] as $opt) {
+                            //see if the selected option requires user input
+                            $opt_input = new option($opt);
+                            if (!empty($opt_input->show_input)) {
+                                $needs_input = true;
+                            }
+                        }
                     }
                 }
-                if ($err) $params['error'] .= 'You must select an option from the ' . $og->title . ' options below before you can add it to your cart. <br/>';
             }
-            //eDebug($og->title . ":" .$og->required);
         }
-
-        $user_input_info = array();
         //check user input fields
         //$this->user_input_fields = expUnserialize($this->user_input_fields);
         //eDebug($this,true);
-        if (!empty($this->user_input_fields)) foreach ($this->user_input_fields as $uifkey => $uif) {
-            if ($uif['is_required'] || (!$uif['is_required'] && strlen($params['user_input_fields'][$uifkey]) > 0)) {
-                if (strlen($params['user_input_fields'][$uifkey]) < $uif['min_length']) {
-                    //flash('error', 'test');    
-                    //redirect_to(array('controller'=>cart, 'action'=>'displayForm', 'form'=>'addToCart', 'product_id'=>$this->id, 'product_type'=>$this->product_type));  
-                    $params['error'] .= $uif['name'] . ' field has a minimum requirement of ' . $uif['min_length'] . ' characters.<br/>';
-
-                } else if (strlen($params['user_input_fields'][$uifkey]) > $uif['max_length'] && $uif['max_length'] > 0) {
-                    //flash('error', );    
-                    //redirect_to(array('controller'=>cart, 'action'=>'displayForm', 'form'=>'addToCart', 'product_id'=>$this->id, 'product_type'=>$this->product_type));      
-                    $params['error'] .= $uif['name'] . ' field has a maximum requirement of ' . $uif['max_length'] . ' characters.<br/>';
+//        if (!empty($this->user_input_fields)) foreach ($this->user_input_fields as $uifkey => $uif) {
+        if ($this->hasUserInputFields()) {
+            if (($optional_input && $needs_input) | (!$optional_input && empty($params['input_shown']))) {
+                $params['input_error'] = true;
+            } else {
+                $user_input_info = array();
+                foreach ($this->user_input_fields as $uifkey => $uif) {
+                    if ($uif['is_required'] || (!$uif['is_required'] && strlen($params['user_input_fields'][$uifkey]) > 0)) {
+                        if (strlen($params['user_input_fields'][$uifkey]) < $uif['min_length']) {
+                            //flash('error', 'test');
+                            //redirect_to(array('controller'=>cart, 'action'=>'displayForm', 'form'=>'addToCart', 'product_id'=>$this->id, 'product_type'=>$this->product_type));
+                            $params['error'] .= $uif['name'] . ' ' . gt('field has a minimum requirement of') . ' ' . $uif['min_length'] . ' ' . gt('characters.') . '<br/>';
+                        } else {
+                            if (strlen(
+                                    $params['user_input_fields'][$uifkey]
+                                ) > $uif['max_length'] && $uif['max_length'] > 0
+                            ) {
+                                //flash('error', );
+                                //redirect_to(array('controller'=>cart, 'action'=>'displayForm', 'form'=>'addToCart', 'product_id'=>$this->id, 'product_type'=>$this->product_type));
+                                $params['error'] .= $uif['name'] . ' ' . gt('field has a maximum requirement of') . ' ' . $uif['max_length'] . ' ' . gt('characters.') . '<br/>';
+                            }
+                        }
+                    }
+                    $user_input_info[] = array($uif['name'] => $params['user_input_fields'][$uifkey]);
                 }
             }
-            $user_input_info[] = array($uif['name'] => $params['user_input_fields'][$uifkey]);
         }
 
         if ($orderid == null) {
-            if ($params['error'] != '') {
+            if ($params['error'] != '' || !empty($params['option_error']) || !empty($params['input_error'])) {
                 $this->displayForm('addToCart', $params);
                 return false;
             }
         } else {
-            if ($params['error'] != '') {
+            if ($params['error'] != '' || !empty($params['option_error']) || !empty($params['input_error'])) {
                 $this->displayForm('addToOrder', $params);
                 return false;
             }
@@ -333,7 +379,7 @@ class product extends expRecord {
                     $cost = $selected_option->modtype == '$' ? $selected_option->amount : $this->getBasePrice() * ($selected_option->amount * .01);
                     $cost = $selected_option->updown == '+' ? $cost : $cost * -1;
                     $price = $price + $cost;
-                    $options[] = array($selected_option->id, $selected_option->title, $selected_option->modtype, $selected_option->updown, $selected_option->amount);
+                    $options[] = array($selected_option->id, $selected_option->title, $selected_option->modtype, $selected_option->updown, $selected_option->amount, $selected_option->optionweight);
                 }
             }
         }
@@ -362,6 +408,7 @@ class product extends expRecord {
         eDebug($product->minimum_order_quantity);*/
 
         $item->quantity += is_numeric($params['qty']) && $params['qty'] >= $product->minimum_order_quantity ? $params['qty'] : $product->minimum_order_quantity;
+        //FIXME adjust multiple quantity here
         if ($item->quantity < 1) $item->quantity = 1;
         // eDebug($item->quantity,true);
         //eDebug($params);
@@ -494,12 +541,12 @@ class product extends expRecord {
             BASE . 'themes/' . DISPLAY_THEME . '/modules/ecommerce/products/views/product/',
             BASE . 'framework/modules/ecommerce/products/views/product/',
         );
-        if (expSession::get('framework') == 'bootstrap') {
+        if (bs2()) {
             $vars = array(
                 '.bootstrap',
                 '',
             );
-        } elseif (expSession::get('framework') == 'bootstrap3') {
+        } elseif (bs3(true)) {
             $vars = array(
                 '.bootstrap3',
                 '.bootstrap',
@@ -589,7 +636,7 @@ class product extends expRecord {
             if (!empty($this->childProduct) && count($this->childProduct) == 0) return false;
             else return true;
         } else {
-            //$sql = "SELECT id from " . DB_TABLE_PREFIX . "_product WHERE parent_id=" . $this->id;           
+            //$sql = "SELECT id from " . $db->prefix . "product WHERE parent_id=" . $this->id;
             $count = $db->countObjects("product", "parent_id=" . $this->id);
             //eDebug($count);
             //$count = $db->queryRows($sql);
@@ -637,9 +684,9 @@ class product extends expRecord {
             //if it's in a category already we leave it
             //flip check the arrays - if not in one, we add. if vice versa, we delete:
             foreach ($catArray as $cat) {
+                $assoc = new stdClass();
                 if (!in_array($cat, $curCats)) {
                     //create new
-                    $assoc = new stdClass();
                     $assoc->storecategories_id = $cat;
                     $assoc->product_id = $id;
                     $assoc->product_type = $product_type;
@@ -728,12 +775,11 @@ class product extends expRecord {
         //check if category is
     }
 
-//    public function paginationCallback($item)
-    public function paginationCallback(&$item) // (deprecated) moved call by reference to function, not caller
+    public function paginationCallback(&$item)
     {
-        $score = $item->score;
-        $item = $this;
-        $item->score = $score;
+        // add passed properties to the object and pass back an instantiated object
+        $item = (object) array_merge((array) $this, (array) $item);
+        $item = expCore::cast($item, 'product');
     }
 
     public function update($params = array()) {
@@ -744,11 +790,18 @@ class product extends expRecord {
             return;
         }
 
+//        if (empty($params['id'])) {
+//            eDebug($params);
+//            return;
+//        }
         //Get the product
-        $product = $db->selectObject('product', 'id =' . $params['id']);
+        if (isset($params['id']))
+            $product = $db->selectObject('product', 'id =' . $params['id']);
 
         //Get product files
-        if (empty($product)) $product = new stdClass();
+        if (empty($product))
+            $product = new stdClass();
+
         $product->expFile = $this->getProductFiles($params['id']);
         // eDebug($product, true);
 
@@ -767,7 +820,8 @@ class product extends expRecord {
             'userinput',
             'extrafields',
             'model',
-            'notes'
+            'notes',
+            'facebook'
         );
 
         foreach ($tab_loaded as $tab_key => $tab_item) {
@@ -812,6 +866,20 @@ class product extends expRecord {
             }
         }
 
+        if (isset($tab_loaded['facebook'])) {
+            //Facebook Tab
+            foreach ($params['facebook'] as $fbkey => $fbfield) {
+                if (!empty($fbfield)) {
+                    $fb_meta[$fbkey] = $params['facebook'][$fbkey];
+                }
+            }
+            if (is_array($fb_meta)) {
+                $product->meta_fb = serialize($fb_meta);
+            } else {
+                unset($product->meta_fb);
+            }
+        }
+
         //Check if we are copying and not just editing product
         if (isset($params['original_id'])) {
             // eDebug($product->id, true);
@@ -827,6 +895,9 @@ class product extends expRecord {
 
         if (isset($tab_loaded['options'])) {
             //Option Group Tab
+            $product->show_options = $params['options']['show_options'];
+            $product->segregate_options = $params['options']['segregate_options'];
+            parent::update($product);
             if (!empty($params['optiongroups'])) {
                 foreach ($params['optiongroups'] as $title => $group) {
                     if (isset($params['original_id']) && $params['original_id'] != 0) $group['id'] = ''; //for copying products
@@ -927,7 +998,7 @@ class product extends expRecord {
 
         $files = array();
         foreach ($expFilesObj as $item) {
-            $files[$item->subtype][] = $item->expfiles_id;
+            $files[$item->subtype][] = $item->expfiles_id;  //FIXME not sure why we are creating 2 array entries??
             $files[$item->subtype][] = "expFile[{$item->subtype}][]";
         }
 

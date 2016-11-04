@@ -1,5 +1,5 @@
 {*
- * Copyright (c) 2004-2014 OIC Group, Inc.
+ * Copyright (c) 2004-2016 OIC Group, Inc.
  *
  * This file is part of Exponent
  *
@@ -64,14 +64,15 @@
                 </div>
             </div>
         </div>
-	    <div class="loadingdiv">{"Loading Blog Item"|gettext}</div>
+	    {*<div class="loadingdiv">{"Loading Blog Item"|gettext}</div>*}
+        {loading title="Loading Blog Item"|gettext}
         {control type=buttongroup submit="Save Text"|gettext cancel="Cancel"|gettext}
     {/form}   
 </div>
 
-{script unique="blogtabs" yui3mods=1}
+{script unique="blogtabs" yui3mods="autocomplete,autocomplete-filters,autocomplete-highlighters,tabview"}
 {literal}
-	YUI(EXPONENT.YUI3_CONFIG).use('autocomplete','autocomplete-filters','autocomplete-highlighters','tabview', function(Y) {
+	YUI(EXPONENT.YUI3_CONFIG).use('*', function(Y) {
 	    var tabview = new Y.TabView({srcNode:'#editblog-tabs'});
 	    tabview.render();
 		Y.one('#editblog-tabs').removeClass('hide');

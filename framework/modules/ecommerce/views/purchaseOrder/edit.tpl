@@ -1,5 +1,5 @@
 {*
- * Copyright (c) 2004-2014 OIC Group, Inc.
+ * Copyright (c) 2004-2016 OIC Group, Inc.
  *
  * This file is part of Exponent
  *
@@ -96,9 +96,9 @@
     </table>
 </div>
 
-{script unique="purchase-orders" yui3mods=1}
+{script unique="purchase-orders" yui3mods="node,event,io"}
 {literal}
-YUI(EXPONENT.YUI3_CONFIG).use('node','event','io', function(Y) {
+YUI(EXPONENT.YUI3_CONFIG).use('*', function(Y) {
     var vendorSelect = Y.one('#vendorSelect');
     var addRow = Y.one('#addPOItem');
     var ctrlRow = Y.one('.controlrow');
@@ -117,7 +117,7 @@ YUI(EXPONENT.YUI3_CONFIG).use('node','event','io', function(Y) {
             },
             on: {
                 start: function(){
-                    vBody.setContent('<div class="loadingdiv">{/literal}{"Adding Vendor Information"|gettext}{literal}<div>');
+                    vBody.setContent('{/literal}{loading title="Adding Vendor Information"|gettext}{literal}');
                 },
                 complete: function(id, o, args){
                     var data = o.responseText; // Response data.
@@ -160,7 +160,7 @@ YUI(EXPONENT.YUI3_CONFIG).use('node','event','io', function(Y) {
             },
             on: {
                 start: function(){
-                    ctrlRow.get('parentNode').insert('<tr class="load"><td colspan="9"><div class="loadingdiv">{/literal}{"Adding Purchase Order Item"|gettext}{literal}<div></td></tr>',ctrlRow)
+                    ctrlRow.get('parentNode').insert('<tr class="load"><td colspan="9">{/literal}{loading title="Adding Purchase Order Item"|gettext}{literal}</td></tr>',ctrlRow)
                 },
                 complete: rowIOComplete
                 //end: Dispatch.end

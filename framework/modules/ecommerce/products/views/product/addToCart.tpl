@@ -1,5 +1,5 @@
 {*
- * Copyright (c) 2004-2014 OIC Group, Inc.
+ * Copyright (c) 2004-2016 OIC Group, Inc.
  *
  * This file is part of Exponent
  *
@@ -17,77 +17,52 @@
 
 {/css}
 {* eDebug var=$params *}
-{if isset($params.error)}
-    <div id="msg-queue" class="common msg-queue">
-        <ul class="queue error"><li>{$params.error}</li></ul>
-    </div>
-    {br}
+{if !empty($params.error)}
+    {message class=error text=$params.error|gettext}
 {/if}
 <div class="module cart add-to-cart"> 
     <h1>{$product->title}</h1>
-    {if $product->expFile.mainimage.0->id}
-        {img file_id=$product->expFile.mainimage.0->id w=150 class="prod-img"}
+    {if $product->expFile.mainimage[0]->id}
+        {img file_id=$product->expFile.mainimage[0]->id w=150 class="prod-img"}
     {/if}
     <blockquote>
-        <strong>{'Additional information is required before we can add to your cart'|gettext}</strong>
+        <strong>{'Additional information is required before we can add this to your cart'|gettext}</strong>
         {br}{br}
         {'If you are ordering multiple quantities of this item, the SAME information you select here will be applied to all of the items.'|gettext}&#160;&#160;
         {'If you would like different options or personalized fields for each item, please add them one at a time to your cart.'|gettext}
     </blockquote>
     {clear}
-    {form controller=cart action=addItem id="options-uifields"}
+    {form id="addtocart`$product->id`" controller=cart action=addItem}
         {control type="hidden" name="controller" value=cart}
-        {control type=hidden name=product_id value=$product->id}
-        {control type=hidden name=product_type value=$product->classname}			        
-        {control type=hidden name=options_shown value=$product->id}                    
-        {control type=hidden name=qty value=$params.quantity} 
+        {control type="hidden" name="product_id" value=$product->id}
+        {control type="hidden" name="product_type" value=$product->classname}
+        {control type="hidden" name="options_shown" value=$product->id}
+        {control type="hidden" name="qty" value=$params.quantity}
         {if isset($children)}
             {foreach from=$children key=child_id item=child}
                 {control type=hidden name="children[`$child_id`]" value=$child}
             {/foreach}
         {/if}
 
-        {if $product->hasOptions()}
-            <div class="product-options">
-                <h2>{$product->title} {'Options'|gettext}</h2>
-                {foreach from=$product->optiongroup item=og}
-                    {if $og->hasEnabledOptions()}
-                        <div class="option {cycle values="odd,even"}">
-                            {if $og->allow_multiple}
-                                {optiondisplayer product=$product options=$og->title view=checkboxes display_price_as=diff selected=$params.options}           
-                            {else}
-                                {if $og->required}
-                                    {*{$og->title}*}
-                                    {optiondisplayer product=$product options=$og->title view=dropdown display_price_as=diff selected=$params.options required=true}          
-                                {else}
-                                    {optiondisplayer product=$product options=$og->title view=dropdown display_price_as=diff selected=$params.options}          
-                                {/if}                                           
-                            {/if}
-                        </div> 
-                    {/if}
-                {/foreach}
-                <span style="font-variant:small-caps;">* {'Selection required'|gettext}.</span>
-            </div>
-        {/if}
-        
-        {if !empty($product->user_input_fields) && $product->user_input_fields|@count>0 }
-            <div class="user-input-fields">
-            <h2>{'Additional Information for'|gettext} {$product->title}</h2>
-            <blockquote>{'This item would like the following additional information. Items marked with an * are required:'|gettext}</blockquote>
-            {foreach from=$product->user_input_fields key=uifkey item=uif}  
-                <div class="user-input {cycle values="odd,even"}">
-                    {if $uif.use}                   
-                         {if $uif.is_required}
-                             {control type=text name="user_input_fields[`$uifkey`]" size=50 maxlength=$uif.max_length label=$uif.name|cat:':' required=$uif.is_required value=$params.user_input_fields.$uifkey}
-                         {else}
-                             {control type=text name="user_input_fields[`$uifkey`]" size=50 maxlength=$uif.max_length label=$uif.name|cat:':' required=$uif.is_required value=$params.user_input_fields.$uifkey}
-                         {/if}
-                         {if $uif.description != ''}{$uif.description}{/if}
-                    {/if}
-                </div>
+        {* NOTE display product options *}
+        {foreach $params.options as $ogkey=>$og}
+            {foreach $og as $optkey=>$opt}
+                {control type="hidden" name="options[`$ogkey`][`$optkey`]" value=$opt}
             {/foreach}
+        {/foreach}
+        {if !$product->show_options || !empty($params.option_error)}
+            {*{exp_include file="options.tpl"}*}
+            {include file="`$smarty.const.BASE`framework/modules/ecommerce/views/store/options.tpl"}
+            <div>
+                <strong>{'Total Cost of Options'|gettext}:</strong>
+                <span id="item-price">$0.00</span>
             </div>
         {/if}
-        {control type="buttongroup" submit="Add to cart"|gettext}
+
+        {* NOTE display product user input fields *}
+        {*{exp_include file="input_fields.tpl"}*}
+        {include file="`$smarty.const.BASE`framework/modules/ecommerce/views/store/input_fields.tpl"}
+        {br}
+        {control type="buttongroup" size=large color=blue submit="Add to cart"|gettext}
     {/form}
 </div>

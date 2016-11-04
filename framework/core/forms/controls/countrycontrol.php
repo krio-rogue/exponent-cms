@@ -2,7 +2,7 @@
 
 ##################################################
 #
-# Copyright (c) 2004-2014 OIC Group, Inc.
+# Copyright (c) 2004-2016 OIC Group, Inc.
 #
 # This file is part of Exponent
 #
@@ -28,6 +28,7 @@ if (!defined('EXPONENT')) exit('');
 class countrycontrol extends dropdowncontrol {
 
     static function name() { return "Drop Down List - Countries"; }
+
     static function isSimpleControl() {
         global $db;
 
@@ -100,13 +101,14 @@ class countrycontrol extends dropdowncontrol {
         $form->register("abbv", gt('Use abbreviations?'), new checkboxcontrol($object->abbv,true));
         $form->register("show_all", gt('Show all countries?'), new checkboxcontrol($object->show_all,true));
         $form->register("required", gt('Make this a required field.'), new checkboxcontrol($object->required,true));
-        $form->register("submit","",new buttongroupcontrol(gt('Save'),'',gt('Cancel'),"",'editable'));
+        if (!expJavascript::inAjaxAction())
+            $form->register("submit","",new buttongroupcontrol(gt('Save'),'',gt('Cancel'),"",'editable'));
         return $form;
     }
 
     static function update($values, $object) {
         if ($values['identifier'] == "") {
-            $post = $_POST;
+			$post = expString::sanitize($_POST);
             $post['_formError'] = gt('Identifier is required.');
             expSession::set("last_POST",$post);
             return null;

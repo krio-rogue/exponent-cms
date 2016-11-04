@@ -25,6 +25,45 @@ a img {
     display:none!important;
 }
 
+/* --- CKEditor Image2: Styles corresponding with config.image2_alignClasses and config.image2_captionedClass --- */
+
+.image-captioned
+{
+    margin-left: 0;
+    margin-right: 0;
+}
+
+.image-left {
+    float: left;
+    margin-left: .5em;
+    margin-right: 2em;
+}
+
+.image-right {
+    float: right;
+    margin-left: 2em;
+    margin-right: .5em;
+}
+
+.image-center {
+    text-align: center;
+}
+
+.image-center > figure {
+    display: inline-block;
+}
+
+/****************  loading div style  ***********************/
+
+.loadingdiv {
+	text-align  : center;
+	padding     : 20px 0 60px 0;
+	color       : #333;
+	font-weight : bold;
+	font-style  : italic;
+	background  : url(../images/loading1.gif) no-repeat 50% 50%;
+}
+
 /****************  common visitor-facing styles  ***********************/
 
 a.ajax,
@@ -34,6 +73,7 @@ a.export-pdf-link,
 a.subscribe-link,
 a.unsubscribe-link,
 a.cart,
+a.shopping-cart,
 a.logout,
 a.showall,
 a.readmore,
@@ -41,7 +81,9 @@ a.downloadfile,
 input.downloadfile,
 .button.uploadfile,
 a.report,
-a.view {
+a.view,
+.search-control > span > i.search,
+.search-control > span > i.ajax {
     padding:3px 3px 3px 20px;
 //    display:inline-block;
     *display:inline;
@@ -75,9 +117,17 @@ a.unsubscribe-link {
 	background:url(../images/deny.png) no-repeat 0 50%;
 }
 
-a.cart {
+a.cart,
+a.shopping-cart {
     padding:2px 0 2px 20px;
 	background:url(../../../modules/ecommerce/assets/images/view_cart.png) no-repeat 0 50%;
+}
+
+a.reply {
+	display    : inline-block;
+	zoom       : 1;
+	padding    : 4px 5px 4px 20px;
+	background : url(../images/backtolist.png) no-repeat 0 50%;
 }
 
 a.logout {
@@ -114,11 +164,13 @@ a.report {
     background: url(../images/report.png) no-repeat 0 50%;
 }
 
-a.view {
+a.view,
+.search-control > span > i.search {
     background: url(../images/view.png) no-repeat 0 50%;
 }
 
-a.ajax {
+a.ajax,
+.search-control > span > i.ajax {
     background: url(../images/ajax-loader.gif) no-repeat 0 50%;
 }
 
@@ -238,4 +290,22 @@ img.border {
 ul .slideshow-frame,
 ul .slideshow-frame li.slide {
 	list-style-type: none;
+}
+
+/****************  visual indicator for (inline) editable content  ***********************/
+.text.showall-inline [contenteditable="true"]:hover {
+	border-color     : darkgrey;
+	border-width     : thin;
+	border-style     : solid;
+	.border-radius(2px);
+	margin: -1px;
+}
+
+.text.showall-inline h1 [contenteditable="true"]:hover > p,
+.text.showall-inline h2 [contenteditable="true"]:hover > p,
+.text.showall-inline h3 [contenteditable="true"]:hover > p,
+.text.showall-inline h4 [contenteditable="true"]:hover > p,
+.text.showall-inline h5 [contenteditable="true"]:hover > p,
+.text.showall-inline h6 [contenteditable="true"]:hover > p {
+	margin: 0;
 }

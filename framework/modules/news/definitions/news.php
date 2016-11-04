@@ -2,7 +2,7 @@
 
 ##################################################
 #
-# Copyright (c) 2004-2014 OIC Group, Inc.
+# Copyright (c) 2004-2016 OIC Group, Inc.
 #
 # This file is part of Exponent
 #
@@ -41,6 +41,12 @@ return array(
 		DB_FIELD_TYPE=>DB_DEF_STRING,
 		DB_FIELD_LEN=>10000),
 	'meta_description'=>array(
+		DB_FIELD_TYPE=>DB_DEF_STRING,
+		DB_FIELD_LEN=>10000),
+    'meta_fb'=>array(
+   		DB_FIELD_TYPE=>DB_DEF_STRING,
+   		DB_FIELD_LEN=>10000),
+	'meta_tw'=>array(
 		DB_FIELD_TYPE=>DB_DEF_STRING,
 		DB_FIELD_LEN=>10000),
     'noindex'=>array(

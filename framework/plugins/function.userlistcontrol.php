@@ -2,7 +2,7 @@
 
 ##################################################
 #
-# Copyright (c) 2004-2014 OIC Group, Inc.
+# Copyright (c) 2004-2016 OIC Group, Inc.
 #
 # This file is part of Exponent
 #
@@ -42,7 +42,7 @@ function smarty_function_userlistcontrol($params, &$smarty) {
     $selected = isset($params['items']) ? $params['items'] : null;
     foreach ($users as $user) {
         if (!in_array($user->id, $selected)) {
-            //TODO should we display username w/ first/last name is parens or first/last name?
+            //TODO should we display username w/ first/last name in parens or first/last name?
             if (empty($user->lastname) && empty($user->firstname)) {
                 $allusers[$user->id] = "($user->username)";
             } else {

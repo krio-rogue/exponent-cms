@@ -1,7 +1,7 @@
 <?php
 ##################################################
 #
-# Copyright (c) 2004-2014 OIC Group, Inc.
+# Copyright (c) 2004-2016 OIC Group, Inc.
 #
 # This file is part of Exponent
 #
@@ -23,18 +23,17 @@
 class creditcard extends billingcalculator {
 
     function name() {
-        return 'Credit Card';
+        return gt('Credit Card');
     }
 
-    function hasConfig() {
-        return false;
-    }
+//    public $use_title = 'Credit Card';
+    public $payment_type = 'Credit Card';
+
+//    function hasConfig() {
+//        return false;
+//    }
 
     function hasUserForm() {
-        return false;
-    }
-
-    function isOffsite() {
         return false;
     }
 
@@ -42,18 +41,20 @@ class creditcard extends billingcalculator {
         return false;
     }
 
-    public $title = 'Credit Card';
-    public $payment_type = 'Credit Card';
-
-    public $cards = array("AmExCard" => "American Express", "DiscoverCard" => "Discover", "MasterCard" => "MasterCard", "VisaCard" => "Visa");
+    public $cards = array(
+        "AmExCard" => "American Express",
+        "DiscoverCard" => "Discover",
+        "MasterCard" => "MasterCard",
+        "VisaCard" => "Visa"
+    );
     public $card_images = array(
-        "AmExCard"     => "path/to/image.png",
-        "DiscoverCard" => "path/to/image.png",
-        "MasterCard"   => "path/to/image.png",
-        "VisaCard"     => "path/to/image.png"
+        "AmExCard"     => 'Amex.png',
+        "DiscoverCard" => 'Discover.png',
+        "MasterCard"   => 'Mastercard.png',
+        "VisaCard"     => 'Visa.png'
     );
 
-    function userForm() {
+    function userForm($config_object = null, $user_data = null) {
         // make sure we have some billing options saved.
         //if (empty($this->opts)) return false;
 
@@ -86,30 +87,61 @@ class creditcard extends billingcalculator {
         $cvvhelp = new htmlcontrol("<a href='http://en.wikipedia.org/wiki/Card_Verification_Value' target='_blank'>What's this?</a>");
         */
 
-        $cardtypes = new dropdowncontrol("", $this->getAvailableCards());
-        $cardnumber = new textcontrol("", 20, false, 20, "integer", true);
-        $expiration = new monthyearcontrol("", "");
-        $cvv = new textcontrol("", 4, false, 4, "integer", true);
         //$cvvhelp = new htmlcontrol("<a href='http://en.wikipedia.org/wiki/Card_Verification_Value' target='_blank'>What's this?</a>");
 
-        $cardtypes->id = "cc_type";
-        $cardnumber->id = "cc_number";
-        $expiration->id = "expiration";
-        $cvv->id = "cvv";
-        $cvv->size = 5;
-        //$cvvhelp->id = "cvvhelp";
+        $form .= '<div class="' . $this->calculator_name . ' credit-cards control form-group"><label class="' . (bs3()?'control-label col-sm-2':'label') . '"></label>';
+        if (bs3()) {
+            $form .= '<div class="col-sm-10">';
+        }
+        foreach ($this->getAvailableCards() as $key=>$card) {
+            $form .= '<img id="' . $key . '" src="'.PATH_RELATIVE . 'framework/modules/ecommerce/billingcalculators/icons/' . $this->card_images[$key] . '" title="' . gt('Click to select this card type') . '" />';
+        }
+        if (bs3()) {
+            $form .= '</div>';
+        }
+        $form .= '</div>';
 
+        $cardtypes = new dropdowncontrol("", $this->getAvailableCards());
+        $cardtypes->id = "cc_type_" . $this->calculator_name;
+        $cardtypes->horizontal = true;
+        //$cvvhelp->id = "cvvhelp";
         //FIXME we need to display/obtain user information if we are doing a quickPay checkout???
         //$form .= $fname->toHTML("First Name", "first_name");
         //$form .= $lname->toHTML("Last Name", "last_name");
-        $form .= $cardtypes->toHTML(gt("Card Type"), "cc_type");
+        $form .= $cardtypes->toHTML(gt("Card Type"), "cc_type_" . $this->calculator_name);
+
+        $cardnumber = new textcontrol("", 20, false, 20, "integer", true);
+        $cardnumber->id = "cc_number";
+        $cardnumber->horizontal = true;
         $form .= $cardnumber->toHTML(gt("Card #"), "cc_number");
+
         //$form .= "<strong class=\"example\">Example: 1234567890987654</strong>";
+
+        $expiration = new monthyearcontrol("", "");
+        $expiration->id = "expiration";
+        $expiration->horizontal = true;
         $form .= $expiration->toHTML(gt("Expiration"), "expiration");
+
+        $cvv = new textcontrol("", 4, false, 4, "integer", true);
+        $cvv->id = "cvv";
+        $cvv->size = 5;
+        $cvv->horizontal = true;
         $form .= $cvv->toHTML("CVV # <br /><a href='http://en.wikipedia.org/wiki/Card_Verification_Value' target='_blank'>" . gt('What\'s this?') . "</a>", 'cvv');
         //$form .= $cvvhelp->toHTML('', 'cvvhelp');
         //$form .= "<a class=\"exp-ecom-link-dis continue\" href=\"#\" id=\"checkoutnow\"><strong><em>Continue Checkout</em></strong></a>";
         //$form .= '<input id="cont-checkout" type="submit" value="Continue Checkout">';
+        // click card image to select card type
+        $src = "
+            $('." .$this->calculator_name  . ".credit-cards img').click(function() {
+                $('#cc_type_" . $this->calculator_name ."').val($(this).attr('id'));
+            });
+        ";
+        expJavascript::pushToFoot(array(
+            "unique"  => 'creditcard-' . $this->calculator_name,
+            "jquery"=> 1,
+            "content"=> $src,
+        ));
+
         return $form;
     }
 
@@ -117,9 +149,9 @@ class creditcard extends billingcalculator {
         if (empty($this->config)) {
             return;
         }
-        $configdata = unserialize($this->config);
-        $avaiablecards = array();
-        foreach ($configdata['accepted_cards'] as $card) {
+        $config = unserialize($this->config);
+        $availablecards = array();
+        if (!empty($config['accepted_cards'])) foreach ($config['accepted_cards'] as $card) {
             $availablecards[$card] = $this->cards[$card];
         }
 
@@ -127,7 +159,7 @@ class creditcard extends billingcalculator {
     }
 
     //process user input. This function should return an object of the user input.
-    //the returnd object will be saved in the session and passed to post_process.
+    //the returned object will be saved in the session and passed to post_process.
     //If need be this could use another method of data storage, as long post_process can get the data.
     function userFormUpdate($params) {
         //eDebug($params);        
@@ -154,17 +186,21 @@ class creditcard extends billingcalculator {
     }
 
     //Should return html to display user data.
-    function userView($opts) {
+    function userView($billingmethod) {
+        $opts = expUnserialize($billingmethod->billing_options);
         if (empty($opts)) return false;
-        $html = '';
-        $html .= '<table id="ccinfo" border=0 cellspacing=0 cellpadding=0><thead>';
-        $html .= '<tr><th colspan="2">' . gt('You will be paying by') . ' ' . $this->payment_type . '</th></tr></thead>';
-        $html .= '<tbody><tr class="odd"><td class="left">' . gt('Type of Credit Card') . ': </td><td>' . $opts->cc_type . '</td></tr>';
-        $html .= '<tr class="even"><td class="left">' . gt('Credit Card Number') . ': </td><td>' . 'xxxx-xxxx-xxxx-' . substr($opts->cc_number, -4) . '</td></tr>';
-        $html .= '<tr class="odd"><td class="left">' . gt('Expires on') . ': </td><td>' . $opts->exp_month . '/' . $opts->exp_year . '</td></tr>';
-        $html .= '<tr class="even"><td class="left">' . gt('CVV/Security Number') . ': </td><td>' . $opts->cvv . '</td></tr>';
-        $html .= '<tbody></table>';
-        return $html;
+
+        $billinginfo = '<table id="ccinfo"' . (bs3()?' class=" table"':'') . ' border=0 cellspacing=0 cellpadding=0>';
+        $billinginfo .= '<thead><tr><th colspan="2">' . gt('Paying by') . ' ' . $this->name() . '</th></tr></thead>';
+        $billinginfo .= '<tbody>';
+        $billinginfo .= '<tr class="odd"><td class="pmt-label">' . gt('Type of Credit Card') . ': </td><td class="pmt-value">' . $this->cards[$opts->cc_type] . '</td></tr>';
+        $billinginfo .= '<tr class="even"><td class="pmt-label">' . gt('Credit Card Number') . ': </td><td class="pmt-value">' . 'xxxx-xxxx-xxxx-' . substr($opts->cc_number, -4) . '</td></tr>';
+        $billinginfo .= '<tr class="odd"><td class="pmt-label">' . gt('Expires on') . ': </td><td class="pmt-value">' . $opts->exp_month . '/' . $opts->exp_year . '</td></tr>';
+//        $billinginfo .= '<tr class="even"><td class="pmt-label">' . gt('CVV/Security Number') . ': </td><td class="pmt-value">' . $opts->cvv . '</td></tr>';
+        $billinginfo .= '</tbody>';
+        $billinginfo .= '</table>';
+
+        return $billinginfo;
     }
 
     /**
@@ -173,17 +209,17 @@ class creditcard extends billingcalculator {
      * from the url such that if we already have it we'll ccall another PP api to get the
      * details and make it match up to the order.
      *
-     * @param mixed $method The billing method information for this user
+     * @param mixed $billingmethod The billing method information for this user
      * @param mixed $opts
      * @param array $params The url prameters, as if sef was off.
      * @param       $order
      *
      * @return mixed An object indicating pass of failure.
      */
-    function preprocess($method, $opts, $params, $order) {
+    function preprocess($billingmethod, $opts, $params, $order) {
         //just save the opts
-        $method->update(array('billing_options' => serialize($opts)));
-        //eDebug($method,true);
+        $billingmethod->update(array('billing_options' => serialize($opts)));
+        //eDebug($billingmethod,true);
     }
 
     function validate_card_expire($mmyy) {
@@ -215,7 +251,6 @@ class creditcard extends billingcalculator {
         }
 
         return false;
-
     }
 
     function validate_card_type($cc_num, $type) {
@@ -259,7 +294,7 @@ class creditcard extends billingcalculator {
         }
         $card_number = strrev($card_number);
         $total = 0;
-        for ($i = 0; $i < strlen($card_number); $i++) {
+        for ($i = 0, $iMax = strlen($card_number); $i < $iMax; $i++) {
             $current_number = substr($card_number, $i, 1);
             if ($i % 2 == 1) {
                 $current_number *= 2;
@@ -273,6 +308,23 @@ class creditcard extends billingcalculator {
         }
         return ($total % 10 == 0);
     }
+
+    function formatCreditCard($cc, $cc_type) {
+        $cc = str_replace(array('-', ' '), '', $cc);
+        $cc_length = strlen($cc);
+        $newCreditCard = substr($cc, -4);
+
+        for ($i = $cc_length - 5; $i >= 0; $i--) {
+
+            if ((($i + 1) - $cc_length) % 4 == 0)
+                $newCreditCard = '-' . $newCreditCard;
+
+            $newCreditCard = $cc[$i] . $newCreditCard;
+        }
+
+        return $newCreditCard;
+    }
+
 }
 
 ?>

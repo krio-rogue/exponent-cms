@@ -1,5 +1,5 @@
 {*
- * Copyright (c) 2004-2014 OIC Group, Inc.
+ * Copyright (c) 2004-2016 OIC Group, Inc.
  *
  * This file is part of Exponent
  *
@@ -96,6 +96,6 @@
                 {/foreach}
             </tbody>
         </table>
-        {control type=buttongroup submit="Save Geography Configuration"|gettext cancel="Cancel"|gettext}
+        {control type=buttongroup submit="Save Location Configuration"|gettext cancel="Cancel"|gettext}
     {/form}
 </div>

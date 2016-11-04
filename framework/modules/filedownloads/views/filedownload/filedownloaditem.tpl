@@ -1,5 +1,5 @@
 {*
- * Copyright (c) 2004-2014 OIC Group, Inc.
+ * Copyright (c) 2004-2016 OIC Group, Inc.
  *
  * This file is part of Exponent
  *
@@ -39,7 +39,8 @@
             {if $item->ext_file}
                 <a class=downloadfile href="{$item->ext_file}" title="{'Download'|gettext}" target="_blank">{$item->title}</a>
             {else}
-                {icon action=downloadfile fileid=$item->id filenum=0 text=$item->title title="{'Download'|gettext}"}
+                {*{icon action=downloadfile fileid=$item->id filenum=0 text=$item->title title="{'Download'|gettext}"}*}
+                <a class="downloadfile {button_style}" href="{link action=downloadfile fileid=$item->id filenum=0}" title="{'Download'|gettext}">{$item->title}</a>
             {/if}
         </h3>
     {else}
@@ -56,20 +57,19 @@
             {if !$config.datetag}
                 <span class="label dated">{'Dated'|gettext}:</span>
                 <span class="value">{$item->$date|format_date}</span>
-                &#160;|&#160;
             {/if}
             {if $item->expFile.downloadable[0]->duration}
                 <span class="label size">{'Duration'}:</span>
-                <span class="value">{$item->expFile.downloadable[0]->duration}</span>
+                <span class="value">{$item->expFile.downloadable[0]->duration}</span>,
             {else}
                 <span class="label size">{'File Size'}:</span>
-                <span class="value">{if !empty($item->expFile.downloadable[0]->filesize)}{$item->expFile.downloadable[0]->filesize|bytes}{else}{'Unknown'|gettext}{/if}</span>
+                <span class="value">{if !empty($item->expFile.downloadable[0]->filesize)}{$item->expFile.downloadable[0]->filesize|bytes}{else}{'Unknown'|gettext}{/if}</span>,
             {/if}
-            &#160;|&#160;
-            <span class="label downloads"># {'Downloads'|gettext}:</span>
             <span class="value">{$item->downloads}</span>
-            {comments_count record=$item prepend='&#160;&#160;|&#160;&#160;'}
-            {tags_assigned record=$item prepend='&#160;&#160;|&#160;&#160;'}
+            <span class="label downloads"> {'Downloads'|gettext}</span>,
+            {$prepend = '&#160;&#160;|&#160;&#160;'|not_bs}
+            {comments_count record=$item prepend=$prepend}
+            {tags_assigned record=$item prepend=','|cat:$prepend}
         {/if}
     </div>
     {permissions}
@@ -89,22 +89,25 @@
             {/if}
         </div>
     {/permissions}
+    {$link = '<a href="'|cat:makeLink([controller=>filedownload, action=>show, title=>$item->sef_url])|cat:'"><em>'|cat:'(read more)'|gettext|cat:'</em></a>'}
     {if $config.usebody!=2}
         <div class="bodycopy">
             {if $config.usebody==1}
                 {*<p>{$item->body|summarize:"html":"paralinks"}</p>*}
-                <p>{$item->body|summarize:"html":"parahtml"}</p>
+                <p>{$item->body|summarize:"html":"parahtml":$link}</p>
             {elseif $config.usebody==3}
-                {$item->body|summarize:"html":"parapaged"}
+                {$item->body|summarize:"html":"parapaged":$link}
             {else}
                 {$item->body}
             {/if}
         </div>
+    {elseif $config.quick_download}
+        {$link}&#160;&#160;
     {/if}
-    {if $config.usebody==1 || $config.usebody==2}
-        <a class="readmore" href="{link action=show title=$item->sef_url}">{'Read more'|gettext}</a>
-        &#160;&#160;
-    {/if}
+    {*{if $config.usebody==1 || $config.usebody==2}*}
+        {*<a class="readmore" href="{link action=show title=$item->sef_url}">{'Read more'|gettext}</a>*}
+        {*&#160;&#160;*}
+    {*{/if}*}
     {if !$config.quick_download}
         <div class="item-actions">
             {if $item->ext_file}
@@ -172,7 +175,7 @@
     {permissions}
         <div class="module-actions">
             {if $permissions.create}
-                {icon class=add action=edit title="Add a File Here" text="Add a File"|gettext}
+                {icon class=add action=edit title="Add a File Here"|gettext text="Add a File"|gettext}
             {/if}
         </div>
     {/permissions}

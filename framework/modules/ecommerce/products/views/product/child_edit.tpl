@@ -1,5 +1,5 @@
 {*
- * Copyright (c) 2004-2014 OIC Group, Inc.
+ * Copyright (c) 2004-2016 OIC Group, Inc.
  *
  * This file is part of Exponent
  *
@@ -123,31 +123,32 @@
                             {*{control type=files name=brochures label="Additional File Attachments"|gettext subtype="brochures" value=$record->expFile description="Attach Product Brochures, Docs, Manuals, etc."|gettext}*}
                         {*</div>*}
 
-                        {*{script unique="mainimagefunctionality"}*}
-                        {*{literal}*}
-                        {*YUI(EXPONENT.YUI3_CONFIG).use('node','node-event-simulate', function(Y) {*}
-                            {*var radioSwitchers = Y.all('#main_image_functionalityControl input[name="main_image_functionality"]');*}
-                            {*radioSwitchers.on('click',function(e){*}
-                                {*Y.all(".imngfuncbody").setStyle('display','none');*}
-                                {*var curdiv = Y.one("#" + e.target.get('value') + "-div");*}
-                                {*curdiv.setStyle('display','block');*}
-                            {*});*}
+                        {*script unique="mainimagefunctionality"}
+                        {literal}
+                        YUI(EXPONENT.YUI3_CONFIG).use('node','node-event-simulate', function(Y) {
+                            var radioSwitchers = Y.all('#main_image_functionalityControl input[name="main_image_functionality"]');
+                            radioSwitchers.on('click',function(e){
+                                Y.all(".imngfuncbody").setStyle('display','none');
+                                var curdiv = Y.one("#" + e.target.get('value') + "-div");
+                                curdiv.setStyle('display','block');
+                            });
 
-                            {*radioSwitchers.each(function(node,k){*}
-                                {*if(node.get('checked')==true){*}
-                                    {*node.simulate('click');*}
-                                {*}*}
-                            {*});*}
-                        {*});*}
-                        {*{/literal}*}
-                        {*{/script}*}
+                            radioSwitchers.each(function(node,k){
+                                if(node.get('checked')==true){
+                                    node.simulate('click');
+                                }
+                            });
+                        });
+                        {/literal}
+                        {/script*}
                     </div>
                     <div id="quantity">
                         {control type="hidden" name="tab_loaded[quantity]" value=1}
                         {control type="text" name="quantity[quantity]" label="Quantity in stock"|gettext value=$record->quantity}
                         {control type="text" name="quantity[minimum_order_quantity]" label="Minimum order quantity"|gettext value=$record->minimum_order_quantity|default:1}
-                        {control type="checkbox" name="quantity[allow_partial]" label="Allow partial quantities?"|gettext value=1 checked=$record->allow_partial}
-                        {control type="checkbox" name="quantity[is_hidden]" label="Hide Product"|gettext value=$record->is_hidden}
+                        {control type="text" name="quantity[multiple_order_quantity]" label="Must be ordered in multiples of"|gettext value=$record->multiple_order_quantity|default:1} {* FIXME not in child product*}
+                        {*{control type="checkbox" name="quantity[allow_partial]" label="Allow partial quantities?"|gettext value=1 checked=$record->allow_partial}*}
+                        {*{control type="checkbox" name="quantity[is_hidden]" label="Hide Product"|gettext value=$record->is_hidden}*}
                         {control type="radiogroup" name="quantity[availability_type]" label="Quantity Display"|gettext items=$record->quantity_display default=$record->availability_type|default:0}
                         {control type="textarea" name="quantity[availability_note]" label="* "|cat:("Note to display per above selection"|gettext) rows=5 cols=45 value=$record->availability_note}
                     </div>
@@ -161,11 +162,11 @@
                             </div>
                         {/foreach}
                         {icon controller="shipping" action="manage" text="Manage Shipping Options"|gettext}
-                        {control type="text" name="shipping[weight]" label="Item Weight"|gettext size=4 filter=decimal value=$record->weight}
+                        {control type="text" name="shipping[weight]" label="Item Weight (in pounds)"|gettext size=4 filter=decimal value=$record->weight}
                         {control type="text" name="shipping[width]" label="Width (in inches)"|gettext size=4 filter=decimal value=$record->width}
                         {control type="text" name="shipping[height]" label="Height (in inches)"|gettext size=4 filter=decimal value=$record->height}
                         {control type="text" name="shipping[length]" label="Length (in inches)"|gettext size=4 filter=decimal value=$record->length}
-                        {control type="text" name="shipping[surcharge]" label="Surcharge"|gettext size=4 filter=money value=$record->surcharge}
+                        {control type="text" name="shipping[surcharge]" label="Freight Surcharge"|gettext size=4 filter=decimal value=$record->surcharge description='per item'|gettext}
                     </div>
                     <div id="categories">
                         <h2>{'Categories'|gettext} {'are inherited from this product\'s parent.'|gettext}</h2>
@@ -181,7 +182,7 @@
                         <h2>{"Active/Inactive"|gettext}</h2>
                         {control type="radiogroup" name="status[active_type]" label=" " items=$record->active_display default=$record->active_type|default:0}
                         <h2>{"Status"|gettext}</h2>
-                        {control type="dropdown" name="status[product_status_id]" label=" " frommodel=product_status items=$status_display value=$record->product_status_id}
+                        {control type="dropdown" name="status[product_status_id]" label=" " frommodel=product_status items=$status_display orderby=rank value=$record->product_status_id}
                         {icon controller="product_status" action="manage" text="Manage Product Statuses"|gettext}
                     </div>
                     <div id="notes">
@@ -232,15 +233,16 @@
                     </div>
                 </div>
             </div>
-            <div class="loadingdiv">{'Loading'|gettext}</div>
+            {*<div class="loadingdiv">{'Loading'|gettext}</div>*}
+            {loading}
             {control type="buttongroup" submit="Save Product"|gettext cancel="Cancel"|gettext}
         {/form}
     </div>
 </div>
 
-{script unique="editform" yui3mods=1}
+{script unique="editform" yui3mods="node"}
 {literal}
-    YUI(EXPONENT.YUI3_CONFIG).use('node', function(Y) {
+    YUI(EXPONENT.YUI3_CONFIG).use('*', function(Y) {
         var switchMethods = function () {
             var dd = Y.one('#required_shipping_calculator_id');
             var ddval = dd.get('value');
@@ -263,14 +265,14 @@
 {/literal}
 {/script}
 
-{script unique="authtabs" yui3mods=1}
+{script unique="authtabs" yui3mods="get,exptabs,node-load,event-simulate"}
 {literal}
     EXPONENT.YUI3_CONFIG.modules.exptabs = {
         fullpath: EXPONENT.JS_RELATIVE+'exp-tabs.js',
         requires: ['history','tabview','event-custom']
     };
 
-	 YUI(EXPONENT.YUI3_CONFIG).use("get", "exptabs", "node-load","event-simulate", function(Y) {
+	 YUI(EXPONENT.YUI3_CONFIG).use('*', function(Y) {
         Y.expTabs({srcNode: '#childtabs'});
 		Y.one('#childtabs').removeClass('hide');
         Y.one('.loadingdiv').remove();

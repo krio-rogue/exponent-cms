@@ -1,5 +1,5 @@
 {*
- * Copyright (c) 2004-2014 OIC Group, Inc.
+ * Copyright (c) 2004-2016 OIC Group, Inc.
  *
  * This file is part of Exponent
  *
@@ -19,7 +19,7 @@
     
     {form action=saveconfig}
         {control type="hidden" name="id" value=$calculator->id}
-        {include file=$calculator->calculator->configForm()}
+        {include file=$calculator->configForm()}
         {control type="buttongroup" submit="Save Config"|gettext cancel="Cancel"|gettext}
     {/form}
 </div>

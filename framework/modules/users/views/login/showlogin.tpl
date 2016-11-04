@@ -1,5 +1,5 @@
 {*
- * Copyright (c) 2004-2014 OIC Group, Inc.
+ * Copyright (c) 2004-2016 OIC Group, Inc.
  *
  * This file is part of Exponent
  *
@@ -19,6 +19,31 @@
 
 {messagequeue}
 <div class="login default">
+    {if $checkout}
+        {$breadcrumb = [
+            0 => [
+                "title" => "{'Summary'|gettext}",
+                "link"  => makeLink(['controller'=>'cart','action'=>'show'])
+            ],
+            1 => [
+                "title" => "{'Sign In'|gettext}",
+                "link"  => ""
+            ],
+            2 => [
+                "title" => "{'Shipping/Billing'|gettext}",
+                "link"  => ""
+            ],
+            3 => [
+                "title" => "{'Confirmation'|gettext}",
+                "link"  => ""
+            ],
+            4 => [
+                "title" => "{'Complete'|gettext}",
+                "link"  => ""
+            ]
+        ]}
+        {breadcrumb items=$breadcrumb active=1 style=flat}
+    {/if}
     {if $loggedin == false || $smarty.const.PREVIEW_READONLY == 1}
         <div{if $smarty.const.SITE_ALLOW_REGISTRATION || $smarty.const.ECOM} class="box login-form one"{/if}>
             {if $smarty.const.USER_REGISTRATION_USE_EMAIL || $smarty.const.ECOM}

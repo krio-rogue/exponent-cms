@@ -1,5 +1,5 @@
 {*
- * Copyright (c) 2004-2014 OIC Group, Inc.
+ * Copyright (c) 2004-2016 OIC Group, Inc.
  *
  * This file is part of Exponent
  *
@@ -29,6 +29,9 @@
 				{icon class=add action=edit rank=1 title="Add to the Top"|gettext text="Add Image"|gettext}
                 {icon class=add action=multi_add title="Quickly Add Many Images"|gettext text="Add Multiple Images"|gettext}
 			{/if}
+            {if $permissions.delete}
+                {icon class=delete action=delete_multi title="Delete Many Images"|gettext text="Delete Multiple Images"|gettext onclick='null;'}
+            {/if}
             {if $permissions.manage}
                 {if !$config.disabletags}
                     {icon controller=expTag class="manage" action=manage_module model='photo' text="Manage Tags"|gettext}
@@ -50,12 +53,12 @@
     <div id="photos-{$id}" class="yui-navset">
         <ul class="yui-nav">
             {foreach name=tabs from=$page->cats key=catid item=cat}
-                <li><a href="#tab{$smarty.foreach.tabs.iteration}">{$cat->name}</a></li>
+                <li><a href="#tab{$smarty.foreach.tabs.iteration}-{$id}">{$cat->name}</a></li>
             {/foreach}
         </ul>
         <div class="yui-content">
             {foreach name=items from=$page->cats key=catid item=cat}
-                <div id="tab{$smarty.foreach.items.iteration}">
+                <div id="tab{$smarty.foreach.items.iteration}-{$id}">
                     <ul class="image-list">
                         {foreach from=$cat->records item=item}
                             <li style="width:{$config.pa_showall_thumbbox|default:"150"}px;height:{$config.pa_showall_thumbbox|default:"150"}px;">
@@ -72,7 +75,7 @@
                                 {else}
                                     <a href="{link action=show title=$item->sef_url}" title="{$item->alt|default:$item->title}">
                                 {/if}
-                                    {img class="img-small" alt=$item->alt|default:$item->expFile[0]->alt file_id=$item->expFile[0]->id w=$config.pa_showall_thumbbox|default:"150" h=$config.pa_showall_thumbbox|default:"150" far=TL f=jpeg q=$quality|default:75}
+                                    {img class="img-small" alt=$item->alt file_id=$item->expFile[0]->id w=$config.pa_showall_thumbbox|default:"150" h=$config.pa_showall_thumbbox|default:"150" far=TL f=jpeg q=$quality|default:75}
                                 </a>
                                 {permissions}
                                     <div class="item-actions">
@@ -101,16 +104,12 @@
             {/foreach}
         </div>
     </div>
-    <div class="loadingdiv">{'Loading'|gettext}</div>
+    {*<div class="loadingdiv">{'Loading'|gettext}</div>*}
+    {loading}
 </div>
 
-{script unique="`$id`" yui3mods="1"}
+{script unique="`$id`" yui3mods="gallery-lightbox"}
 {literal}
-//    EXPONENT.YUI3_CONFIG.modules.exptabs = {
-//        fullpath: EXPONENT.JS_RELATIVE+'exp-tabs.js',
-//        requires: ['history','tabview','event-custom']
-//    };
-
     EXPONENT.YUI3_CONFIG.modules = {
        'gallery-lightbox' : {
            fullpath: EXPONENT.PATH_RELATIVE+'framework/modules/common/assets/js/gallery-lightbox.js',
@@ -122,10 +121,7 @@
        }
     }
 
-	YUI(EXPONENT.YUI3_CONFIG).use('exptabs','gallery-lightbox', function(Y) {
-//        Y.expTabs({srcNode: '#{/literal}{$id}{literal}'});
-//		Y.one('#{/literal}{$id}{literal}').removeClass('hide');
-//		Y.one('.loadingdiv').remove();
+	YUI(EXPONENT.YUI3_CONFIG).use('*', function(Y) {
         Y.Lightbox.init();
 	});
 {/literal}

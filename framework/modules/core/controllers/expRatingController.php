@@ -1,7 +1,7 @@
 <?php
 ##################################################
 #
-# Copyright (c) 2004-2014 OIC Group, Inc.
+# Copyright (c) 2004-2016 OIC Group, Inc.
 #
 # This file is part of Exponent
 #
@@ -34,7 +34,10 @@ class expRatingController extends expController {
 	    parent::__construct($src, $params);
         $this->remove_permissions = ($user->isLoggedIn())?array('update','create'):array();
     }
-	
+
+    /**
+     * Update rating...handled via ajax
+     */
     function update() {
         global $db, $user;
         	
@@ -58,7 +61,6 @@ class expRatingController extends expController {
         $ar->send();
 		
         // flash('message', $msg);
-        // 
         // expHistory::back();
 	}
 	

@@ -2,7 +2,7 @@
 
 ##################################################
 #
-# Copyright (c) 2004-2014 OIC Group, Inc.
+# Copyright (c) 2004-2016 OIC Group, Inc.
 #
 # This file is part of Exponent
 #
@@ -38,7 +38,7 @@ return array(
 	"title"=>array(
 		DB_FIELD_TYPE=>DB_DEF_STRING,
 		DB_FIELD_LEN=>100,
-		DB_INDEX=>10,
+//		DB_INDEX=>10,
 		DB_FULLTEXT=>true),
     "feed_title"=>array(
         DB_FIELD_TYPE=>DB_DEF_STRING,
@@ -71,8 +71,9 @@ return array(
 	'sef_url'=>array(
 		DB_FIELD_TYPE=>DB_DEF_STRING,
 		DB_FIELD_LEN=>150,
-		DB_INDEX=>10,
-		DB_FULLTEXT=>true),
+//		DB_INDEX=>10,
+//		DB_FULLTEXT=>true
+	),
     'canonical'=>array(
    		DB_FIELD_TYPE=>DB_DEF_STRING,
    		DB_FIELD_LEN=>800),
@@ -85,13 +86,21 @@ return array(
 	'meta_description'=>array(
 		DB_FIELD_TYPE=>DB_DEF_STRING,
 		DB_FIELD_LEN=>10000),
+    'meta_fb'=>array(
+   		DB_FIELD_TYPE=>DB_DEF_STRING,
+   		DB_FIELD_LEN=>10000),
+	'meta_tw'=>array(
+		DB_FIELD_TYPE=>DB_DEF_STRING,
+		DB_FIELD_LEN=>10000),
     'noindex'=>array(
    		DB_FIELD_TYPE=>DB_DEF_BOOLEAN),
     'nofollow'=>array(
    		DB_FIELD_TYPE=>DB_DEF_BOOLEAN),
 	"body"=>array(
 		DB_FIELD_TYPE=>DB_DEF_STRING,
-		DB_FIELD_LEN=>10000),
+		DB_FIELD_LEN=>10000,
+//		DB_INDEX=>10,
+		DB_FULLTEXT=>true),
     "feed_body"=>array(
         DB_FIELD_TYPE=>DB_DEF_STRING,
         DB_FIELD_LEN=>10000),
@@ -103,7 +112,9 @@ return array(
 		DB_FIELD_LEN=>1000),
 	"model"=>array(
 		DB_FIELD_TYPE=>DB_DEF_STRING,
-		DB_FIELD_LEN=>100),
+		DB_FIELD_LEN=>100,
+//		DB_INDEX=>10,
+		DB_FULLTEXT=>true),
     "product_status_id"=>array(
         DB_FIELD_TYPE=>DB_DEF_INTEGER),
     "active_type"=>array(
@@ -162,11 +173,17 @@ return array(
 		DB_FIELD_TYPE=>DB_DEF_BOOLEAN),
 	"is_featured"=>array(
 		DB_FIELD_TYPE=>DB_DEF_BOOLEAN),
+	"show_options"=>array(
+		DB_FIELD_TYPE=>DB_DEF_BOOLEAN),
+	"segregate_options"=>array(
+		DB_FIELD_TYPE=>DB_DEF_BOOLEAN),
 	"companies_id"=>array(
 		DB_FIELD_TYPE=>DB_DEF_ID,
 		DB_INDEX=>10),
 	"minimum_order_quantity"=>array(
     	DB_FIELD_TYPE=>DB_DEF_DECIMAL),
+    "multiple_order_quantity"=>array(
+       	DB_FIELD_TYPE=>DB_DEF_DECIMAL),
     'product_type'=>array(
 		DB_FIELD_TYPE=>DB_DEF_STRING,
 		DB_FIELD_LEN=>100,

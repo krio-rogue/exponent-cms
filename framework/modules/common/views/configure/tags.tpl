@@ -1,5 +1,5 @@
 {*
- * Copyright (c) 2004-2008 OIC Group, Inc.
+ * Copyright (c) 2004-2016 OIC Group, Inc.
  * Written and Designed by Adam Kessler
  *
  * This file is part of Exponent
@@ -24,4 +24,4 @@
 </div>
 <h3>{'Dis-Allow tags'|gettext}</h3>
 {control type=checkbox name=disabletags label="Disable Tags for this module" value=1 checked=$config.disabletags}
-{*{chain module=expTag view=manage}*}
+{*{showmodule module=expTag action=manage}*}

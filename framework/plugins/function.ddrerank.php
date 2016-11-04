@@ -2,7 +2,7 @@
 
 ##################################################
 #
-# Copyright (c) 2004-2014 OIC Group, Inc.
+# Copyright (c) 2004-2016 OIC Group, Inc.
 #
 # This file is part of Exponent
 #
@@ -59,7 +59,7 @@ function smarty_function_ddrerank($params, &$smarty) {
         } elseif (property_exists($obj, 'location_data')) {
             $locsql = "location_data='" . serialize($loc) . "'";
         } else {
-            $locsql = null;
+            $locsql = '1';
         }
 //            $params['items'] = $obj->find('all',"location_data='".serialize($loc)."'".$only,"rank");
         $params['items'] = $obj->find('all', $locsql . $only, "rank"); // we MUST re-pull since we only received one page of $items
@@ -91,7 +91,7 @@ function smarty_function_ddrerank($params, &$smarty) {
         if (!empty($params['label'])) {
             $params['label'] = gt($params['label']);
         }
-        echo '<a id="rerank' . $uniqueid . '" class="reranklink" href="#">' . gt("Order") . ' ' . $params['label'] . '</a>';
+        echo '<a id="rerank', $uniqueid, '" class="reranklink" href="#">', gt("Order"), ' ', $params['label'], '</a>';
 
         $html = '
         <div id="panel' . $uniqueid . '" class="exp-skin-panel exp-skin-rerank hide">
@@ -130,7 +130,7 @@ function smarty_function_ddrerank($params, &$smarty) {
                     <input type="hidden" name="rerank[]" value="' . $item->id . '" />
                     <div class="fpdrag"></div>';
                 //Do we include the picture? It depends on if there is one set.
-                $html .= (!empty($item->expFile[0]->id) && !empty($item->expFile[0]->is_image)) ? '<img class="filepic" src="' . PATH_RELATIVE . 'thumb.php?id=' . $item->expFile[0]->id . '&w=16&h=16&zc=1">' : '';
+                $html .= (!empty($item->expFile[0]->id) && !empty($item->expFile[0]->is_image)) ? '<img class="filepic" src="' . PATH_RELATIVE . 'thumb.php?id=' . $item->expFile[0]->id . '&w=16&h=16&zc=1" alt="item'.$item->id.'">' : '';
                 $html .= '<span class="label">' . (!empty($item->$sortfield) ? substr($item->$sortfield, 0, $stringlen) : gt('Untitled')) . '</span>
                     </li>';
                 $odd = $odd == "even" ? "odd" : "even";
@@ -154,7 +154,7 @@ function smarty_function_ddrerank($params, &$smarty) {
         echo $html;
 
         $script = "
-        YUI(EXPONENT.YUI3_CONFIG).use('node','dd','dd-plugin','dd-scroll','panel', function(Y) {
+        YUI(EXPONENT.YUI3_CONFIG).use('*', function(Y) {
             var panel = new Y.Panel({
                 srcNode      : '#panel" . $uniqueid . "',
                 width        : 500,
@@ -309,7 +309,7 @@ function smarty_function_ddrerank($params, &$smarty) {
         if (!expTheme::inPreview()) {
             expJavascript::pushToFoot(array(
                 "unique"   => $uniqueid,
-                "yui3mods" => 1,
+                "yui3mods" => "node,dd,dd-plugin,dd-scroll,panel",
                 "content"  => $script,
             ));
         }

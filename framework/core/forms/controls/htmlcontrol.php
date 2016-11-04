@@ -2,7 +2,7 @@
 
 ##################################################
 #
-# Copyright (c) 2004-2014 OIC Group, Inc.
+# Copyright (c) 2004-2016 OIC Group, Inc.
 #
 # This file is part of Exponent
 #
@@ -40,13 +40,15 @@ if (!defined('EXPONENT')) exit('');
 
 	function toHTML($label,$name) {
 		if ($this->span) {
-			return '<div class="htmlcontrol control form-group">' . $this->html . '</div>';
+			return '<div class="htmlcontrol control form-group">' . ($this->horizontal&&bs3()?'<div class="col-sm-offset-2 col-sm-10">':'') . $this->html . ($this->horizontal&&bs3()?'</div>':'') . '</div>';
 		} else {
+            if ($this->horizontal&&bs3()) $this->html = '<div class="col-sm-offset-2 col-sm-10">' . $this->html . '</div>';
 			return parent::toHTML($label,$name);
 		}
 	}
 	
 	function controlToHTML($name,$label) {
+        if ($this->horizontal&&bs3()) return '<div class="col-sm-offset-2 col-sm-10">' . $this->html . '</div>';
 		return $this->html;
 	}
 	
@@ -57,7 +59,8 @@ if (!defined('EXPONENT')) exit('');
 			$object->html = "";
 		} 
 		$form->register("html",'',new htmleditorcontrol($object->html));
-		$form->register("submit","",new buttongroupcontrol(gt('Save'),'',gt('Cancel'),"",'editable'));
+		if (!expJavascript::inAjaxAction())
+			$form->register("submit","",new buttongroupcontrol(gt('Save'),'',gt('Cancel'),"",'editable'));
 		return $form;
 	}
 	

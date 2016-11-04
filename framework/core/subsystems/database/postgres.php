@@ -1,7 +1,7 @@
 <?php
 ##################################################
 #
-# Copyright (c) 2004-2014 OIC Group, Inc.
+# Copyright (c) 2004-2016 OIC Group, Inc.
 #
 # This file is part of Exponent
 #
@@ -20,7 +20,7 @@
  *
  * This is the Postgres-specific implementation of the database class.
  * @package Subsystems
- * @subpackage Database = Postgres
+ * @subpackage Database
  */
 /** @define "BASE" "../.." */
 

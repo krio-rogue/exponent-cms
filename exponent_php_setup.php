@@ -2,7 +2,7 @@
 
 ##################################################
 #
-# Copyright (c) 2004-2014 OIC Group, Inc.
+# Copyright (c) 2004-2016 OIC Group, Inc.
 #
 # This file is part of Exponent
 #
@@ -23,6 +23,8 @@ ini_set('session.save_handler','files');
 // Set the content compression to zlib
 //ini_set("zlib.output_compression", "4096");
 //ini_set("allow_url_fopen",1);
+//ini_set('session.cache_limiter','public');
+//session_cache_limiter(false);
 
 if (DEVELOPMENT) {
 	// In development mode, we need to turn on full throttle error reporting.

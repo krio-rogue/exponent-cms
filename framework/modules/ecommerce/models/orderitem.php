@@ -2,7 +2,7 @@
 
 ##################################################
 #
-# Copyright (c) 2004-2014 OIC Group, Inc.
+# Copyright (c) 2004-2016 OIC Group, Inc.
 #
 # This file is part of Exponent
 #
@@ -18,11 +18,13 @@
 
 /**
  * @subpackage Models
- * @package    Core
+ * @package    Modules
  */
 class orderitem extends expRecord {
     public $table = 'orderitems';
-    public $has_one = array('shippingmethod');
+
+    public $has_one = array('shippingmethod');  // we also manually associate a 'product'
+
     public $opts = array();
 
     function __construct($params = array(), $get_assoc = true, $get_attached = false) {
@@ -31,6 +33,8 @@ class orderitem extends expRecord {
         if (!empty($params['id']) || is_numeric($params)) {
             parent::__construct($params, $get_assoc, $get_attached);
             $prodtype = $this->product_type;
+            if (empty($prodtype))
+                $prodtype = "product";
             $this->product = new $prodtype($this->product_id, false, true);
         } elseif (isset($params['product_id']) && isset($params['product_type'])) {
             // see if this is an existing item in the cart
@@ -86,7 +90,7 @@ class orderitem extends expRecord {
     public function getUserInputFields($style = 'br') {
         if (!empty($this->user_input_fields)) {
             //eDebug(expUnserialize($this->user_input_fields,true));
-            if ($style == 'br') $ret = '<br/>';
+            if ($style == 'br') $ret = ''; //$ret = '<br/>';
             else if ($style == 'list') $ret = '<ul>';
             foreach (expUnserialize($this->user_input_fields) as $uifarray) {
                 foreach ($uifarray as $uifkey => $uif) {
@@ -123,6 +127,18 @@ class orderitem extends expRecord {
         return $price;
         
     }*/
+
+    function getWeight() {
+        $weight = $this->product->weight;
+        if (count($this->opts))
+        {
+            foreach ($this->opts as $opt) {
+                $selected_option = new option($opt[0]);
+                $weight += $selected_option->optionweight;
+            }
+        }
+        return $weight;
+    }
 
     function merge($params) {
         // check to see if this item was in the old cart we are merging..if so we will 

@@ -1,7 +1,7 @@
 <?php
 ##################################################
 #
-# Copyright (c) 2004-2014 OIC Group, Inc.
+# Copyright (c) 2004-2016 OIC Group, Inc.
 #
 # This file is part of Exponent
 #
@@ -50,8 +50,7 @@ class expSettings
         @include_once(BASE . "framework/conf/config.php");
         if (!defined('SITE_TITLE')) { // check for upgrade from older file structure
             if (!file_exists(BASE . "framework/conf/config.php") && file_exists(BASE . "conf/config.php")) {
-                rename(BASE . "conf/config.php", BASE . "framework/conf/config.php"); //FIXME until 2.2.3
-//                copy(BASE."conf/config.php",BASE."framework/conf/config.php");      //FIXME remove in 2.2.3
+                rename(BASE . "conf/config.php", BASE . "framework/conf/config.php");
                 @include_once(BASE . "framework/conf/config.php");
             }
         }
@@ -184,19 +183,21 @@ class expSettings
                 continue;
             }
             $str .= "define(\"$directive\",";
+            $value = stripslashes($value); // slashes added by POST
             if (substr($directive, -5, 5) == "_HTML") {
-                $value = htmlentities(stripslashes($value), ENT_QUOTES, LANG_CHARSET); // slashes added by POST
+                $value = htmlentities($value, ENT_QUOTES, LANG_CHARSET);
 //              $value = str_replace(array("\r\n","\r","\n"),"<br />",$value);
                 $value = str_replace(array("\r\n", "\r", "\n"), "", $value);
+//                $value = str_replace(array('\r\n', '\r', '\n'), "", $value);
                 $str .= "exponent_unhtmlentities('$value')";
             } elseif (is_int($value)) {
-                $str .= "'" . $value . "'";
+                $str .= "'" . intval($value) . "'";
             } else {
                 if ($directive != 'SESSION_TIMEOUT') {
-                    $str .= "'" . str_replace("'", "\'", $value) . "'";
+                    $str .= "'" . expString::escape(str_replace("'", "\'", $value)) . "'";  //FIXME is this still necessary since we stripslashes above???
                 } //                    $str .= "'".$value."'";
                 else {
-                    $str .= "'" . str_replace("'", '', $value) . "'";
+                    $str .= "'" . expString::escape(str_replace("'", '', $value)) . "'";
                 }
             }
             $str .= ");\n";
@@ -447,7 +448,7 @@ class expSettings
                     }
                 }
             }
-//            $form->registerAfter('activate',null,'',new htmlcontrol('<hr size="1" />'.implode('&#160;&#160;|&#160;&#160;',$sections)));
+//            $form->registerAfter('activate',null,'',new htmlcontrol('<hr size="1" />'.implode('&#160;&#160;|&#160;&#160;')));
             $form->register('submit', '', new buttongroupcontrol(gt('Save'), '', gt('Cancel')));
 
             return $form;
@@ -536,6 +537,8 @@ class expSettings
      *
      * @param string $profile The name of the Profile to remove.
      *
+     * @return string
+     *
      * @node Subsystems:Config
      */
     public static function createProfile($profile)
@@ -554,6 +557,7 @@ class expSettings
         $baseprofile = self::parse();  // get current configuration plus missing defaults
         unset($baseprofile['CURRENTCONFIGNAME']); // don't save profile name within actual profile
         self::saveValues($baseprofile, BASE . "framework/conf/profiles/" . $profile . ".php");
+        return $profile;
     }
 
     /** exdoc
@@ -580,6 +584,10 @@ class expSettings
      */
     public static function activateProfile($profile)
     {
+        if (!empty($profile) && (strpos($profile, '..') !== false || strpos($profile, '/') !== false)) {
+            header('Location: ' . URL_FULL);
+            exit();  // attempt to hack the site
+        }
         if (is_readable(BASE . "framework/conf/profiles/$profile.php") && expUtil::isReallyWritable(
                 BASE . "framework/conf"
             )

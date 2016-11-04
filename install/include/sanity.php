@@ -2,7 +2,7 @@
 
 ##################################################
 #
-# Copyright (c) 2004-2014 OIC Group, Inc.
+# Copyright (c) 2004-2016 OIC Group, Inc.
 #
 # This file is part of Exponent
 #
@@ -129,6 +129,7 @@ function sanity_checkFiles() {
 		'tmp/'=>sanity_checkDirectory('tmp',SANITY_READWRITE),
 		'tmp/cache'=>sanity_checkDirectory('tmp/cache',SANITY_READWRITE),
         'tmp/css'=>sanity_checkDirectory('tmp/css',SANITY_READWRITE),
+		'tmp/elfinder'=>sanity_checkDirectory('tmp/css',SANITY_READWRITE),
         'tmp/extensionuploads'=>sanity_checkFile(BASE.'tmp/extensionuploads',true,SANITY_READWRITE),
         'tmp/img_cache'=>sanity_checkDirectory('tmp/img_cache',SANITY_READWRITE),
 		'tmp/minify'=>sanity_checkDirectory('tmp/minify',SANITY_READWRITE),
@@ -144,17 +145,27 @@ function sanity_checkServer() {
 	$status = array(
 		gt('Database Backend')=>_sanity_checkDB(),
 		gt('GD Graphics Library 2.0+')=>_sanity_checkGD(),
-		'PHP 5.2.1+'=>_sanity_checkPHPVersion(),
+		'PHP 5.3.1+'=>_sanity_checkPHPVersion(),
 		gt('ZLib Support')=>_sanity_checkZlib(),
         gt('cURL Library Support')=>_sanity_checkcURL(),
-        gt('FileInfo Support')=>_sanity_checkFileinfo(),
-        gt('File Upload Support')=>_sanity_checkUploadSize(),
 		gt('XML (Expat) Library Support')=>_sanity_checkXML(),
 		gt('Safe Mode Not Enabled')=>_sanity_CheckSafeMode(),
 		gt('Open BaseDir Not Enabled')=>_sanity_checkOpenBaseDir(),
-		gt('File Uploads Enabled')=>_sanity_checkTemp(ini_get('upload_tmp_dir')),
-		gt('Temporary File Creation')=>_sanity_checkTemp(BASE.'tmp'),
+		gt('FileInfo Support')=>_sanity_checkFileinfo(),
+		gt('File Upload Support')=>_sanity_checkUploadSize(),
 	);
+	$fiup = _sanity_checkTemp(ini_get('upload_tmp_dir'));
+	$tmpf = _sanity_checkTemp(BASE.'tmp');
+	if ($fiup[0] === SANITY_ERROR) {  // upload_tmp_dir failed, let's try tmp
+		if ($tmpf[0] === SANITY_ERROR) {
+			$status = array_merge($status, array(gt('File Uploads Enabled')=>$fiup));
+		} else {
+			$status = array_merge($status, array(gt('File Uploads Enabled')=>array(SANITY_WARNING, gt('Failed'))));
+		}
+	} else {
+		$status = array_merge($status, array(gt('File Uploads Enabled')=>$fiup));
+	}
+	$status = array_merge($status, array(gt('Temporary File Creation')=>$tmpf));
 	return $status;
 }
 
@@ -167,6 +178,9 @@ function _sanity_checkDB() {
 }
 
 function _sanity_checkGD() {
+	if (!EXPONENT_HAS_GD) {
+		return array(SANITY_WARNING,gt('No GD Support'));
+	}
 	$info = gd_info();
 	if ($info['GD Version'] == 'Not Supported') {
 		return array(SANITY_WARNING,gt('No GD Support'));
@@ -177,10 +191,10 @@ function _sanity_checkGD() {
 }
 
 function _sanity_checkPHPVersion() {
-	if (version_compare(phpversion(),'5.2.1','>=')) {
+	if (version_compare(phpversion(),'5.3.1','>=')) {
 		return array(SANITY_FINE,phpversion());
 	} else {
-		return array(SANITY_ERROR,gt('This version of ExponentCMS requires PHP 5.2.1 or higher. You are running PHP').' '.phpversion().'<br>('.gt('not supported'.')'));
+		return array(SANITY_ERROR,gt('This version of ExponentCMS requires PHP 5.3.1 or higher. You are running PHP').' '.phpversion().'<br>('.gt('not supported'.')'));
 	}
 }
 

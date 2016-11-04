@@ -1,5 +1,5 @@
 {*
- * Copyright (c) 2004-2014 OIC Group, Inc.
+ * Copyright (c) 2004-2016 OIC Group, Inc.
  *
  * This file is part of Exponent
  *
@@ -21,21 +21,21 @@
         </ul>
     </blockquote>
     <div id="ups-tabs" class="">
-        <ul class="nav nav-tabs">
-	        <li class="active"><a href="#tab1" data-toggle="tab"><em>{'UPS Settings'|gettext}</em></a></li>
-	        <li><a href="#tab2" data-toggle="tab"><em>{'Shipping Methods'|gettext}</em></a></li>
-	        <li><a href="#tab3" data-toggle="tab"><em>{'My Info'|gettext}</em></a></li>
-	        <li><a href="#tab4" data-toggle="tab"><em>{'Shipping Defaults'|gettext}</em></a></li>
+        <ul class="nav nav-tabs" role="tablist">
+	        <li role="presentation" class="active"><a href="#tab1" role="tab" data-toggle="tab"><em>{'General Settings'|gettext}</em></a></li>
+	        <li role="presentation"><a href="#tab2" role="tab" data-toggle="tab"><em>{'Shipping Methods'|gettext}</em></a></li>
+	        <li role="presentation"><a href="#tab3" role="tab" data-toggle="tab"><em>{'Shipping Origin'|gettext}</em></a></li>
+	        <li role="presentation"><a href="#tab4" role="tab" data-toggle="tab"><em>{'Packaging Defaults'|gettext}</em></a></li>
         </ul>            
         <div class="tab-content">
-	        <div id="tab1" class="tab-pane fade in active">
+	        <div id="tab1" role="tabpanel" class="tab-pane fade in active">
 	            {control type="text" name="username" label="UPS Username"|gettext value=$calculator->configdata.username required=1}
                 {control type="password" name="password" label="Password"|gettext value=$calculator->configdata.password required=1}
                 {control type="text" name="shipfrom[shipperNumber]" label="Account #"|gettext value=$calculator->configdata.shipfrom.shipperNumber required=1}
 	            {control type="text" name="accessnumber" label="Access Key"|gettext value=$calculator->configdata.accessnumber required=1}
 	            {control type="checkbox" name="testmode" label="Enable Test Mode"|gettext value=1 checked=$calculator->configdata.testmode}
 	        </div>
-	        <div id="tab2" class="tab-pane fade">
+	        <div id="tab2" role="tabpanel" class="tab-pane fade">
 	            {control type="checkbox" name="shipping_methods[]" label="UPS Next Day Air"|gettext value="01" checked=$calculator->configdata.shipping_methods}
 	            {control type="checkbox" name="shipping_methods[]" label="UPS Second Day Air"|gettext value="02" checked=$calculator->configdata.shipping_methods}
 	            {control type="checkbox" name="shipping_methods[]" label="UPS Ground"|gettext value="03" checked=$calculator->configdata.shipping_methods}
@@ -49,17 +49,19 @@
 	            {control type="checkbox" name="shipping_methods[]" label="UPS Second Day Air AM"|gettext value="59" checked=$calculator->configdata.shipping_methods}
 	            {control type="checkbox" name="shipping_methods[]" label="UPS Saver"|gettext value="65" checked=$calculator->configdata.shipping_methods}
 	        </div>
-	        <div id="tab3" class="tab-pane fade">
-	            {control type="text" name="shipfrom[name]" label="Company Name"|gettext value=$calculator->configdata.shipfrom.name}
-                {control type=tel name="shipfrom[phone]" label="Phone Number"|gettext value=$calculator->configdata.shipfrom.phone}
-	            {control type="text" name="shipfrom[address1]" label="Address"|gettext value=$calculator->configdata.shipfrom.address1 required=1}
-	            {control type="text" name="shipfrom[address2]" label=" " value=$calculator->configdata.shipfrom.address2}
-	            {control type="text" name="shipfrom[address3]" label=" " value=$calculator->configdata.shipfrom.address3}
-	            {control type="text" name="shipfrom[city]" label="City"|gettext value=$calculator->configdata.shipfrom.city required=1}
-	            {control type=state name="shipfrom[region]" label="State"|gettext value=$calculator->configdata.shipfrom.region required=1}
-	            {control type="text" name="shipfrom[postalCode]" label="Zip Code"|gettext size=10 value=$calculator->configdata.shipfrom.postalCode required=1}
+	        <div id="tab3" role="tabpanel" class="tab-pane fade">
+                {ecomconfig var=store assign=store}
+                {ecomconfig var=storename assign=storename}
+                {control type="text" name="shipfrom[name]" label="Company Name"|gettext value=$calculator->configdata.shipfrom.name|default:$storename}
+                {control type=tel name="shipfrom[phone]" label="Phone Number"|gettext value=$calculator->configdata.shipfrom.phone|default:$store.phone}
+   	            {control type="text" name="shipfrom[address1]" label="Address"|gettext value=$calculator->configdata.shipfrom.address1|default:$store.address1 required=1}
+   	            {control type="text" name="shipfrom[address2]" label=" " value=$calculator->configdata.shipfrom.address2|default:$store.address2}
+                {control type="text" name="shipfrom[address3]" label=" " value=$calculator->configdata.shipfrom.address3}
+   	            {control type="text" name="shipfrom[city]" label="City"|gettext value=$calculator->configdata.shipfrom.city|default:$store.city required=1}
+                {control type="countryregion" name="shipfrom[address]" label="Country/State"|gettext country_default=$calculator->configdata.shipfrom.country|default:$store.country region_default=$calculator->configdata.shipfrom.state|default:$store.state includeblank="-- Choose a State --"|gettext required=1}
+   	            {control type="text" name="shipfrom[postalCode]" label="Zip Code"|gettext size=10 value=$calculator->configdata.shipfrom.postalCode|default:$store.postalCode required=1}
 	        </div>
-	        <div id="tab4" class="tab-pane fade">
+	        <div id="tab4" role="tabpanel" class="tab-pane fade">
 	            {control type="text" name="default_width" label="Standard Box Width (inches)"|gettext size=5 value=$calculator->configdata.default_width}
 	            {control type="text" name="default_length" label="Standard Box Length (inches)"|gettext size=5 value=$calculator->configdata.default_length}
 	            {control type="text" name="default_height" label="Standard Box Height (inches)"|gettext size=5 value=$calculator->configdata.default_height}
@@ -67,23 +69,9 @@
 	        </div>
         </div>
     </div>
-	<div class="loadingdiv">{'Loading'|gettext}</div>
+	{*<div class="loadingdiv">{'Loading'|gettext}</div>*}
+	{loading}
 </div>
-
-{*{script unique="editform" yui3mods=1}*}
-{*{literal}*}
-    {*EXPONENT.YUI3_CONFIG.modules.exptabs = {*}
-        {*fullpath: EXPONENT.JS_RELATIVE+'exp-tabs.js',*}
-        {*requires: ['history','tabview','event-custom']*}
-    {*};*}
-
-	{*YUI(EXPONENT.YUI3_CONFIG).use('exptabs', function(Y) {*}
-        {*Y.expTabs({srcNode: '#ups-tabs'});*}
-		{*Y.one('#ups-tabs').removeClass('hide');*}
-		{*Y.one('.loadingdiv').remove();*}
-    {*});*}
-{*{/literal}*}
-{*{/script}*}
 
 {script unique="tabload" jquery=1 bootstrap="tab,transition"}
 {literal}

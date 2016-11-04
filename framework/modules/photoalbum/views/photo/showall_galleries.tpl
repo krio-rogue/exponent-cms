@@ -1,5 +1,5 @@
 {*
- * Copyright (c) 2004-2014 OIC Group, Inc.
+ * Copyright (c) 2004-2016 OIC Group, Inc.
  *
  * This file is part of Exponent
  *
@@ -28,6 +28,9 @@
 				{icon class=add action=edit rank=1 title="Add to the top"|gettext text="Add Image"|gettext}
                 {icon class=add action=multi_add title="Quickly Add Many Images"|gettext text="Add Multiple Images"|gettext}
 			{/if}
+            {if $permissions.delete}
+                {icon class=delete action=delete_multi title="Delete Many Images"|gettext text="Delete Multiple Images"|gettext onclick='null;'}
+            {/if}
             {if $permissions.manage}
                 {if !$config.disabletags}
                     {icon controller=expTag class="manage" action=manage_module model='photo' text="Manage Tags"|gettext}
@@ -51,7 +54,7 @@
         {$quality=$config.quality|default:$smarty.const.THUMB_QUALITY}
             <li style="width:{$config.pa_showall_thumbbox|default:"150"}px;height:{$config.pa_showall_thumbbox|default:"150"}px;">
                 <a href="{link action=$config.landing|default:showall src=$page->src gallery=$catid}" title="{'View this gallery'|gettext}">
-                    {img class="img-small" alt=$cat->records[0]->alt file_id=$cat->records[0]->expFile[0]->id w=$config.pa_showall_thumbbox|default:"150" h=$config.pa_showall_thumbbox|default:"150" far=TL f=jpeg q=$quality|default:75}
+                    {img class="img-small" alt=$cat->alt file_id=$cat->records[0]->expFile[0]->id w=$config.pa_showall_thumbbox|default:"150" h=$config.pa_showall_thumbbox|default:"150" far=TL f=jpeg q=$quality|default:75}
                 </a>
                 {permissions}
                     <div class="item-actions">
@@ -85,24 +88,3 @@
         </ul>
     {/foreach}
 </div>
-
-{if $config.lightbox}
-{script unique="shadowbox" yui3mods=1}
-{literal}
-    EXPONENT.YUI3_CONFIG.modules = {
-       'gallery-lightbox' : {
-           fullpath: EXPONENT.PATH_RELATIVE+'framework/modules/common/assets/js/gallery-lightbox.js',
-           requires : ['base','node','anim','selector-css3','lightbox-css']
-       },
-       'lightbox-css': {
-           fullpath: EXPONENT.PATH_RELATIVE+'framework/modules/common/assets/css/gallery-lightbox.css',
-           type: 'css'
-       }
-    }
-
-    YUI(EXPONENT.YUI3_CONFIG).use('gallery-lightbox', function(Y) {
-        Y.Lightbox.init();
-    });
-{/literal}
-{/script}
-{/if}

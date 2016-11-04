@@ -2,7 +2,7 @@
 
 ##################################################
 #
-# Copyright (c) 2004-2014 OIC Group, Inc.
+# Copyright (c) 2004-2016 OIC Group, Inc.
 #
 # This file is part of Exponent
 #
@@ -27,6 +27,15 @@ if (!defined('EXPONENT')) exit('');
  */
 class autocompletecontrol extends formcontrol {
 
+    var $placeholder = "";
+    var $width = "320px";
+    var $controller = "";   // controller to call
+    var $action = "";       // action to call
+    var $searchmodel = "";  // model to search
+    var $searchoncol = "";  // model columns to search on
+    var $maxresults = 12;   // number of returns to display
+    var $jsinject = "";     // additional javascript code such as event traps, etc...
+
     static function name() { return "YAHOO! UI Autocomplete"; }
 
 	function toHTML($label,$name) {
@@ -35,75 +44,62 @@ class autocompletecontrol extends formcontrol {
 	}
 
     function controlToHTML($name,$label) {
-    	$assets_path = SCRIPT_RELATIVE.'framework/core/forms/controls/assets/';
-        $html = '<div class="text-control control exp-skin" id="search_stringControl">';
-        $html .= empty($this->label) ? '' : '<label for="'.$name.'"'.(bs3()?"class=\"control-label\"":"").'>'.$label.'</label>';
-        $framework = expSession::get('framework');
-        if ($framework == 'bootstrap') {
-            $html .= '<div class="input-prepend">';
-            $html .= '<span class="add-on"><i class="icon-search"></i></span>';
-        } elseif ($framework == 'bootstrap3') {
-            $html .= '<div class="input-group">';
-            $html .= '<span class="input-group-addon"><i class="fa fa-search"></i></span>';
-        }
-        $html .= '<input type="search" class="text form-control" size="20" value="' . $this->value . '" name="' . $name . '" id="' . $name . ($this->focus?' autofocus':'') . '"/>';
-        if ($framework == 'bootstrap' || $framework == 'bootstrap3') {
-            $html .= '</div>';
-        }
-        $html .= '<div id="results'.$name.'"></div>
-            </div>
-        ';
-        
-//FIXME convert to yui3
+        $html = '<div class="yui3-skin-sam" style="z-index: 999;">';
+        $ac_input = new genericcontrol();
+        $ac_input->type = 'search';
+        $ac_input->id = $name  . '_autoc';
+        $ac_input->class = 'text';
+        $ac_input->prepend = 'search';
+        $ac_input->placeholder = $this->placeholder;
+        $html .= $ac_input->toHTML(null, "$name");
+        $html .= '</div>';
+
         $script = "
-        YUI(EXPONENT.YUI3_CONFIG).use('node','yui2-yahoo-dom-event','yui2-animation','yui2-autocomplete','yui2-connection','yui2-datasource', function(Y) {
-            YAHOO = Y.YUI2;
-            Y.one('#".$name."').on('click',function(e){e.target.set('value','');});
+        YUI(EXPONENT.YUI3_CONFIG).use('*', function (Y) {
+            var autocomplete = Y.one('#".$name."_autoc');
+            autocomplete.plug(Y.Plugin.AutoComplete, {
+                width:'320px',
+                maxResults: ".$this->maxresults.",
+                resultListLocator: 'data',  // 'data' field of json response
+                resultTextLocator: 'title', // the field to place in the input after selection
+                source: EXPONENT.PATH_RELATIVE+'index.php?controller=".$this->controller."&action=".$this->action."&json=1&ajax_action=1',
+                requestTemplate: '&query={query}'
+            });
 
-            // autocomplete
-            var autocomplete = function() {
-                // Use an XHRDataSource
-                var oDS = new YAHOO.util.XHRDataSource(EXPONENT.PATH_RELATIVE+\"index.php\");
-                // Set the responseType
-                oDS.responseType = YAHOO.util.XHRDataSource.TYPE_JSON;
+            // display 'loading' icon
+            autocomplete.ac.on('query', function (e) {
+                Y.one('#".$name."_autocControl span i').removeClass('".expTheme::iconStyle('search')."').addClass('".expTheme::iconStyle('ajax')."');
+            });
 
-                //oDS.responseType = YAHOO.util.XHRDataSource.TYPE_TEXT;
-                // Define the schema of the delimited results
-                oDS.responseSchema = {
-                    resultsList : \"data\",
-                    fields : [".$this->schema."]
-                };
+            // display regular icon
+            autocomplete.ac.on('results', function (e) {
+                Y.one('#".$name."_autocControl span i').removeClass('".expTheme::iconStyle('ajax')."').addClass('".expTheme::iconStyle('search')."');
+            });
 
-                // Enable caching
-                oDS.maxCacheEntries = 5;
-
-                // Instantiate the AutoComplete
-                var oAC = new YAHOO.widget.AutoComplete(\"".$name."\", \"results".$name."\", oDS);
-                oAC.generateRequest = function(sQuery) {
-                    return \"?ajax_action=1&json=1&controller=".$this->controller."&model=".$this->searchmodel."&searchoncol=".$this->searchoncol."&action=".$this->action."&query=\"+sQuery ;
-                };
-                
-                ".$this->jsinject."
-
-            }();
+            ".$this->jsinject."
         });
         "; // end JS
-        
-        // css
+
         expCSS::pushToHead(array(
-//    	    "unique"=>"autocomplete",
-    	    "link"=>$assets_path."autocomplete/autocomplete.css"
+    	    "unique"=>"autocompletecontrol$name",
+    	    "css"=>"
+                .yui3-aclist {
+                    z-index: 99!important;
+                    overflow-x: auto;
+                }
+                #".$name."_autoc {
+                    width: ".$this->width.";
+                }
+    	    "
     	    )
     	);
-	
+
         expJavascript::pushToFoot(array(
             "unique"=>'ac'.$name,
-            "yui3mods"=>1,
+            "yui3mods"=>"autocomplete,autocomplete-highlighters",
             "content"=>$script,
-            "src"=>""
          ));
-       
-        //exponent_javascript_toFoot('ac'.$name, "animation,autocomplete,connection,datasource", null, $script);
+
         return $html;
     }
 

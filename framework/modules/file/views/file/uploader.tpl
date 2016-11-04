@@ -1,5 +1,5 @@
 {*
- * Copyright (c) 2004-2014 OIC Group, Inc.
+ * Copyright (c) 2004-2016 OIC Group, Inc.
  *
  * This file is part of Exponent
  *
@@ -23,11 +23,10 @@
     {/css}
     <script type="text/javascript" src="{$smarty.const.PATH_RELATIVE}exponent.js2.php"></script>
     <script type="text/javascript" src="{$smarty.const.YUI3_RELATIVE}yui/yui-min.js"></script>
-    {script unique="picker" src="`$smarty.const.JS_RELATIVE`exp-flashdetector.js"}
-
-    {/script}
+    <script type="text/javascript" src="{$smarty.const.JS_RELATIVE}exp-flashdetector.js"></script>
+    <script src="{$smarty.const.JQUERY_SCRIPT}"></script>
 </head>
-<body class="exp-skin">
+<body{if !bs3()} class="exp-skin"{/if}>
     <div id="exp-uploader">
         <h1>{"Upload Files"|gettext}</h1>
         <div id="actionbar">
@@ -72,9 +71,9 @@
         <span id="overallProgress"></span>
     </div>
 
-{script unique="uploader2" yui3mods="1"}
+{script unique="uploader2" yui3mods="uploader,io,json-parse"}
 {literal}
-YUI(EXPONENT.YUI3_CONFIG).use("uploader","io",'json-parse', function(Y) {
+YUI(EXPONENT.YUI3_CONFIG).use('*', function(Y) {
     Y.one("#overallProgress").set("text", "Uploader type: " + Y.Uploader.TYPE);
     var usr = {/literal}{obj2json obj=$user}{literal}; //user
     var uploadBtn = Y.one("#uploadLink");
@@ -157,7 +156,7 @@ YUI(EXPONENT.YUI3_CONFIG).use("uploader","io",'json-parse', function(Y) {
                 } else {
                     catvalue = cat.get('value');
                 }
-                var resize = Y.one('#resize').get('value');
+                var resize = Y.one('#resize').get('checked') != false;
                 var widthtxt = Y.one('#max_width');
                 if (widthtxt == null) {
                     width = 0;
@@ -289,7 +288,7 @@ YUI(EXPONENT.YUI3_CONFIG).use("uploader","io",'json-parse', function(Y) {
 
 	var handleSuccess = function(ioId, o){
 //		Y.log(o.responseText);
-		Y.log("The success handler was called.  Id: " + ioId + ".", "info", "sermon nav");
+//		Y.log("The success handler was called.  Id: " + ioId + ".", "info", "sermon nav");
 
         if(o.responseText){
             var folderlist = Y.one('#select_folder'); // the views dropdown
@@ -327,7 +326,6 @@ YUI(EXPONENT.YUI3_CONFIG).use("uploader","io",'json-parse', function(Y) {
         e.halt();
         cfg.data = "folder="+Y.one('#folder').get('value');
         var request = Y.io(sUrl, cfg);
-//        sermon.setContent(Y.Node.create('<div class="loadingdiv">{/literal}{"Loading Sermon"|gettext}{literal}</div>'));
     });
 
     if(!FlashDetect.installed) {

@@ -1,5 +1,5 @@
 {*
- * Copyright (c) 2004-2014 OIC Group, Inc.
+ * Copyright (c) 2004-2016 OIC Group, Inc.
  *
  * This file is part of Exponent
  *
@@ -23,18 +23,18 @@
 	    {control type=hidden name=id value=$record->id}
         {control type=hidden name=date_id value=$record->eventdate[0]->id}
         <div id="editevent-tabs" class="">
-            <ul class="nav nav-tabs">
-                <li class="active"><a href="#tab1" data-toggle="tab"><em>{'Event'|gettext}</em></a></li>
-                <li><a href="#tab2" data-toggle="tab"><em>{'Date'|gettext}</em></a></li>
+            <ul class="nav nav-tabs" role="tablist">
+                <li role="presentation" class="active"><a href="#tab1" role="tab" data-toggle="tab"><em>{'Event'|gettext}</em></a></li>
+                <li role="presentation"><a href="#tab2" role="tab" data-toggle="tab"><em>{'Date'|gettext}</em></a></li>
                 {if $config.enable_feedback}
-                    <li><a href="#tab3" data-toggle="tab"><em>{'Feedback'|gettext}</em></a></li>
+                    <li role="presentation"><a href="#tab3" role="tab" data-toggle="tab"><em>{'Feedback'|gettext}</em></a></li>
                 {/if}
                 {if $config.enable_images}
-                    <li><a href="#tab4" data-toggle="tab"><em>{'Images'|gettext}</em></a></li>
+                    <li role="presentation"><a href="#tab4" role="tab" data-toggle="tab"><em>{'Images'|gettext}</em></a></li>
                 {/if}
             </ul>
             <div class="tab-content yui3-skin-sam">
-                <div id="tab1" class="tab-pane fade in active">
+                <div id="tab1" role="tabpanel" class="tab-pane fade in active">
                     {control type=text name=title label="Title"|gettext value=$record->title focus=1}
                 	{control type="editor" name="body" label="Event Details"|gettext value=$record->body}
                 	{control type="checkbox" name="is_featured" label="Feature this Event?"|gettext value=1 checked=$record->is_featured}
@@ -55,7 +55,7 @@
                         {control type="checkbox" name="send_tweet" label="Post as a Tweet?"|gettext value=1}
                     {/if}
                 </div>
-                <div id="tab2" class="tab-pane fade">
+                <div id="tab2" role="tabpanel" class="tab-pane fade">
                     {control type="yuicalendarcontrol" name="eventdate" label="Event Date"|gettext value=$record->eventdate[$event_key]->date showtime=false}
                     {$jsHooks = ['onclick'=>'exponent_forms_disable_datetime(\'eventstart\',this.form,this.checked); exponent_forms_disable_datetime(\'eventend\',this.form,this.checked);']}
                   	{control type="checkbox" name="is_allday" label="All Day Event?"|gettext value=1 checked=$record->is_allday hooks=$jsHooks}
@@ -73,38 +73,24 @@
                     {/if}
                 </div>
                 {if $config.enable_feedback}
-                    <div id="tab3" class="tab-pane fade">
+                    <div id="tab3" role="tabpanel" class="tab-pane fade">
                         {control type=dropdown name=feedback_form label="Feedback Form"|gettext items=$allforms items=$allforms value=$record->feedback_form}
                         {*{control type=text name=feedback_email label="Feedback Email"|gettext value=$record->feedback_email}*}
                         {control type=email name=feedback_email label="Feedback Email"|gettext value=$record->feedback_email}
                     </div>
                 {/if}
                 {if $config.enable_images}
-                    <div id="tab4" class="tab-pane fade">
+                    <div id="tab4" role="tabpanel" class="tab-pane fade">
                         {control type=files name=images label="Attached Images"|gettext accept="image/*" value=$record->expFile folder=$config.upload_folder}
                     </div>
                 {/if}
             </div>
         </div>
-	    <div class="loadingdiv">{"Loading Event"|gettext}</div>
+	    {*<div class="loadingdiv">{"Loading Event"|gettext}</div>*}
+        {loading title="Loading Event"|gettext}
         {control type=buttongroup submit="Save Event"|gettext cancel="Cancel"|gettext}
      {/form}
 </div>
-
-{*{script unique="editform" yui3mods=1}*}
-{*{literal}*}
-    {*EXPONENT.YUI3_CONFIG.modules.exptabs = {*}
-        {*fullpath: EXPONENT.JS_RELATIVE+'exp-tabs.js',*}
-        {*requires: ['history','tabview','event-custom']*}
-    {*};*}
-
-	{*YUI(EXPONENT.YUI3_CONFIG).use('exptabs', function(Y) {*}
-        {*Y.expTabs({srcNode: '#editevent-tabs'});*}
-		{*Y.one('#editevent-tabs').removeClass('hide');*}
-		{*Y.one('.loadingdiv').remove();*}
-    {*});*}
-{*{/literal}*}
-{*{/script}*}
 
 {script unique="tabload" jquery=1 bootstrap="tab,transition"}
 {literal}

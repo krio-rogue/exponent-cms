@@ -1,5 +1,5 @@
 {*
- * Copyright (c) 2004-2014 OIC Group, Inc.
+ * Copyright (c) 2004-2016 OIC Group, Inc.
  *
  * This file is part of Exponent
  *
@@ -13,11 +13,7 @@
  *
  *}
 
-{assocarray}
-    lessvars: [
-        btn_size: "small"
-    ]
-{/assocarray}
+{$lessvars = ["btn_size" => "small"]}
 
 {css unique="newui" lessprimer="`$smarty.const.PATH_RELATIVE`external/bootstrap3/less/newui.less" lessvars=$lessvars}
 
@@ -35,9 +31,9 @@
             #topnavbar.navbar-fixed-top {
                 margin-top: 50px;
             }
-            {*#topnavbar.navbar-spacer {*}
-                {*height: 74px;*}
-            {*}*}
+            {* #topnavbar.navbar-spacer {
+                height: 74px;
+            }*}
         }
         @media screen and (max-width: {$smarty.const.MENU_WIDTH}px) {
             body {
@@ -95,8 +91,8 @@
 {function name=menu level=0}
     {if is_array($data.submenu)}
         <li class="dropdown-submenu">
-            <a href="#">{if $data.icon}<i class="fa {$data.icon} fa-fw"></i>{/if} {$data.text}</a>
-            <ul class="dropdown-menu">
+            <a id="dropdownMenu{$data.submenu.id}" data-toggle="dropdown" href="#">{if $data.icon}<i class="fa {$data.icon} fa-fw"></i>{/if} {$data.text}</a>
+            <ul class="dropdown-menu" role="menu" aria-labelledby="dropdownMenu{$data.submenu.id}">
                 {foreach from=$data.submenu.itemdata item=mitem name=sbmenutwo}
                     {menu data=$mitem}
                 {/foreach}
@@ -108,10 +104,12 @@
                 {$data.text}
             </li>
         {else}
-            <li>
-                <a id="{$data.id}" href="{$data.url|default:'#'}">{if $data.icon}<i
-                        class="fa {$data.icon} fa-fw"></i>{/if} {$data.text}</a>
+            <li role="menuitem">
+                <a id="{$data.id}" href="{$data.url|default:'#'}">{if $data.icon}<i class="fa {$data.icon} fa-fw"></i>{/if} {$data.text}</a>
             </li>
+        {/if}
+        {if $data.divider}
+            <li class="divider"> </li>
         {/if}
     {/if}
 {/function}
@@ -127,7 +125,7 @@
                 <span class="icon-bar"></span>
                 <span class="icon-bar"></span>
             </button>
-            <a class="navbar-brand" href="{$smarty.const.URL_FULL}">
+            <a class="navbar-brand" href="{$smarty.const.URL_FULL}" aria-label="{'Exponent Logo'|gettext}">
                 {exp_include file="logo.tpl"}
             </a>
         </div>
@@ -137,9 +135,9 @@
             {foreach from=$menu item=topnav name=tbmenu}
                 <ul class="nav navbar-nav{if $topnav.alignright} navbar-right{/if}">
                     <li class="dropdown">
-                        <a href="#" class="dropdown-toggle" data-toggle="dropdown">{if $topnav.icon}<i
+                        <a href="#" id="dropdownMenu{$topnav.icon}" class="dropdown-toggle" data-toggle="dropdown">{if $topnav.icon}<i
                                 class="fa {$topnav.icon} fa-fw"></i>{/if} {$topnav.text} <b class="caret"></b></a>
-                        <ul class="dropdown-menu multi-level" role="menu" aria-labelledby="dropdownMenu">
+                        <ul class="dropdown-menu multi-level" role="menu" aria-labelledby="dropdownMenu{$topnav.icon}">
                             {foreach from=$topnav.submenu.itemdata item=subitem name=sbmenu}
                                 {menu data=$subitem}
                             {/foreach}
@@ -152,11 +150,9 @@
     </header>
 </div>
 
-{script unique="z-admin2" jquery=1 bootstrap="dropdown,collapse"}
+{script unique="z-admin2" bootstrap="dropdown,collapse,transition"}
 {literal}
     jQuery(document).ready(function($) {
-//        $('body').css('margin-top', $('#admin-toolbar').height()+10);
-
         var adminerwindow = function (){
             var win = window.open('{/literal}{$smarty.const.PATH_RELATIVE}{literal}external/adminer/admin.php?server={/literal}{$smarty.const.DB_HOST}{literal}&username={/literal}{$smarty.const.DB_USER}{literal}&db={/literal}{$smarty.const.DB_NAME}{literal}');
             if (!win) { err(); }
@@ -203,7 +199,7 @@
         $('#workflow-toggle').on('click',workflowtoggle);
     });
 
-    $('.dropdown-toggle').click(function(e) {
+    $('.exp-skin .dropdown-toggle').click(function(e) {
         e.preventDefault();
         setTimeout($.proxy(function() {
             if ('ontouchstart' in document.documentElement) {
@@ -212,13 +208,40 @@
         }, this), 0);
     });
 
+    /**
+      * NAME: Bootstrap 3 Triple Nested Sub-Menus
+      * This script will active Triple level multi drop-down menus in Bootstrap 3.*
+      */
+    $('.exp-skin ul.dropdown-menu [data-toggle=dropdown]').on('click', function(event) {
+        // Avoid following the href location when clicking
+        event.preventDefault();
+        if ($(this).hasClass('tick')) {
+            $(this).removeClass('tick');
+            $(this).parent().removeClass('open');
+        } else {
+            $(this).addClass('tick');
+            // Avoid having the menu to close when clicking
+            event.stopPropagation();
+            // Re-add .open to parent sub-menu item
+            $(this).parent().addClass('open');
+            $(this).parent().find("ul").parent().find("li.dropdown").addClass('open');
+        }
+    });
+
+    /**
+    * Auto-adjust (dynamically) top margins based on navbar type and slingbar display
+    */
     $(document).ready(function(){
-        if ({/literal}{$top}{literal}) {  // fixed top menu
-            $(document.body).css('margin-top', $('#admin-toolbar').height() + $('#topnavbar').height());
+        if ({/literal}{$top}{literal}) {  // fixed top slingbar menu
+            if ({/literal}{($smarty.const.MENU_LOCATION == 'fixed-top') + 0}{literal}) {  // fixed top main menu
+                $(document.body).css('margin-top', $('#admin-toolbar').height() + $('#topnavbar').height() + 15);
+            } else if ({/literal}{($smarty.const.MENU_LOCATION == 'fixed-bottom') + 0}{literal}) {  // fixed bottom main menu
+                $(document.body).css('margin-top', 15);
+            }
             $(document.body).css('margin-bottom', 0);
-        } else {  // fixed bottom menu
+        } else {  // fixed bottom slingbar menu
             $(document.body).css('margin-top', $('#topnavbar').height());
-            $(document.body).css('margin-bottom', $('#admin-toolbar').height()+10);
+            $(document.body).css('margin-bottom', $('#admin-toolbar').height() + 10);
         }
     });
 {/literal}

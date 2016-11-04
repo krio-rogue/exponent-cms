@@ -1,5 +1,5 @@
 {*
- * Copyright (c) 2004-2014 OIC Group, Inc.
+ * Copyright (c) 2004-2016 OIC Group, Inc.
  *
  * This file is part of Exponent
  *
@@ -53,7 +53,7 @@
                         {*<a class="{button_style}" href="{link module=cart action=customerSignup}">{"Continue Checking Out"|gettext}</a>*}
                         {icon button=true module=cart action=customerSignup text="Continue Checking Out"|gettext}
                     {else}
-                        {"If you are a new customer,add an item to your cart  <br />to continue with the checkout process."|gettext}
+                        {"If you are a new customer, add an item to your cart  <br />to continue with the checkout process."|gettext}
                     {/if}
                 {else}
                     {"Create a new account here."|gettext}{br}{br}

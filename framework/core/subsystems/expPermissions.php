@@ -1,7 +1,7 @@
 <?php
 ##################################################
 #
-# Copyright (c) 2004-2014 OIC Group, Inc.
+# Copyright (c) 2004-2016 OIC Group, Inc.
 #
 # This file is part of Exponent
 #
@@ -97,7 +97,6 @@ class expPermissions {
         }
 
         $ploc = clone $location;
-//        $ploc->mod = expModules::controllerExists($ploc->mod) ? expModules::getControllerClassName($ploc->mod) : $ploc->mod;  //FIXME long controller name
         $ploc->mod = expModules::getModuleName(($ploc->mod));
 
 		if (!is_array($permission)) $permission = array($permission);
@@ -109,15 +108,6 @@ class expPermissions {
 //        }
         $permission = array_unique($permission);  // strip out duplicates
 
-//		if (is_callable(array($ploc->mod,"getLocationHierarchy"))) {  //FIXME this is only available in calendarmodule, may not be needed if there is no 'int' property?
-//			foreach (call_user_func(array($ploc->mod,"getLocationHierarchy"),$ploc) as $loc) {  //FIXME this is only available in calendarmodule
-//				foreach ($permission as $perm) {
-//					if (isset($exponent_permissions_r[$loc->mod][$loc->src][$loc->int][$perm])) {
-//						return true;
-//					}
-//				}
-//			}
-//		}
         // check for explicit user (and implicit group/subscription) permission
         foreach ($permission as $perm) {
             if (isset($exponent_permissions_r[$ploc->mod][$ploc->src][$ploc->int][$perm])) {
@@ -142,7 +132,6 @@ class expPermissions {
             $tmpLoc->mod = $ploc->mod;
             $tmpLoc->src = $ploc->src;
             $tmpLoc->int = $ploc->int;
-//            $tmpLoc->mod = (!strpos($tmpLoc->mod,"Controller") && !strpos($tmpLoc->mod,"module")) ? $tmpLoc->mod."Controller" : $tmpLoc->mod;  //FIXME long controller name
             $cLoc = expUnserialize($db->selectValue('container','external','internal=\''.serialize($tmpLoc).'\''));
             if (@isset($exponent_permissions_r[$cLoc->mod][$cLoc->src][$cLoc->int][$perm])) {
                return true;
@@ -169,11 +158,19 @@ class expPermissions {
         }
 
         // check for inherited 'manage' permission from current page and its parents
-//		if ($ploc->mod != 'navigationController') {
         if ($ploc->mod != 'navigation') {
             global $sectionObj;
-//            if (self::check('manage',expCore::makeLocation('navigationController','',$sectionObj->id))) {
-            if (self::check('manage',expCore::makeLocation('navigation','',$sectionObj->id))) {
+            if (in_array('view', $permission)) {
+                $page_perm = array(
+                    'manage',
+                    'view',
+                );
+            } else {
+                $page_perm = array(
+                    'manage'
+                );
+            }
+            if (self::check($page_perm,expCore::makeLocation('navigation','',$sectionObj->id))) {
 				return true;
 			}
 		} else {
@@ -181,7 +178,6 @@ class expPermissions {
             $page = $db->selectObject("section","id=".$ploc->int);
             if (!empty($page->parent)) {
                 // first check for specific 'view' permission
-//                if (self::check($permission,expCore::makeLocation('navigationController','',$page->parent))) {
                 if (self::check($permission,expCore::makeLocation('navigation','',$page->parent))) {
                     return true;
                 }
@@ -218,21 +214,11 @@ class expPermissions {
             return true;
         }
         $ploc = clone $location;
-//        $ploc->mod = expModules::controllerExists($ploc->mod) ? expModules::getControllerClassName($ploc->mod) : $ploc->mod;  //FIXME long controller name
         $ploc->mod = expModules::getModuleName(($ploc->mod));
 
         // check for explicit user permission
 		$explicit = $db->selectObject("userpermission","uid=" . $user->id . " AND module='" . $ploc->mod . "' AND source='" . $ploc->src . "' AND internal='" . $ploc->int . "' AND permission='$permission'");
 		if ($explicitOnly || $explicit) return !empty($explicit);
-
-        // Calculate inherited permissions if we don't already have explicit/implicit perms
-//        if (is_callable(array($ploc->mod,"getLocationHierarchy"))) {  //FIXME this is only available in calendarmodule
-//            foreach (call_user_func(array($ploc->mod,"getLocationHierarchy"),$ploc) as $loc) {  //FIXME this is only available in calendarmodule
-//                if ($db->selectObject("userpermission","uid=" . $user->id . " AND module='" . $loc->mod . "' AND source='" . $loc->src . "' AND internal='" . $loc->int . "' AND permission='$permission'")) {
-//                    return true;
-//                }
-//            }
-//        }
 
         // check for implicit group permission
         $memberships = $db->selectObjects("groupmembership","member_id=".$user->id);
@@ -272,7 +258,6 @@ class expPermissions {
             $tmpLoc->mod = $ploc->mod;
             $tmpLoc->src = $ploc->src;
             $tmpLoc->int = $ploc->int;
-//            $tmpLoc->mod = (!strpos($tmpLoc->mod,"Controller") && !strpos($tmpLoc->mod,"module")) ? $tmpLoc->mod."Controller" : $tmpLoc->mod;  //FIXME long controller name
             $cLoc = expUnserialize($db->selectValue('container','external','internal=\''.serialize($tmpLoc).'\''));
             if (!empty($cLoc) && $db->selectObject("userpermission","uid=" . $user->id . " AND module='" . $cLoc->mod . "' AND source='" . $cLoc->src . "' AND internal='" . $cLoc->int . "' AND permission='$perm'")) {
                return true;
@@ -299,15 +284,12 @@ class expPermissions {
         }
 
         // check for inherited 'manage' permission from its page
-//        if ($ploc->mod != 'navigationController') {
         if ($ploc->mod != 'navigation') {
             $tmpLoc->mod = $ploc->mod;
             $tmpLoc->src = $ploc->src;
             $tmpLoc->int = $ploc->int;
-//            $tmpLoc->mod = (!strpos($tmpLoc->mod,"Controller") && !strpos($tmpLoc->mod,"module")) ? $tmpLoc->mod."Controller" : $tmpLoc->mod;  //FIXME long controller name
 //            foreach ($db->selectObjects('sectionref',"is_original=1 AND module='".$tmpLoc->mod."' AND source='".$tmpLoc->src."'") as $secref) {
             foreach ($db->selectObjects('sectionref',"module='".$tmpLoc->mod."' AND source='".$tmpLoc->src."'") as $secref) {
-//                if (self::checkUser($user,'manage',expCore::makeLocation('navigationController','',$secref->section))) {
                 if (self::checkUser($user,'manage',expCore::makeLocation('navigation','',$secref->section))) {
                     return true;
                 }
@@ -317,12 +299,10 @@ class expPermissions {
             $page = $db->selectObject("section","id=".$ploc->int);
             if (!empty($page->parent)) {
                 // first check for specific 'view' permission
-//                if (self::checkUser($user,$permission,expCore::makeLocation('navigationController','',$page->parent))) {
                 if (self::checkUser($user,$permission,expCore::makeLocation('navigation','',$page->parent))) {
                     return true;
                 }
                 // otherwise check for 'super' permission
-//                if (self::checkUser($user,'manage',expCore::makeLocation('navigationController','',$page->parent))) {
                 if (self::checkUser($user,'manage',expCore::makeLocation('navigation','',$page->parent))) {
                     return true;
                 }
@@ -346,8 +326,6 @@ class expPermissions {
 			if (!self::checkUser($user,$permission,$location)) {
 				$obj = new stdClass();
 				$obj->uid = $user->id;
-//				$obj->module = $location->mod;
-//                $obj->module = expModules::controllerExists($location->mod) ? expModules::getControllerClassName($location->mod) : $location->mod;  //FIXME long controller name
                 $obj->module = expModules::getModuleName(($location->mod));
 				$obj->source = $location->src;
 				$obj->internal = $location->int;
@@ -378,7 +356,6 @@ class expPermissions {
 
 		if ($group == null) return false;
         $ploc = clone $location;
-//        $ploc->mod = expModules::controllerExists($ploc->mod) ? expModules::getControllerClassName($ploc->mod) : $ploc->mod;  //FIXME long controller name
         $ploc->mod = expModules::getModuleName(($ploc->mod));
 
         // check for explicit group permission
@@ -415,7 +392,6 @@ class expPermissions {
             $tmpLoc->mod = $ploc->mod;
             $tmpLoc->src = $ploc->src;
             $tmpLoc->int = $ploc->int;
-//            $tmpLoc->mod = (!strpos($tmpLoc->mod,"Controller") && !strpos($tmpLoc->mod,"module")) ? $tmpLoc->mod."Controller" : $tmpLoc->mod;  //FIXME long controller name
             $cLoc = expUnserialize($db->selectValue('container','external','internal=\''.serialize($tmpLoc).'\''));
             if (!empty($cLoc) && $db->selectObject("grouppermission","gid=" . $group->id . " AND module='" . $cLoc->mod . "' AND source='" . $cLoc->src . "' AND internal='" . $cLoc->int . "' AND permission='$perm'")) {
                return true;
@@ -442,15 +418,11 @@ class expPermissions {
         }
 
         // check for inherited 'manage' permission from its page
-//        if ($ploc->mod != 'navigationController') {
         if ($ploc->mod != 'navigation') {
             $tmpLoc->mod = $ploc->mod;
             $tmpLoc->src = $ploc->src;
             $tmpLoc->int = $ploc->int;
-//            $tmpLoc->mod = (!strpos($tmpLoc->mod,"Controller") && !strpos($tmpLoc->mod,"module")) ? $tmpLoc->mod."Controller" : $tmpLoc->mod;  //FIXME long controller name
-//            foreach ($db->selectObjects('sectionref',"is_original=1 AND module='".$tmpLoc->mod."' AND source='".$tmpLoc->src."'") as $secref) {
             foreach ($db->selectObjects('sectionref',"module='".$tmpLoc->mod."' AND source='".$tmpLoc->src."'") as $secref) {
-//                if (self::checkGroup($group,'manage',expCore::makeLocation('navigationController','',$secref->section))) {
                 if (self::checkGroup($group,'manage',expCore::makeLocation('navigation','',$secref->section))) {
                     return true;
                 }
@@ -460,12 +432,10 @@ class expPermissions {
             $page = $db->selectObject("section","id=".$ploc->int);
             if (!empty($page->parent)) {
                 // first check for specific 'view' permission
-//                if (self::checkGroup($group,$permission,expCore::makeLocation('navigationController','',$page->parent))) {
                 if (self::checkGroup($group,$permission,expCore::makeLocation('navigation','',$page->parent))) {
                     return true;
                 }
                 // otherwise check for 'super' permission
-//                if (self::checkGroup($group,'manage',expCore::makeLocation('navigationController','',$page->parent))) {
                 if (self::checkGroup($group,'manage',expCore::makeLocation('navigation','',$page->parent))) {
                     return true;
                 }
@@ -489,8 +459,6 @@ class expPermissions {
 			if (!self::checkGroup($group,$permission,$location)) {
 				$obj = new stdClass();
 				$obj->gid = $group->id;
-//				$obj->module = $location->mod;
-//                $obj->module = expModules::controllerExists($location->mod) ? expModules::getControllerClassName($location->mod) : $location->mod;  //FIXME long controller name
                 $obj->module = expModules::getModuleName(($location->mod));
 				$obj->source = $location->src;
 				$obj->internal = $location->int;
@@ -517,7 +485,6 @@ class expPermissions {
 	public static function revokeAll($user,$location) {
 		global $db;
 
-//        $mod = expModules::controllerExists($location->mod) ? expModules::getControllerClassName($location->mod) : $location->mod;  //FIXME long controller name
         $mod = expModules::getModuleName($location->mod);
 		return $db->delete("userpermission","uid=" . $user . " AND module='" . $mod . "' AND source='" . $location->src . "' AND internal='" . $location->int . "'");
 	}
@@ -535,7 +502,6 @@ class expPermissions {
 	public static function revokeAllGroup($group,$location) {
 		global $db;
 
-//        $mod = expModules::controllerExists($location->mod) ? expModules::getControllerClassName($location->mod) : $location->mod;  //FIXME long controller name
         $mod = expModules::getModuleName($location->mod);
 		return $db->delete('grouppermission','gid=' . $group . " AND module='" . $mod . "' AND source='" . $location->src . "' AND internal='" . $location->int . "'");
 	}
@@ -552,7 +518,6 @@ class expPermissions {
    	public static function revokeComplete($location) {
    		global $db;
 
-//        $mod = expModules::controllerExists($location->mod) ? expModules::getControllerClassName($location->mod) : $location->mod;  //FIXME long controller name
         $mod = expModules::getModuleName($location->mod);
    		$db->delete("userpermission","module='".$mod."' AND source='".$location->src."'");
    		$db->delete("grouppermission","module='".$mod."' AND source='".$location->src."'");
@@ -565,28 +530,13 @@ class expPermissions {
 	 * or revoked, and is required to see these changes.
      *
 	 * @node Subsystems:expPermissions
+     * @deprecated 2.3.3 moved into expSession
 	 */
 	public static function triggerRefresh() {
 		global $db;
 		$obj = new stdClass();
 		$obj->refresh = 1;
 		$db->updateObject($obj,'sessionticket','true'); // force a global refresh
-	}
-
-	/** exdoc
-	 * This call will force all active sessions for the given user to
-	 * reload their permission data.  This is useful if permissions
-	 * are assigned or revoked, and is required to see these changes.
-     *
-     * @param user/object $user
-     *
-	 * @node Subsystems:expPermissions
-	 */
-	public static function triggerSingleRefresh($user) {  //FIXME not currently used
-		global $db;
-		$obj = new stdClass();
-		$obj->refresh = 1;
-		$db->updateObject($obj,'sessionticket','uid='.$user->id); // force a global refresh
 	}
 
 }

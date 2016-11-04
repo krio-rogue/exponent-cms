@@ -2,7 +2,7 @@
 
 ##################################################
 #
-# Copyright (c) 2004-2014 OIC Group, Inc.
+# Copyright (c) 2004-2016 OIC Group, Inc.
 #
 # This file is part of Exponent
 #
@@ -42,10 +42,18 @@ class countdownController extends expController {
     static function description() { return gt("Displays a timer counting down to a specified date/time."); }
     static function author() { return "Ported to Exponent by Phillip Ball. Original JS at http://tutorialzine.com/2011/12/countdown-jquery/"; }
 
+    static function requiresConfiguration()
+    {
+        return true;
+    }
+
     /**
    	 * default view for individual item
    	 */
    	function show() {
+        if (!empty($this->params['count'])) {
+            $this->config = $this->params;
+        }
         if (!empty($this->config['count'])) {
             // parse out date into calendarcontrol fields 'date-count' 'time-h-count' 'time-m-count' 'ampm-count'
             $this->config['date-count'] = date('m/d/Y', $this->config['count']);
@@ -61,10 +69,12 @@ class countdownController extends expController {
     function saveconfig() {
         // get parsed data and unset calendarcontrol fields
         $this->params['count'] = calendarcontrol::parseData('count',$this->params);
-        unset($this->params['date-count']);
-        unset($this->params['time-h-count']);
-        unset($this->params['time-m-count']);
-        unset($this->params['ampm-count']);
+        unset(
+            $this->params['date-count'],
+            $this->params['time-h-count'],
+            $this->params['time-m-count'],
+            $this->params['ampm-count']
+        );
         parent::saveconfig();
     }
 }

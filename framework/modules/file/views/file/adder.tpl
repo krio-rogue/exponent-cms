@@ -1,5 +1,5 @@
 {*
- * Copyright (c) 2004-2014 OIC Group, Inc.
+ * Copyright (c) 2004-2016 OIC Group, Inc.
  *
  * This file is part of Exponent
  *
@@ -24,7 +24,7 @@
     <script type="text/javascript" src="{$smarty.const.YUI3_RELATIVE}yui/yui-min.js"></script>
     <script type="text/javascript" src="{$smarty.const.PATH_RELATIVE}exponent.js2.php"></script>
 </head>
-<body class="exp-skin">
+<body{if !bs3()} class="exp-skin"{/if}>
 <div id="exp-adder">
     <h1>{"Add Existing Files"|gettext}</h1>
     <div id="actionbar">
@@ -54,7 +54,7 @@
                     <tbody>
                         {foreach from=$files item=file key=src}
                             <tr class="{cycle values="even,odd"}">
-                                <td style="width:20;">
+                                <td style="width:20px;">
                                     {control type="checkbox" name="addit[]" value=$src}
                                 </td>
                                 <td>

@@ -2,7 +2,7 @@
 
 ##################################################
 #
-# Copyright (c) 2004-2014 OIC Group, Inc.
+# Copyright (c) 2004-2016 OIC Group, Inc.
 #
 # This file is part of Exponent
 #
@@ -22,30 +22,35 @@
  */
 
 class orderController extends expController {
-    protected $add_permissions = array(
+    protected $manage_permissions = array(
+        'add_order_item'      => 'Add Order Item',
+        'download'      => 'Download Label',
+//        'create_new_order'    => 'Create A New Order',
+//        'createReferenceOrder'=> 'Create Reference Order',
+//        'edit_address'        => 'Edit Address',
+//        'edit_invoice_id'     => 'Edit Invoice Id',
+//        'edit_order_item'     => 'Edit Order Item',
+//        'edit_payment_info'   => 'Edit Payment Info',
+//        'edit_shipping_method'=> 'Edit Shipping Method',
+//        'edit_totals'         => 'Edit Totals',
+//        'email'         => 'Send Email',
+        'quickfinder'=> 'Do a quick order lookup',
+        'save_payment_info'=> 'Save Payment Info',
+        'save_address'=> 'Save Address',
+        'save_order_item'=> 'Save Order Item',
+//        'save_new_order_item'=> 'Save New Order Item',
+        'save_totals'=> 'Save Totals',
+        'save_invoice_id'=> 'Save Invoice Id',
+        'save_shipping_method'=> 'Save Shipping Method',
+        'save_new_order'=> 'Save a new order',
+        'save_reference_order'=> 'Save Reference Order',
+        'set'           => 'Change Status',
         'showall'             => 'Manage',
         'show'                => 'View Orders',
-        'setStatus'           => 'Change Status',
-        'edit_payment_info'   => 'Edit Payment Info',
-        'save_payment_info'=> 'Save Payment Info',
-        'edit_address'        => 'Edit Address',
-        'save_address'=> 'Save Address',
-        'edit_order_item'     => 'Edit Order Item',
-        'save_order_item'=> 'Save Order Item',
-        'add_order_item'      => 'Add Order Item',
-        'save_new_order_item'=> 'Save New Order Item',
-        'edit_totals'         => 'Edit Totals',
-        'save_totals'=> 'Save Totals',
-        'edit_invoice_id'     => 'Edit Invoice Id',
-        'save_invoice_id'=> 'Save Invoice Id',
-        'update_sales_reps'   => 'Manage Sales Reps',
-        'quickfinder'=> 'Do a quick order lookup',
-        'edit_shipping_method'=> 'Edit Shipping Method',
-        'save_shipping_method'=> 'Save Shipping Method',
-        'create_new_order'    => 'Create A New Order',
-        'save_new_order'=> 'Save a new order',
-        'createReferenceOrder'=> 'Create Reference Order',
-        'save_reference_order'=> 'Save Reference Order'
+        'update'                => 'update order',
+    );
+    public $requires_login = array(
+        'ordersbyuser'=>'You must be logged in to view past orders',
     );
 
     static function displayname() {
@@ -66,21 +71,21 @@ class orderController extends expController {
         for($i=0; $i<$count; $i++) {
             // get the cart
             $cart = $db->selectObject('orders','purchased=0');
-            
+
             // check to make sure this isn't an active session
             $ticket = $db->selectObject('sessionticket', "ticket='".$cart->sessionticket_ticket."'");
             if (empty($ticket)) {
                 // delete all the order items for this cart and their shippingmethods
                 foreach($db->selectObjects('orderitems', 'orders_id='.$cart->id) as $oi) {
                     $db->delete('shippingmethods', 'id='.$oi->shippingmethods_id);
-                    $db->delete('orderitems', 'orders_id='.$cart->id);    
+                    $db->delete('orderitems', 'orders_id='.$cart->id);
                 }
-                
+
                 // delete the billing methods for this cart.
                 $db->delete('billingmethods', 'orders_id='.$cart->id);
                 $db->delete('orders', 'id='.$cart->id);
-            }           
-            
+            }
+
         } */
 
         // find orders with a "closed" status type
@@ -106,17 +111,21 @@ class orderController extends expController {
         }
 
         // build out a SQL query that gets all the data we need and is sortable.
-        $sql = 'SELECT o.*, b.firstname as firstname, b.billing_cost as total, b.middlename as middlename, b.lastname as lastname, os.title as status, ot.title as order_type ';
-        $sql .= 'FROM ' . DB_TABLE_PREFIX . '_orders o, ' . DB_TABLE_PREFIX . '_billingmethods b, ';
-        $sql .= DB_TABLE_PREFIX . '_order_status os, ';
-        $sql .= DB_TABLE_PREFIX . '_order_type ot ';
+        $sql = 'SELECT o.*, b.firstname as firstname, b.billing_cost as total, b.transaction_state as paid, b.billingcalculator_id as method, b.middlename as middlename, b.lastname as lastname, os.title as status, ot.title as order_type ';
+        $sql .= 'FROM ' . $db->prefix . 'orders o, ' . $db->prefix . 'billingmethods b, ';
+        $sql .= $db->prefix . 'order_status os, ';
+        $sql .= $db->prefix . 'order_type ot ';
         $sql .= 'WHERE o.id = b.orders_id AND o.order_status_id = os.id AND o.order_type_id = ot.id AND o.purchased > 0';
-
+  //FIXME this sql isn't correct???
 //        if (!empty($status_where)) {
 //            $status_where .= ')';
             $sql .= $status_where;
 //        }
-        $limit = empty($this->config['limit']) ? 50 : $this->config['limit'];
+        if (ECOM_LARGE_DB) {
+            $limit = empty($this->config['limit']) ? 50 : $this->config['limit'];
+        } else {
+            $limit = 0;  // we'll paginate on the page
+        }
         //eDebug($sql, true);
         $page = new expPaginator(array(
             //'model'=>'order',
@@ -129,9 +138,10 @@ class orderController extends expController {
             'action'    => $this->params['action'],
             'columns'   => array(
                 gt('Customer')      => 'lastname',
-                gt('Order #')       => 'invoice_id',
+                gt('Inv #')         => 'invoice_id',
                 gt('Total')         => 'total',
-                gt('Date Purchased')=> 'purchased',
+                gt('Payment')       => 'method',
+                gt('Purchased')     => 'purchased',
                 gt('Type')          => 'order_type_id',
                 gt('Status')        => 'order_status_id',
                 gt('Ref')           => 'orig_referrer',
@@ -140,7 +150,8 @@ class orderController extends expController {
         //eDebug($page,true);
         assign_to_template(array(
             'page'        => $page,
-            'closed_count'=> $closed_count
+            'closed_count'=> $closed_count,
+            'new_order'   => order::getDefaultOrderStatus()
         ));
     }
 
@@ -152,7 +163,17 @@ class orderController extends expController {
 
         expHistory::set('viewable', $this->params);
 
-        $order = new order($this->params['id']);
+        if (!empty($this->params['invoice']) && empty($this->params['id'])) {
+            $ord = new order();
+            $order = $ord->find('first', 'invoice_id=' . $this->params['invoice']);
+            $this->params['id'] = $order->id;
+        } elseif (!empty($this->params['id'])) {
+            $order = new order($this->params['id']);
+        }
+        if (empty($order->id)) {
+            flash('notice', gt('That order does not exist.'));
+            expHistory::back();
+        }
 
         // We're forcing the location. Global store setting will always have this loc
 //        $storeConfig = new expConfig(expCore::makeLocation("ecomconfig","@globalstoresettings",""));
@@ -167,11 +188,14 @@ class orderController extends expController {
             $order->billingmethod[0]->billingtransaction[0]->billingcalculator = new $calc_name();
         }
         //eDebug($order->billingmethod[0]->billingtransaction);
-        if (isset($this->params['printerfriendly'])) $pf = $this->params['printerfriendly'];
-        else $pf = 0;
+        if (isset($this->params['printerfriendly']))
+            $pf = $this->params['printerfriendly'];
+        else
+            $pf = 0;
 
         $to_addresses[] = $order->billingmethod[0]->email;
-        $s              = array_pop($order->shippingmethods);
+//        $s              = array_pop($order->shippingmethods);  //FIXME we don't really want to 'pop' it off the object
+        $s              = reset($order->shippingmethods);
         if ($s->email != $order->billingmethod[0]->email) $to_addresses[] = $s->email;
 
         $from_addresses                                        = array();
@@ -191,14 +215,16 @@ class orderController extends expController {
 
         assign_to_template(array(
             'css'            => $css,
-            'printerfriendly'=> $pf,
+            'pf'             => $pf,
             'order'          => $order,
+            'order_user'     => new user($order->user_id),
 //            'shipping'       => $order->orderitem[0],  //FIXME what about new orders with no items??
             'billing'        => $billing,
+            'billinginfo'    => $billing->getBillingInfo(),
             'messages'       => $status_messages,
             'order_type'     => $order_type,
 //            'storeConfig'    => $storeConfig->config,
-            'sales_reps'     => $order->getSalesReps(),
+            'sales_reps'     => order::getSalesReps(),
             'from_addresses' => $from_addresses,
             'from_default'   => $from_default,
             'email_subject'  => $email_subject,
@@ -215,7 +241,8 @@ class orderController extends expController {
         global $user, $db;
 
         $order = new order($this->params['id']);
-        if ($order->purchased == 0) flashAndFlow('error', gt('You do not have permission to view this order.'));
+        if ($order->purchased == 0)
+            flashAndFlow('error', gt('You do not have permission to view this order.'));
 
         $this->loc->src = "@globalstoresettings";
 
@@ -225,7 +252,7 @@ class orderController extends expController {
         //check here for the hash in the params, or session set w/ perms to view...shs = xaf7y0s87d7elshd70 etc
         //if present, prompt user for the order number and email address on the order
         //and if they pass, show the order to them. Need to maybe set something in the session then for subsequent
-        //viewing of the order?        
+        //viewing of the order?
         if ($user->id != $order->user_id) {
             if ($user->isAdmin()) {
                 redirect_to(array('controller'=> 'order', 'action'=> 'show', 'id'=> $this->params['id']));
@@ -257,6 +284,8 @@ class orderController extends expController {
         else $pf = 0;
         $css = file_get_contents(BASE . 'framework/modules/ecommerce/assets/css/print-invoice.css');
 
+        $order->calculateGrandTotal();
+
         $trackMe = false;
         if (isset($this->params['tc']) && $this->params['tc'] == 1) {
             if (expSession::is_set('orders_tracked')) {
@@ -274,16 +303,19 @@ class orderController extends expController {
                 expSession::set('orders_tracked', $trackingArray);
             }
         }
-        if (DEVELOPMENT != 0) $trackMe = false;
+        if (DEVELOPMENT != 0)
+            $trackMe = false;
         assign_to_template(array(
             'printerfriendly'=> $pf,
             'css'            => $css,
             'order'          => $order,
             'shipping'       => $order->orderitem[0],
             'billing'        => $billing,
+            'billinginfo'    => $billing->getBillingInfo(),
             'order_type'     => $order_type,
 //            'storeConfig'    => $storeConfig->config,
-            'tc'             => $trackMe
+            'tc'             => $trackMe,
+            'checkout'       => !empty($this->params['tc'])  //FIXME we'll use the tc param for now
         ));
 
     }
@@ -295,31 +327,43 @@ class orderController extends expController {
         $template = expTemplate::get_template_for_action($this, 'email_invoice', $this->loc);
         $order    = new order($this->params['id']);
         $billing  = new billing($this->params['id']);
+//        if ($billing->calculator != null) {
+//            $billinginfo = $billing->calculator->userView(unserialize($billing->billingmethod->billing_options));
+//        } else {
+//            if (empty($opts)) {
+//                $billinginfo = false;
+//            } else {
+//                $billinginfo = gt("No Cost");
+//                if (!empty($opts->payment_due)) {
+//                    $billinginfo .= '<br>'.gt('Payment Due') . ': ' . expCore::getCurrencySymbol() . number_format($opts->payment_due, 2, ".", ",");
+//                }
+//            }
+//        }
         $css = file_get_contents(BASE.'framework/modules/ecommerce/assets/css/print-invoice.css');
         assign_to_template(array(
-            'css'     => $css,
-            'order'   => $order,
-            'shipping'=> $order->orderitem[0],
-            'billing' => $billing
+            'css'         => $css,
+            'order'       => $order,
+            'shipping'    => $order->orderitem[0],
+            'billing'     => $billing,
+            'billinginfo' => $billing->getBillingInfo(),
         ));
 
         // build the html and text versions of the message
         $html = $template->render();
-        $txt  = strip_tags($html);
+//        $txt  = strip_tags($html);
 
         // send email invoices to the admins if needed
         if (ecomconfig::getConfig('email_invoice') == true) {
             $addresses = explode(',', ecomconfig::getConfig('email_invoice_addresses'));
             foreach ($addresses as $address) {
                 $mail = new expMail();
-                $from = array(ecomconfig::getConfig('from_address')=> ecomconfig::getConfig('from_name'));
+                $from = array(ecomconfig::getConfig('from_address') => ecomconfig::getConfig('from_name'));
                 if (empty($from[0])) $from = SMTP_FROMADDRESS;
                 $mail->quickSend(array(
                     'html_message'=> $html,
-                    'text_message'=> $txt,
+//                    'text_message'=> $txt,
+                    'text_message'=> expString::html2text($html),
                     'to'          => trim($address),
-//					    'from'=>ecomconfig::getConfig('from_address'),
-//					    'from_name'=>ecomconfig::getConfig('from_name'),
                     'from'        => $from,
                     'subject'     => 'An order was placed on the ' . ecomconfig::getConfig('storename'),
                 ));
@@ -330,18 +374,17 @@ class orderController extends expController {
         if (ecomconfig::getConfig('email_invoice_to_user') == true && !empty($user->email)) {
             $usermsg = "<p>" . ecomconfig::getConfig('invoice_msg') . "<p>";
             $usermsg .= $html;
-            $usermsg .= ecomconfig::getConfig('ecomfooter');
+//            $usermsg .= ecomconfig::getConfig('ecomfooter');
 
             $mail = new expMail();
-            $from = array(ecomconfig::getConfig('from_address')=> ecomconfig::getConfig('from_name'));
+            $from = array(ecomconfig::getConfig('from_address') => ecomconfig::getConfig('from_name'));
             if (empty($from[0])) $from = SMTP_FROMADDRESS;
             $mail->quickSend(array(
                 'html_message'=> $usermsg,
-                'text_message'=> $txt,
-                'to'          => $user->email,
+//                'text_message'=> $txt,
+                'text_message'=> expString::html2text($usermsg),
+                'to'          => array(trim($user->email) => trim(user::getUserAttribution($user->id))),
                 //'to'=>$order->billingmethod[0]->email,
-//			        'from'=>ecomconfig::getConfig('from_address'),
-//			        'from_name'=>ecomconfig::getConfig('from_name'),
                 'from'        => $from,
                 'subject'     => ecomconfig::getConfig('invoice_subject'),
             ));
@@ -359,13 +402,27 @@ class orderController extends expController {
     function getPDF($orders = null) {
         global $user, $timer;
 
-        //$invoice = '<HTML><HEAD><link rel="stylesheet" type="text/css" href="'.NONSSL_URL.YUI2_RELATIVE.'yui2-reset-fonts-grids/yui2-reset-fonts-grids.css" ><link rel="stylesheet" type="text/css" href="'.NONSSL_URL.THEME_RELATIVE.'css/base-styles.css"><link rel="stylesheet" type="text/css" href="'.NONSSL_URL.PATH_RELATIVE.'framework/modules/ecommerce/assets/css/print-invoice.css"><style>html{background:none;} #store-header{text-align:left;}</style></HEAD><BODY>';
-        $invoice = '<!DOCTYPE HTML><HTML><HEAD></HEAD><BODY>';
+        $invoice = '<!DOCTYPE HTML><HTML><HEAD>';
+        // the basic styles
+        if (!bs3())
+            $invoice .= '<link rel="stylesheet" type="text/css" href="'.URL_FULL.'external/normalize/normalize.css" >';
+        if (!bs())
+//            $invoice .= '<link rel="stylesheet" type="text/css" href="'.URL_FULL.'external/normalize/normalize.css" >';
+        if (bs2())
+            $invoice .= '<link rel="stylesheet" type="text/css" href="'.URL_FULL.'external/bootstrap/css/bootstrap.css" >';
+        if (bs3())
+            $invoice .= '<link rel="stylesheet" type="text/css" href="'.URL_FULL.'external/bootstrap3/css/bootstrap.css" >';
+        $invoice .= '<link rel="stylesheet" type="text/css" href="'.URL_FULL.'framework/modules/ecommerce/assets/css/print-invoice.css">
+        <style>
+            html{background:none;}
+            #store-header{text-align:left;}
+        </style>';
+        $invoice .= '</HEAD><BODY>';
         if (is_array($orders)) {
             foreach ($orders as $order) {
                 if ($user->isAdmin()) {
                     $invoice .= renderAction(array('controller'=> 'order', 'action'=> 'show', 'view'=> 'show_printable', 'id'=> $order['id'], 'printerfriendly'=> '1', 'no_output'=> 'true'));
-                    //eDebug($order['id'] . ": " . $timer->mark());                        
+                    //eDebug($order['id'] . ": " . $timer->mark());
                 } else {
                     $invoice .= renderAction(array('controller'=> 'order', 'action'=> 'myOrder', 'view'=> 'show_printable', 'id'=> $order['id'], 'printerfriendly'=> '1', 'no_output'=> 'true'));
                 }
@@ -392,9 +449,9 @@ class orderController extends expController {
          * to do this same thing as below using html2pdf
          * //FIXME uncomment to implement, comment out above
         require_once(BASE.'external/html2pdf_v4.03/html2pdf.class.php');
-        $html2pdf = new HTML2PDF('P', 'LETTER', substr(LOCALE,0,2));
+        $html2pdf = new HTMLTPDF('P', 'LETTER', substr(LOCALE,0,2));
         $html2pdf->writeHTML($invoice);
-        $html2pdf->Output($org_name . "_Invoice" . ".pdf",HTML2PDF_OUTPUT?'D':'');
+        $html2pdf->Output($org_name . "_Invoice" . ".pdf",HTMLTOPDF_OUTPUT?'D':'');
         exit();
          */
         /**
@@ -405,11 +462,11 @@ class orderController extends expController {
         $mypdf->load_html($invoice);
         $mypdf->set_paper('letter','portrait');
         $mypdf->render();
-        $mypdf->stream($org_name . "_Invoice" . ".pdf",array('Attachment'=>HTML2PDF_OUTPUT));
+        $mypdf->stream($org_name . "_Invoice" . ".pdf",array('Attachment'=>HTMLTOPDF_OUTPUT));
         exit();
          */
         /**
-         * to do this same thing as below using expHtmlToPDF/2/3
+         * to do this same thing as below using expHtmlToPDF
          */
         $mypdf = new expHtmlToPDF('Letter','portrait',$invoice);
         $mypdf->createpdf('D',$org_name . "_Invoice" . ".pdf");
@@ -500,7 +557,7 @@ exit();
 // END OF FILE
 //============================================================+
 
-            
+
             // create new PDF document
             $pdf = new TCPDF(PDF_PAGE_ORIENTATION, PDF_UNIT, PDF_PAGE_FORMAT, true, 'UTF-8', false);
 
@@ -532,7 +589,7 @@ exit();
             $pdfer->set_grayscale(true);
 //            $pdfer->render();
             eDebug("Done rendering PDF " . $timer->mark());
-            exit();
+//            exit();
             ob_clean();
             $pdfer->createpdf('D', $org_name . "_Invoice" . ".pdf");
             exit();
@@ -572,18 +629,20 @@ exit();
         );
 
         if ($mime_type == '') {
-            $file_extension = strtolower(substr(strrchr($file, "."), 1));
-
-            if (array_key_exists($file_extension, $known_mime_types)) {
-                $mime_type = $known_mime_types[$file_extension];
-            } else {
-                $mime_type = "application/force-download";
-            }
+//            $file_extension = strtolower(substr(strrchr($file, "."), 1));
+//
+//            if (array_key_exists($file_extension, $known_mime_types)) {
+//                $mime_type = $known_mime_types[$file_extension];
+//            } else {
+//                $mime_type = "application/force-download";
+//            }
+            $mime_type = expFile::getMimeType($file);
         }
 
         //@ob_end_clean(); //turn off output buffering to decrease cpu usage
         // required for IE, otherwise Content-Disposition may be ignored
-        if (ini_get('zlib.output_compression')) ini_set('zlib.output_compression', 'Off');
+        if (ini_get('zlib.output_compression'))
+            ini_set('zlib.output_compression', 'Off');
 
         header('Content-Type: ' . $mime_type);
         header('Content-Disposition: attachment; filename="' . $name . '"');
@@ -593,7 +652,8 @@ exit();
         /* The three lines below basically make the download non-cacheable */
         header('Cache-control: private');
         header('Pragma: private');
-        header('Expires: Mon, 26 Jul 1997 05:00:00 GMT');
+//        header('Expires: Mon, 26 Jul 1997 05:00:00 GMT');
+        header('Expires: ' . gmdate('D, d M Y H:i:s') . ' GMT');
 
         // multipart-download and download resuming support
         if (isset($_SERVER['HTTP_RANGE'])) {
@@ -671,8 +731,8 @@ exit();
             } else {
                 $comment = $this->params['order_status_messages'];
             }
+            // save the order status change
             $change = new order_status_changes();
-            // save the changes
             $change->from_status_id = $order->order_status_id;
             $change->comment        = $comment;
             $change->to_status_id   = $this->params['order_status_id'];
@@ -700,6 +760,8 @@ exit();
                         $carrierTrackingLink = "http://wwwapps.ups.com/WebTracking/track?track=yes&trackNums=";
                     } elseif ($order->shippingmethod->carrier == 'FedEx') {
                         $carrierTrackingLink = "http://www.fedex.com/Tracking?action=track&tracknumbers=";
+                    } elseif ($order->shippingmethod->carrier == 'USPS') {
+                        $carrierTrackingLink = "https://tools.usps.com/go/TrackConfirmAction_input?qtc_tLabels1=";
                     }
 
                     assign_to_template(array(
@@ -718,12 +780,13 @@ exit();
                     $html .= ecomconfig::getConfig('ecomfooter');
 
                     $mail = new expMail();
-                    $from = array(ecomconfig::getConfig('from_address')=> ecomconfig::getConfig('from_name'));
+                    $from = array(ecomconfig::getConfig('from_address') => ecomconfig::getConfig('from_name'));
                     if (empty($from[0])) $from = SMTP_FROMADDRESS;
                     $mail->quickSend(array(
                         'html_message'=> $html,
-                        'text_message'=> str_replace("<br>", "\r\n", $template->render()),
-                        'to'          => $email_addy,
+//                        'text_message'=> str_replace("<br>", "\r\n", $template->render()),
+                        'text_message'=> expString::html2text($html),
+                        'to'          => array($email_addy => $order->billingmethod[0]->firstname . ' ' . $order->billingmethod[0]->lastname),
                         'from'        => $from,
                         'subject'     => 'The status of your order (#' . $order->invoice_id . ') has been updated on ' . ecomconfig::getConfig('storename') . '.'
                     ));
@@ -770,7 +833,7 @@ exit();
             ));
             $html = $template->render();
             if (!empty($this->params['include_invoice'])) {
-                $html .= '<br><hr><br>';
+                $html .= '<hr><br>';
                 $html .= renderAction(array('controller'=> 'order', 'action'=> 'show', 'view'=> 'email_invoice', 'id'=> $this->params['id'], 'printerfriendly'=> '1', 'no_output'=> 'true'));
             } else {
                 $html .= ecomconfig::getConfig('ecomfooter');
@@ -791,7 +854,7 @@ exit();
             if (isset($this->params['email_subject'])) {
                 $email_subject = $this->params['email_subject'];
             } else {
-                $email_subject = 'Message from ' . ecomconfig::getConfig('storename') . ' about your order (#' . $order->invoice_id . ')';
+                $email_subject = gt('Message from') . ' ' . ecomconfig::getConfig('storename') . ' ' . gt('about your order') . ' (#' . $order->invoice_id . ')';
             }
 
             $mail = new expMail();
@@ -799,31 +862,34 @@ exit();
             foreach ($email_addys as $email_addy) {
                 $mail->quickSend(array(
                     'html_message'=> $html,
-                    'text_message'=> str_replace("<br>", "\r\n", $template->render()),
+//                    'text_message'=> str_replace("<br>", "\r\n", $template->render()),
+                    'text_message'=> expString::html2text($html),
                     'to'          => $email_addy,
                     'from'        => $from,
                     'subject'     => $email_subject
                 ));
             }
             $emailed_to     = implode(',', $email_addys);
+
+            // manually add/attach an expSimpleNote to the order
             $note           = new expSimpleNote();
-            $note->body     = "<strong>[action]: Emailed message to " . $emailed_to . ":</strong><br><br>" . $email_message;
+            $note->body     = "<strong>[" . gt('action') . "]: " . gt('Emailed message to') . " " . $emailed_to . ":</strong>" . $email_message;
             $note->approved = 1;
             $note->name     = $user->firstname . " " . $user->lastname;
             $note->email    = $user->email;
 
             $note->save();
             $note->refresh();
-            $noteObj                   = new stdClass();
-            $noteObj->expsimplenote_id = $note->id;
-            $noteObj->content_id       = $order->id;
-            $noteObj->content_type     = 'order';
+//            $noteObj                   = new stdClass();
+//            $noteObj->expsimplenote_id = $note->id;
+//            $noteObj->content_id       = $order->id;
+//            $noteObj->content_type     = 'order';
+//            $db->insertObject($noteObj, 'content_expSimpleNote');
+            $note->attachNote('order', $order->id);
 
-            $db->insertObject($noteObj, 'content_expSimpleNote');
-
-            //eDebug($note,true);            
+            //eDebug($note,true);
         } else {
-            flash('error', gt('The email address was NOT sent. An email address count not be found for this customer'));
+            flash('error', gt('The email was NOT sent. An email address was not found for this customer'));
             expHistory::back();
         }
 
@@ -839,7 +905,7 @@ exit();
 
         expHistory::set('viewable', $this->params);
         $page = new expPaginator(array(
-            'model'     => 'order',
+            'model'     => 'order',  //FIXME we should also be getting the order status name
             'where'     => 'purchased > 0 AND user_id=' . $user->id,
             'limit'     => 10,
             'order'     => 'purchased',
@@ -863,28 +929,33 @@ exit();
 
         if (empty($router->params['action'])) return false;
 
-        // figure out what metadata to pass back based on the action 
+        // figure out what metadata to pass back based on the action
         // we are in.
-//        $action   = $_REQUEST['action'];
         $action   = $router->params['action'];
-        $metainfo = array('title'=>'', 'keywords'=>'', 'description'=>'', 'canonical'=> '', 'noindex' => '', 'nofollow' => '');
+        $metainfo = array('title'=>'', 'keywords'=>'', 'description'=>'', 'canonical'=> '', 'noindex' => true, 'nofollow' => true);
+        $storename = ecomconfig::getConfig('storename');
         switch ($action) {
-            case 'showall':
-                $metainfo['title']       = gt("Managing Invoices") . ' - ' . SITE_TITLE;
-                $metainfo['keywords']    = SITE_KEYWORDS;
-                $metainfo['description'] = SITE_DESCRIPTION;
-                break;
+            case 'myOrder':
             case 'show':
             case 'showByTitle':
-                $metainfo['title']       = gt('Viewing Invoice') . ' - ' . SITE_TITLE;
-                $metainfo['keywords']    = empty($object->meta_keywords) ? SITE_KEYWORDS : $object->meta_keywords; //FIXME $object doesn't exist
-                $metainfo['description'] = empty($object->meta_description) ? SITE_DESCRIPTION : $object->meta_description; //FIXME $object doesn't exist
-                $metainfo['canonical'] = empty($object->canonical) ? '' : $object->canonical; //FIXME $object doesn't exist
-                $metainfo['noindex'] = empty($object->meta_noindex) ? '' : $object->meta_noindex; //FIXME $object doesn't exist
-                $metainfo['nofollow'] = empty($object->meta_nofollow) ? '' : $object->meta_nofollow; //FIXME $object doesn't exist
+                if (!empty($router->params['id'])) {
+                    $order    = new order($router->params['id']);
+                } elseif (!empty($router->params['invoice'])) {
+                    $order = $this->order->find('first', 'invoice_id=' . $router->params['invoice']);
+                } else {
+                    $order    = $this->order;
+                }
+                $metainfo['title']       = gt('Viewing Order') . ' #' . $order->invoice_id . ' - ' . $storename;
+                $metainfo['keywords']    = empty($order->meta_keywords) ? SITE_KEYWORDS : $order->meta_keywords;
+                $metainfo['description'] = empty($order->meta_description) ? SITE_DESCRIPTION : $order->meta_description;
+//                $metainfo['canonical'] = empty($order->canonical) ? $router->plainPath() : $order->canonical;
+//                $metainfo['noindex'] = empty($order->meta_noindex) ? false : $order->meta_noindex;
+//                $metainfo['nofollow'] = empty($order->meta_nofollow) ? false : $order->meta_nofollow;
                 break;
+            case 'showall':
+            case 'ordersbyuser':
             default:
-                $metainfo['title']       = gt("Order Management") . " - " . SITE_TITLE;
+                $metainfo['title']       = gt("Order Management") . " - " . $storename;
                 $metainfo['keywords']    = SITE_KEYWORDS;
                 $metainfo['description'] = SITE_DESCRIPTION;
         }
@@ -895,7 +966,7 @@ exit();
     function captureAuthorization() {
         //eDebug($this->params,true);
         $order = new order($this->params['id']);
-        /*eDebug($this->params); 
+        /*eDebug($this->params);
         //eDebug($order,true);*/
         //eDebug($order,true);
         //$billing = new billing();
@@ -967,12 +1038,14 @@ exit();
     function edit_payment_info() {
         //$order = new order($this->params['id']);
         $billing = new billing($this->params['id']);
-        $opts    = expUnserialize($billing->billingmethod->billing_options);
+        $opts    = expUnserialize($billing->billingmethod->billing_options);  //FIXME already unserialized???
         //eDebug($billing);
 //        eDebug($opts);
         assign_to_template(array(
             'orderid'=> $this->params['id'],
-            'opts'   => $opts->result  //FIXME credit card doesn't have a result
+            'opts'   => $opts,  //FIXME credit card doesn't have a result
+            'billing_cost' => $billing->billingmethod->billing_cost,
+            'transaction_state' => $billing->billingmethod->transaction_state
         ));
     }
 
@@ -980,40 +1053,49 @@ exit();
         //need to save billing methods and billing options
         //$order = new order($this->params['id']);
         //eDebug($this->params, true);
-        $obj = new stdClass();
+        $res_obj = new stdClass();
         foreach ($this->params['result'] as $resultKey=> $resultItem) {
-            $obj->$resultKey = $resultItem;
+            $res_obj->$resultKey = $resultItem;
         }
-//        $res     = serialize($obj);
+//        $res     = serialize($res_obj);
         $billing = new billing($this->params['id']);
         // eDebug($billing);
         $billingmethod      = $billing->billingmethod;
         $billingtransaction = $billingmethod->billingtransaction[0];
 
+        // update billing method
+        $billingmethod->billing_cost           = $this->params['billing_cost'];
+        $billingmethod->transaction_state      = $this->params['transaction_state'];
         $bmopts                         = expUnserialize($billingmethod->billing_options);
-        $bmopts->result                 = $obj;
+        $bmopts->result                 = $res_obj;
         $billingmethod->billing_options = serialize($bmopts);
-        if (!empty($this->params['result']['payment_status'])) $billingmethod->transaction_state = $this->params['result']['payment_status'];
+//        if (!empty($this->params['result']['payment_status']))
+//            $billingmethod->transaction_state = $this->params['result']['payment_status'];  //FIXME should this be discrete??
         $billingmethod->save();
 
+        // add new billing transaction
+        $billingtransaction->billing_cost                = $this->params['billing_cost'];
+        $billingtransaction->transaction_state           = $this->params['transaction_state'];
         $btopts                              = expUnserialize($billingtransaction->billing_options);
-        $btopts->result                      = $obj;
+        $btopts->result                      = $res_obj;
         $billingtransaction->billing_options = serialize($btopts);
-        if (!empty($this->params['result']['payment_status'])) $billingtransaction->transaction_state = $this->params['result']['payment_status'];
-        $billingtransaction->id = null;
-        $order = new order($this->params['id']);
-        $billingtransaction->billing_cost = $order->grand_total;
+//        if (!empty($this->params['result']['payment_status']))
+//            $billingtransaction->transaction_state = $this->params['result']['payment_status'];
+        $billingtransaction->id = null;  // force a new record by erasing the id, easy method to copy record
+//        $order = new order($this->params['id']);
+//        $billingtransaction->billing_cost = $order->grand_total;  //FIXME should it always be the grand total???
         $billingtransaction->save();
 
-        flashAndFlow('message', gt('Payment info updated.'));
+//        flashAndFlow('message', gt('Payment info updated.'));
+        flash('message', gt('Payment info updated.'));
         redirect_to(array('controller'=> 'order', 'action'=> 'show', 'id'=> $this->params['id']));
     }
 
     function edit_shipping_method() {
-        //$order = new order($this->params['id']);
-        if (!isset($this->params['id'])) flashAndFlow('error', gt('Unable to process request.  Order invalid.'));
+        if (!isset($this->params['id']))
+            flashAndFlow('error', gt('Unable to process request.  Order invalid.'));
         $order = new order($this->params['id']);
-        $s     = array_pop($order->shippingmethods);
+        $s     = array_pop($order->shippingmethods);  //FIXME only getting 1st one and then removing it
         $sm    = new shippingmethod($s->id);
         //eDebug($sm);
         assign_to_template(array(
@@ -1023,8 +1105,8 @@ exit();
     }
 
     function save_shipping_method() {
-        if (!isset($this->params['id'])) flashAndFlow('error', gt('Unable to process request.  Order invalid.'));
-        if (!isset($this->params['sid'])) flashAndFlow('error', gt('Unable to process request.  Order invalid.'));
+        if (!isset($this->params['id']) || !isset($this->params['sid']))
+            flashAndFlow('error', gt('Unable to process request. Order invalid.'));
         $sm               = new shippingmethod($this->params['sid']);
         $sm->option_title = $this->params['shipping_method_title'];
         $sm->carrier      = $this->params['shipping_method_carrier'];
@@ -1032,16 +1114,187 @@ exit();
         flashAndFlow('message', gt('Shipping method updated.'));
     }
 
+    function edit_parcel() {
+        if (!isset($this->params['id']))
+            flashAndFlow('error', gt('Unable to process request. Order invalid.'));
+        $sm = new shippingmethod($this->params['id']);
+        $sm->attachCalculator();  // add calculator object
+        assign_to_template(array(
+            'shipping'=> $sm
+        ));
+    }
+
+    function save_parcel() {
+        if (!isset($this->params['id']))
+            flashAndFlow('error', gt('Unable to process request. Order invalid.'));
+        if (!isset($this->params['in_box']) || !isset($this->params['qty'])) {
+            flashAndFlow('notice', gt('Nothing was included in the shipping package!'));
+        } else {
+            $sm = new shippingmethod($this->params['id']);
+            $sm->attachCalculator();
+//            $sm_new = clone($sm);  // prepare for another 'package' if needed since we didn't place everything in this one
+//            $sm_new->id = null;
+//            $sm_new->orderitem = array();
+            //FIXME for now multiple shipping methods will crash ecom with shipping->__construct()
+            foreach ($sm->orderitem as $key => $oi) {
+                if (!array_key_exists($oi->id, $this->params['in_box'])) {
+                    // one of the items by type is not in this package and needs to be moved to another package
+//                    $tmp = 1;
+//                    $sm_new->update();  // we don't need to actually create a new shippingmethod until needed
+//                    $sm->orderitem[$key]->shippingmethods_id = $sm_new->id;
+//                    $sm->orderitem[$key]->update();
+//                    unset($sm->orderitem[$key]);
+                    //NOTE $sm_new->update(); ???
+                } else {
+                    if ($oi->quantity != $this->params['qty'][$oi->id]) {
+                        // one of the items by quantity is not in this package and remaining items need to be moved another package
+//                        $tmp = 1;
+//                        $new_quantity = $oi->quantity - $this->params['qty'][$oi->id];
+//                        $sm->orderitem[$key]->quantity = $this->params['qty'][$oi->id];  // adjust to new quantity
+//                        $sm->orderitem[$key]->update();
+//                        $sm_new->update();  // we don't need to actually create a new shippingmethod until needed
+//                        $oi->id = null;  // create a new orderitem copy
+//                        $oi->shippingmethods_id = $sm_new->id;
+//                        $oi->quantity = $new_quantity;
+//                        $oi->update();
+                        //NOTE $sm_new->update(); ???
+                    }
+                }
+            }
+            // update $sm with the passed $this->params (package data)
+            $sm->update($this->params);  //NOTE will this update assoc orderitems???
+            $msg = $sm->calculator->createLabel($sm);
+            if (!is_string($msg)) {
+                flashAndFlow('message', gt('Shipping package updated.'));
+            } else {
+                expHistory::back();
+            }
+        }
+    }
+
+    function edit_label() {
+        if (!isset($this->params['id']))
+            flashAndFlow('error', gt('Unable to process request. Order invalid.'));
+        $sm = new shippingmethod($this->params['id']);
+        $sm->attachCalculator();
+        $method = explode(':', $sm->option);
+//FIXME check for existing rate, if not get next cheapest? (based on predefined package?)
+        assign_to_template(array(
+            'shipping'=> $sm,
+            'cost' => $sm->shipping_options['shipment_rates'][$method[0]][$method[1]]['cost']
+        ));
+    }
+
+    function save_label() {
+        if (!isset($this->params['id']))
+            flashAndFlow('error', gt('Unable to process request. Order invalid.'));
+        $sm = new shippingmethod($this->params['id']);
+        $sm->attachCalculator();
+        $msg = $sm->calculator->buyLabel($sm);
+//        $sm->refresh();  //FIXME updated with new options we may need to take action on like tracking number?
+//        $order->shipping_tracking_number = $sm->shipping_options['shipment_tracking_number'];
+        if (!is_string($msg)) {
+            flashAndFlow('message', gt('Shipping label purchased.'));
+        } else {
+            expHistory::back();
+        }
+    }
+
+    function download_label() {
+        if (!isset($this->params['id']))
+            flashAndFlow('error', gt('Unable to process request. Order invalid.'));
+        $sm = new shippingmethod($this->params['id']);
+        $sm->attachCalculator();
+        $label = $sm->calculator->getLabel($sm);
+        expHistory::back();
+    }
+
+    function delete_label() {
+        if (!isset($this->params['id']))
+            flashAndFlow('error', gt('Unable to process request. Order invalid.'));
+        $sm = new shippingmethod($this->params['id']);
+        $sm->attachCalculator();
+        $msg = $sm->calculator->cancelLabel($sm);
+        // also need to cancel the pickup if created/purchased
+        if (!is_string($msg) && ($sm->shipping_options['pickup_status'] == 'created' || $sm->shipping_options['pickup_status'] == 'purchased')) {
+            $msg = $sm->calculator->cancelPickup($sm);
+            if (!is_string($msg)) {
+                flashAndFlow('message', gt('Shipping label and pickup cancelled and refunded.'));
+            }
+        } else {
+            if (!is_string($msg)) {
+                flashAndFlow('message', gt('Shipping label cancelled and refunded.'));
+            }
+        }
+        expHistory::back();
+    }
+
+    function edit_pickup()
+    {
+        if (!isset($this->params['id']))
+            flashAndFlow('error', gt('Unable to process request. Order invalid.'));
+        $sm = new shippingmethod($this->params['id']);
+        $sm->attachCalculator();
+        assign_to_template(array(
+            'shipping'=> $sm,
+        ));
+    }
+
+    function edit_pickup2() {
+        if (!isset($this->params['id']))
+            flashAndFlow('error', gt('Unable to process request. Order invalid.'));
+        $this->params['pickupdate'] = strtotime($this->params['pickupdate']);
+        $this->params['pickupenddate'] = strtotime($this->params['pickupenddate']);
+        $sm = new shippingmethod($this->params['id']);
+        $sm->attachCalculator();
+        $pickup = $sm->calculator->createPickup($sm, $this->params['pickupdate'], $this->params['pickupenddate'], $this->params['instructions']);
+        $sm->refresh();
+        $pickup_rates = array();
+        foreach ($sm->shipping_options['pickup_rates'] as $pu_rate) {
+            $pickup_rates[$pu_rate['id']] = $pu_rate['id'] . ' - ' . expCore::getCurrency($pu_rate['cost']);
+        }
+        assign_to_template(array(
+            'shipping'=> $sm,
+            'rates' => $pickup_rates
+        ));
+    }
+
+    function save_pickup() {
+        if (!isset($this->params['id']))
+            flashAndFlow('error', gt('Unable to process request. Order invalid.'));
+        $sm = new shippingmethod($this->params['id']);
+        $sm->attachCalculator();
+        //FIXME should we add the params to the $sm->shipping_options, or pass them??
+        $msg = $sm->calculator->buyPickup($sm, $this->params['pickuprate']);
+        if (!is_string($msg)) {
+            flashAndFlow('message', gt('Package pickup ordered.'));
+        } else {
+            expHistory::back();
+        }
+    }
+
+    function delete_pickup() {
+        if (!isset($this->params['id']))
+            flashAndFlow('error', gt('Unable to process request. Order invalid.'));
+        $sm = new shippingmethod($this->params['id']);
+        $sm->attachCalculator();
+        $msg = $sm->calculator->cancelPickup($sm);
+        if (!is_string($msg)) {
+            flashAndFlow('message', gt('Package pickup cancelled.'));
+        } else {
+            expHistory::back();
+        }
+    }
+
     function createReferenceOrder() {
         if (!isset($this->params['id'])) {
             flashAndFlow('error', gt('Unable to process request. Invalid order number.'));
-            expHistory::back();
+//            expHistory::back();
         }
         $order = new order($this->params['id']);
         assign_to_template(array(
             'order'=> $order
         ));
-
     }
 
     function save_reference_order() {
@@ -1049,7 +1302,7 @@ exit();
 
         //eDebug($this->params,true);
         $order = new order($this->params['original_orderid']);
-        //eDebug($order,true); 
+        //eDebug($order,true);
         //x
         $newOrder                  = new order();
         $newOrder->order_status_id = $this->params['order_status_id'];
@@ -1075,7 +1328,15 @@ exit();
         $newOrder->save();
         $newOrder->refresh();
 
+        // save initial order status
+        $change = new order_status_changes();
+//        $change->from_status_id = null;
+        $change->to_status_id   = $newOrder->order_status_id;
+        $change->orders_id      = $newOrder->id;
+        $change->save();
+
         $tObj                             = new stdClass();
+        $tObj->result                     = new stdClass();
         $tObj->result->errorCode          = 0;
         $tObj->result->message            = "Reference Order Pending";
         $tObj->result->PNREF              = "Pending";
@@ -1089,15 +1350,15 @@ exit();
         $newBillingMethod                       = $order->billingmethod[0];
         $newBillingMethod->id                   = null;
         $newBillingMethod->orders_id            = $newOrder->id;
-        $newBillingMethod->billing_cost         = 0;
 //        $newBillingMethod->billingcalculator_id = 6;
         $newBillingMethod->billingcalculator_id = billingcalculator::getDefault();
+        $newBillingMethod->billing_cost         = 0;
         $newBillingMethod->transaction_state    = 'authorization pending';
         $newBillingMethod->billing_options      = serialize($tObj);
         $newBillingMethod->save();
 
-        //eDebug(expUnserialize($order->billingmethod[0]->billing_options));        
-        //eDebug(expUnserialize($order->billingmethod[0]->billingtransaction[0]->billing_options),true); 
+        //eDebug(expUnserialize($order->billingmethod[0]->billing_options));
+        //eDebug(expUnserialize($order->billingmethod[0]->billingtransaction[0]->billing_options),true);
 
         $newBillingTransaction                       = new billingtransaction();
 //        $newBillingTransaction->billingcalculator_id = 6; ///setting to manual/passthru
@@ -1125,7 +1386,7 @@ exit();
             $newOi->products_name           = $this->params['products_name'][$oikey];
             $newOi->products_price          = $this->params['products_price'][$oikey];
             $newOi->products_price_adjusted = $this->params['products_price'][$oikey];
-            //$newOi->products_tax = 0;        
+            //$newOi->products_tax = 0;
             $newOi->shippingmethods_id = $newShippingMethod->id;
             $newOi->save();
         }
@@ -1139,13 +1400,13 @@ exit();
     }
 
     function create_new_order() {
-        $order = new order();
-        assign_to_template(array(
-            'order'=> $order
-        ));
+//        $order = new order();
+//        assign_to_template(array(
+//            'order'=> $order
+//        ));
     }
 
-    function save_new_order() {  //FIXME we need to be able to call this from program with $params also
+    function save_new_order() {
         //eDebug($this->params);
         /*addresses_id
         customer_type = 1 //new
@@ -1154,7 +1415,7 @@ exit();
 //        global $user, $db;
         //eDebug($this->params,true);
         //$order = new order($this->params['original_orderid']);
-        //eDebug($order,true); 
+        //eDebug($order,true);
 
         $newAddy = new address();
         if ($this->params['customer_type'] == 1) {
@@ -1185,7 +1446,7 @@ exit();
         $newOrder->order_type_id   = $this->params['order_type_id'];
         //$newOrder->order_references = $order->id;
         $newOrder->reference_id    = 0;
-        $newOrder->user_id         = 0;
+        $newOrder->user_id         = $newAddy->user_id;
         $newOrder->purchased       = time();
         $newOrder->updated         = time();
         $newOrder->invoice_id      = $newOrder->getInvoiceNumber();
@@ -1199,7 +1460,15 @@ exit();
         $newOrder->save();
         $newOrder->refresh();
 
+        // save initial order status
+        $change = new order_status_changes();
+//        $change->from_status_id = null;
+        $change->to_status_id   = $newOrder->order_status_id;
+        $change->orders_id      = $newOrder->id;
+        $change->save();
+
         $tObj                             = new stdClass();
+        $tObj->result                     = new stdClass();
         $tObj->result->errorCode          = 0;
         $tObj->result->message            = "Reference Order Pending";
         $tObj->result->PNREF              = "Pending";
@@ -1213,9 +1482,9 @@ exit();
         $newBillingMethod                       = new billingmethod();
         $newBillingMethod->addresses_id         = $newAddy->id;
         $newBillingMethod->orders_id            = $newOrder->id;
-        $newBillingMethod->billing_cost         = 0;
 //        $newBillingMethod->billingcalculator_id = 6;
         $newBillingMethod->billingcalculator_id = billingcalculator::getDefault();
+        $newBillingMethod->billing_cost         = 0;
         $newBillingMethod->transaction_state    = 'authorization pending';
         $newBillingMethod->billing_options      = serialize($tObj);
         $newBillingMethod->firstname            = $newAddy->firstname;
@@ -1230,8 +1499,8 @@ exit();
         $newBillingMethod->email                = $newAddy->email;
         $newBillingMethod->save();
 
-        //eDebug(expUnserialize($order->billingmethod[0]->billing_options));        
-        //eDebug(expUnserialize($order->billingmethod[0]->billingtransaction[0]->billing_options),true); 
+        //eDebug(expUnserialize($order->billingmethod[0]->billing_options));
+        //eDebug(expUnserialize($order->billingmethod[0]->billingtransaction[0]->billing_options),true);
 
         $newBillingTransaction                       = new billingtransaction();
 //        $newBillingTransaction->billingcalculator_id = 6; ///setting to manual/passthru
@@ -1239,7 +1508,7 @@ exit();
         $newBillingTransaction->billing_cost         = 0;
         $newBillingTransaction->billingmethods_id    = $newBillingMethod->id;
         $newBillingTransaction->transaction_state    = 'authorization pending';
-        $newBillingTransaction->billing_options = serialize($tObj);
+        $newBillingTransaction->billing_options      = serialize($tObj);
         $newBillingTransaction->save();
 
         $newShippingMethod                        = new shippingmethod();
@@ -1276,7 +1545,11 @@ exit();
         $newOrder->update();
 
         flash('message', gt('New Order #') . $newOrder->invoice_id . " " . gt("created successfully."));
-        redirect_to(array('controller'=> 'order', 'action'=> 'show', 'id'=> $newOrder->id));
+        if (empty($this->params['no_redirect'])) {
+            redirect_to(array('controller'=> 'order', 'action'=> 'show', 'id'=> $newOrder->id));
+        } else {
+            return $newOrder->id;
+        }
     }
 
     function edit_address() {
@@ -1286,7 +1559,7 @@ exit();
         $order = new order($this->params['id']);
         $same  = false;
 
-        $sm = array_pop($order->shippingmethods);
+        $sm = array_pop($order->shippingmethods);  //FIXME only getting 1st one and then removing it
         //$bm = array_pop($order->billingmethods);
 
         //eDebug($sm->addresses_id);
@@ -1325,7 +1598,7 @@ exit();
 
         $order          = new order($this->params['orderid']);
         $billing        = new billing($this->params['orderid']);
-        $s              = array_pop($order->shippingmethods);
+        $s              = array_pop($order->shippingmethods);  //FIXME only getting 1st one and then removing it
         $shippingmethod = new shippingmethod($s->id);
 
         //eDebug($order);
@@ -1385,32 +1658,43 @@ exit();
         if ($addy->is_default) $db->setUniqueFlag($addy, 'addresses', 'is_default', 'user_id=' . $addy->user_id);
 
         //eDebug($shippingmethod,true);
-        flashAndFlow('message', gt('Address updated.'));
+//        flashAndFlow('message', gt('Address updated.'));
+        flash('message', gt('Address updated.'));
         redirect_to(array('controller'=> 'order', 'action'=> 'show', 'id'=> $this->params['id']));
     }
 
     function edit_order_item() {
         $oi = new orderitem($this->params['id'], true, true);
-        //oi->options = expUnserialize($oi->options);
+        if (empty($oi->id)) {
+            flash('error', gt('Order item doesn\'t exist.'));
+            expHistory::back();
+        }
         $oi->user_input_fields = expUnserialize($oi->user_input_fields);
+        $params['options'] = $oi->opts;
+        $params['user_input_fields'] = $oi->user_input_fields;
         $oi->product           = new product($oi->product->id, true, true);
         if ($oi->product->parent_id != 0) {
             $parProd = new product($oi->product->parent_id);
-            //$oi->product->optiongroup = $parProd->optiongroup;   
+            //$oi->product->optiongroup = $parProd->optiongroup;
             $oi->product = $parProd;
         }
-        $oi->selectedOpts = array();
-        if (!empty($oi->opts)) {
-            foreach ($oi->opts as $opt) {
-                $option = new option($opt[0]);
-                $og     = new optiongroup($option->optiongroup_id);
-                if (!is_array($oi->selectedOpts[$og->id])) $oi->selectedOpts[$og->id] = array($option->id);
-                else array_push($oi->selectedOpts[$og->id], $option->id);
-            }
-        }
+        //FIXME we don't use selectedOpts?
+//        $oi->selectedOpts = array();
+//        if (!empty($oi->opts)) {
+//            foreach ($oi->opts as $opt) {
+//                $option = new option($opt[0]);
+//                $og     = new optiongroup($option->optiongroup_id);
+//                if (!isset($oi->selectedOpts[$og->id]) || !is_array($oi->selectedOpts[$og->id]))
+//                    $oi->selectedOpts[$og->id] = array($option->id);
+//                else
+//                    array_push($oi->selectedOpts[$og->id], $option->id);
+//            }
+//        }
         //eDebug($oi->selectedOpts);
+
         assign_to_template(array(
-            'oi'=> $oi
+            'oi' => $oi,
+            'params' => $params
         ));
     }
 
@@ -1424,13 +1708,12 @@ exit();
         $oi = new orderitem($this->params['id']);
         $oi->delete();
 
-        $s  = array_pop($order->shippingmethods);
+        $s  = array_pop($order->shippingmethods);  //FIXME only getting 1st one and then removing it
         $sm = new shippingmethod($s->id);
 
         $shippingCalc = new shippingcalculator($sm->shippingcalculator_id);
         $calcName     = $shippingCalc->calculator_name;
         $calculator   = new $calcName($shippingCalc->id);
-
         $pricelist = $calculator->getRates($order);
 
         foreach ($pricelist as $rate) {
@@ -1444,30 +1727,39 @@ exit();
         $order->calculateGrandTotal();
         $order->save();
 
-        flashAndFlow('message', gt('Order item removed and order totals updated.'));
-        redirect_to(array('controller'=> 'order', 'action'=> 'show', 'id'=> $this->params['orderid']));
+//        flashAndFlow('message', gt('Order item removed and order totals updated.'));
+        flash('message', gt('Order item removed and order totals updated.'));
+        if (empty($this->params['no_redirect'])) redirect_to(array('controller'=> 'order', 'action'=> 'show', 'id'=> $this->params['orderid']));
     }
 
-    function save_order_item() {  //FIXME we need to be able to call this from program with $params also, edit_order_item
-        $oi = new orderitem($this->params['id']);
+    function save_order_item() {
+        if (!empty($this->params['id'])) {
+            $oi = new orderitem($this->params['id']);
+        } else {
+            $oi = new orderitem($this->params);
+        }
         //eDebug($this->params);
 
         /*eDebug($oi);
         eDebug(expUnserialize($oi->options));
         eDebug(expUnserialize($oi->user_input_fields),true);*/
-        $oi->products_price = expUtil::currency_to_float($this->params['products_price']);
+        if (!empty($this->params['products_price'])) $oi->products_price = expUtil::currency_to_float($this->params['products_price']);
         $oi->quantity       = $this->params['quantity'];
-        $oi->products_name  = $this->params['products_name'];
+        if (!empty($this->params['products_name'])) $oi->products_name  = $this->params['products_name'];
 
         if ($oi->product->parent_id != 0) {
             $oi->product = new product($oi->product->parent_id, true, false);
         } else {
-            //reattach the product so we get the optoin fields and such
+            //reattach the product so we get the option fields and such
             $oi->product = new product($oi->product->id, true, false);
         }
 
-        //eDebug($oi->product,true);
+        if (isset($this->params['product_status_id'])) {
+            $ps = new product_status($this->params['product_status_id']);
+            $oi->products_status = $ps->title;
+        }
 
+        $options = array();
         foreach ($oi->product->optiongroup as $og) {
             $isOptionEmpty = true;
             if (!empty($this->params['options'][$og->id])) {
@@ -1492,21 +1784,21 @@ exit();
         //check user input fields
         //$this->user_input_fields = expUnserialize($this->user_input_fields);
         //eDebug($this,true);
-        foreach ($oi->product->user_input_fields as $uifkey=> $uif) {
-            /*if ($uif['is_required'] || (!$uif['is_required'] && strlen($params['user_input_fields'][$uifkey]) > 0)) 
+        if (!empty($oi->product->user_input_fields)) foreach ($oi->product->user_input_fields as $uifkey=> $uif) {
+            /*if ($uif['is_required'] || (!$uif['is_required'] && strlen($params['user_input_fields'][$uifkey]) > 0))
             {
                 if (strlen($params['user_input_fields'][$uifkey]) < $uif['min_length'])
                 {
-                    //flash('error', 'test');    
-                    //redirect_to(array('controller'=>cart, 'action'=>'displayForm', 'form'=>'addToCart', 'product_id'=>$this->id, 'product_type'=>$this->product_type));  
+                    //flash('error', 'test');
+                    //redirect_to(array('controller'=>cart, 'action'=>'displayForm', 'form'=>'addToCart', 'product_id'=>$this->id, 'product_type'=>$this->product_type));
                     $params['error'] .= $uif['name'].' field has a minimum requirement of ' . $uif['min_length'] . ' characters.<br/>';
-                    
+
                 }else if (strlen($params['user_input_fields'][$uifkey]) > $uif['max_length'] && $uif['max_length'] > 0)
                 {
-                    //flash('error', );    
-                    //redirect_to(array('controller'=>cart, 'action'=>'displayForm', 'form'=>'addToCart', 'product_id'=>$this->id, 'product_type'=>$this->product_type));      
+                    //flash('error', );
+                    //redirect_to(array('controller'=>cart, 'action'=>'displayForm', 'form'=>'addToCart', 'product_id'=>$this->id, 'product_type'=>$this->product_type));
                     $params['error'] .= $uif['name'].' field has a maximum requirement of ' . $uif['max_length'] . ' characters.<br/>';
-                } 
+                }
             }*/
             $user_input_info[] = array($uif['name']=> $this->params['user_input_fields'][$uifkey]);
         }
@@ -1515,7 +1807,7 @@ exit();
 
         $oi->options           = serialize($options);
         $oi->user_input_fields = serialize($user_input_info);
-        //eDebug($oi);        
+        //eDebug($oi);
         $oi->save();
         $oi->refresh();
         //eDebug($oi,true);
@@ -1523,14 +1815,13 @@ exit();
         $order = new order($oi->orders_id);
         $order->calculateGrandTotal();
 
-        $s = array_pop($order->shippingmethods);
+        $s = array_pop($order->shippingmethods);  //FIXME only getting 1st one and thenremoving it
         eDebug($s);
         $sm = new shippingmethod($s->id);
 
         $shippingCalc = new shippingcalculator($sm->shippingcalculator_id);
         $calcName     = $shippingCalc->calculator_name;
         $calculator   = new $calcName($shippingCalc->id);
-
         $pricelist = $calculator->getRates($order);
 
         foreach ($pricelist as $rate) {
@@ -1549,8 +1840,13 @@ exit();
 //        $order->billingmethod[0]->billingcalculator->calculator->createBillingTransaction($order->billingmethod[0], number_format($order->grand_total, 2, '.', ''), $bmopts->result, $bmopts->result->payment_status);
         $order->save();
 
-        flashAndFlow('message', gt('Order item updated and order totals recalculated.'));
-        redirect_to(array('controller'=> 'order', 'action'=> 'show', 'id'=> $this->params['orderid']));
+//        flashAndFlow('message', gt('Order item updated and order totals recalculated.'));
+        flash('message', gt('Order item updated and order totals recalculated.'));
+        if (empty($this->params['no_redirect'])) {
+            redirect_to(array('controller'=> 'order', 'action'=> 'show', 'id'=> $this->params['orderid']));
+        } else {
+            return $oi->id;
+        }
     }
 
     function add_order_item() {
@@ -1569,7 +1865,7 @@ exit();
         $order = new order($this->params['orderid']);
         if (isset($this->params['prod-quantity'])) {
             //we are adding multiple children, so we approach a bit different
-            //we'll send over the product_id of the parent, along with id's and quantities of children we're adding 
+            //we'll send over the product_id of the parent, along with id's and quantities of children we're adding
             foreach ($this->params['prod-quantity'] as $qkey=> &$quantity) {
                 if (in_array($qkey, $this->params['prod-check'])) {
                     $this->params['children'][$qkey] = $quantity;
@@ -1589,7 +1885,8 @@ exit();
 //            $bmopts->result->transId = gt('Item added to order');
 //            $order->billingmethod[0]->billingcalculator->calculator->createBillingTransaction($order->billingmethod[0], number_format($order->grand_total, 2, '.', ''), $bmopts->result, $bmopts->result->payment_status);
             $order->save();
-            flashAndFlow('message', gt('Product added to order and order totals recalculated.'));
+//            flashAndFlow('message', gt('Product added to order and order totals recalculated.'));
+            flash('message', gt('Product added to order and order totals recalculated.'));
             redirect_to(array('controller'=> 'order', 'action'=> 'show', 'id'=> $this->params['orderid']));
         }
         /*else
@@ -1648,7 +1945,8 @@ exit();
 //        $order->billingmethod[0]->billingcalculator->calculator->createBillingTransaction($order->billingmethod[0], number_format($order->grand_total, 2, '.', ''), $bmopts->result, $bmopts->result->payment_status);
         $order->save();
 
-        flashAndFlow('message', gt('Order totals updated.'));
+//        flashAndFlow('message', gt('Order totals updated.'));
+        flash('message', gt('Order totals updated.'));
         redirect_to(array('controller'=> 'order', 'action'=> 'show', 'id'=> $this->params['orderid']));
     }
 
@@ -1718,14 +2016,14 @@ exit();
         /*$o = new order();
         $b = new billingmethod();
         $s = new shippingmethod();
-        
+
         $search = intval($this->params['ordernum']);
         if (is_int($oid) && $oid > 0)
         {
             $orders = $o->find('all',"invoice_id LIKE '%".$oid."%'");
             if(count($orders == 1))
             {
-                redirect_to(array('controller'=>'order','action'=>'show','id'=>$order[0]->id));            
+                redirect_to(array('controller'=>'order','action'=>'show','id'=>$order[0]->id));
             }
             else
             {
@@ -1744,7 +2042,7 @@ exit();
             $order = $o->find('first','invoice_id='.$oid);
             if(!empty($order->id))
             {
-                redirect_to(array('controller'=>'order','action'=>'show','id'=>$order->id));            
+                redirect_to(array('controller'=>'order','action'=>'show','id'=>$order->id));
             }
             else
             {
@@ -1753,7 +2051,7 @@ exit();
         }
         else
         {
-            flashAndFlow('message','Invalid order number.');        
+            flashAndFlow('message','Invalid order number.');
         }*/
     }
 
@@ -1782,7 +2080,7 @@ exit();
         if (isset($sessAr) && isset($this->params['cid']) && $this->params['cid'] == $sessAr['cid']) {
             $tmpCart = new order($sessAr['cid']);
             if (isset($tmpCart->id)) {
-                //eDebug($tmpCart,true); 
+                //eDebug($tmpCart,true);
                 $shippingMethod = $tmpCart->shippingmethod;
                 $billingMethod  = $tmpCart->billingmethod[0];
 
@@ -1827,33 +2125,47 @@ exit();
         }
     }
 
+    /**
+     * AJAX search for internal (addressController) addresses
+     *
+     */
     public function search() {
 //        global $db, $user;
         global $db;
 
         $sql = "select DISTINCT(a.id) as id, a.firstname as firstname, a.middlename as middlename, a.lastname as lastname, a.organization as organization, a.email as email ";
-        $sql .= "from " . $db->prefix . "addresses as a "; //R JOIN " . 
+        $sql .= "from " . $db->prefix . "addresses as a "; //R JOIN " .
         //$db->prefix . "billingmethods as bm ON bm.addresses_id=a.id ";
         $sql .= " WHERE match (a.firstname,a.lastname,a.email,a.organization) against ('" . $this->params['query'] .
             "*' IN BOOLEAN MODE) ";
         $sql .= "order by match (a.firstname,a.lastname,a.email,a.organization)  against ('" . $this->params['query'] . "*' IN BOOLEAN MODE) ASC LIMIT 12";
         $res = $db->selectObjectsBySql($sql);
+        foreach ($res as $key=>$record) {
+            $res[$key]->title = $record->firstname . ' ' . $record->lastname;
+        }
         //eDebug($sql);
         $ar = new expAjaxReply(200, gt('Here\'s the items you wanted'), $res);
         $ar->send();
     }
 
+    /**
+     * Ajax search for external addresses
+     *
+     */
     public function search_external() {
 //        global $db, $user;
         global $db;
 
         $sql = "select DISTINCT(a.id) as id, a.source as source, a.firstname as firstname, a.middlename as middlename, a.lastname as lastname, a.organization as organization, a.email as email ";
-        $sql .= "from " . $db->prefix . "external_addresses as a "; //R JOIN " . 
+        $sql .= "from " . $db->prefix . "external_addresses as a "; //R JOIN " .
         //$db->prefix . "billingmethods as bm ON bm.addresses_id=a.id ";
         $sql .= " WHERE match (a.firstname,a.lastname,a.email,a.organization) against ('" . $this->params['query'] .
             "*' IN BOOLEAN MODE) ";
         $sql .= "order by match (a.firstname,a.lastname,a.email,a.organization)  against ('" . $this->params['query'] . "*' IN BOOLEAN MODE) ASC LIMIT 12";
         $res = $db->selectObjectsBySql($sql);
+        foreach ($res as $key=>$record) {
+            $res[$key]->title = $record->firstname . ' ' . $record->lastname;
+        }
         //eDebug($sql);
         $ar = new expAjaxReply(200, gt('Here\'s the items you wanted'), $res);
         $ar->send();

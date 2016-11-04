@@ -1,5 +1,5 @@
 {*
- * Copyright (c) 2004-2014 OIC Group, Inc.
+ * Copyright (c) 2004-2016 OIC Group, Inc.
  *
  * This file is part of Exponent
  *
@@ -21,39 +21,42 @@
     </div>
 </div>
 
-{if !empty($config.ajax_paging)}
-{script unique="`$name`itemajax" yui3mods="1"}
+{if $smarty.const.AJAX_PAGING}
+{script unique="`$name`itemajax" yui3mods="node,io,node-event-delegate" jquery="jquery.history"}
 {literal}
-YUI(EXPONENT.YUI3_CONFIG).use('node','io','node-event-delegate', function(Y) {
+YUI(EXPONENT.YUI3_CONFIG).use('*', function(Y) {
     var newsitem = Y.one('#{/literal}{$name}{literal}item');
+    var page_parm = '';
+    if (EXPONENT.SEF_URLS) {
+        page_parm = '/title/';
+    } else {
+        page_parm = '&title=';
+    }
+    var History = window.History;
+    History.pushState({name:'{/literal}{$name}{literal}',rel:'{/literal}{$params.title}{literal}'});
+    {/literal}
+        {$orig_params = ['controller' => 'news', 'action' => 'show']}
+    {literal}
+    var orig_url = '{/literal}{makeLink($orig_params)}{literal}';
     var cfg = {
     			method: "POST",
     			headers: { 'X-Transaction': 'Load Newsitem'},
     			arguments : { 'X-Transaction': 'Load Newsitem'}
     		};
-
-    src = '{/literal}{$__loc->src}{literal}';
-	var sUrl = EXPONENT.PATH_RELATIVE+"index.php?controller=news&action=show&view=newsitem&ajax_action=1&src="+src;
+	var sUrl = EXPONENT.PATH_RELATIVE+"index.php?controller=news&action=show&view=newsitem&ajax_action=1&src={/literal}{$__loc->src}{literal}";
 
 	var handleSuccess = function(ioId, o){
-//		Y.log(o.responseText);
-		Y.log("The success handler was called.  Id: " + ioId + ".", "info", "newsitem nav");
-
         if(o.responseText){
             newsitem.setContent(o.responseText);
             newsitem.all('script').each(function(n){
                 if(!n.get('src')){
                     eval(n.get('innerHTML'));
                 } else {
-                    var url = n.get('src');
-                    if (url.indexOf("ckeditor")) {
-                        Y.Get.script(url);
-                    };
+                    Y.Get.script(n.get('src'));
                 };
             });
             newsitem.all('link').each(function(n){
-                var url = n.get('href');
-                Y.Get.css(url);
+                Y.Get.css(n.get('href'));
             });
         } else {
             newsitem.one('.loadingdiv').remove();
@@ -71,10 +74,22 @@ YUI(EXPONENT.YUI3_CONFIG).use('node','io','node-event-delegate', function(Y) {
 
     newsitem.delegate('click', function(e){
         e.halt();
+        History.pushState({name:'{/literal}{$name}{literal}',rel:e.currentTarget.get('rel')}, e.currentTarget.get('text').trim(), orig_url+page_parm+e.currentTarget.get('rel'));
         cfg.data = "title="+e.currentTarget.get('rel');
         var request = Y.io(sUrl, cfg);
-        newsitem.setContent(Y.Node.create('<div class="loadingdiv">{/literal}{"Loading Item"|gettext}{literal}</div>'));
-    }, 'a.nav');
+        newsitem.setContent(Y.Node.create('{/literal}{loading title="Loading Item"|gettext}{literal}'));
+    }, 'a.newsnav');
+
+    // Watches the browser history for changes
+    window.addEventListener('popstate', function(e) {
+        state = History.getState()
+        if (state.data.name == '{/literal}{$name}{literal}') {
+            // moving to a new item
+            cfg.data = "title="+state.data.rel;
+            var request = Y.io(sUrl, cfg);
+            newsitem.setContent(Y.Node.create('{/literal}{loading title="Loading Item"|gettext}{literal}'));
+        }
+    });
 });
 {/literal}
 {/script}

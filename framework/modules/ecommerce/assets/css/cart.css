@@ -149,6 +149,7 @@ table#cart table td {
 #cart .exp-dropmenu ul, .extra-data ul {
 	margin-top : 0;
 	margin-bottom: 0;
+	padding-left: 12px;
 }
 
 #cart .exp-dropmenu .type-icon {
@@ -158,7 +159,7 @@ table#cart table td {
     position:absolute;
     left:10px;
     top:-7px;
-    background: url(../../../framework/core/assets/images/panel/point.gif) no-repeat;
+    background: url(../../../../../framework/core/assets/images/panel/point.gif) no-repeat;
 }
 
 #cart .exp-dropmenu ul li {
@@ -189,7 +190,8 @@ table#cart table td {
 }
 
 .cart.checkout h2 {
-	padding       : 5px 0;
+	padding       : 4px 0;
+	padding-left  : 4px;
 	border        : 1px solid #999;
 	border-width  : 1px 0;
 	background    : #f2f1c3;
@@ -210,7 +212,7 @@ table#cart table td {
 .cart.checkout .totals {
 	position : absolute;
 	right    : 0;
-	top      : 0;
+	top      : 55px;
 }
 
 .cart.checkout .details {
@@ -293,11 +295,20 @@ table#cart table td {
 	border-radius         : 3px;
 	background            : #559;
 	color                 : #fff;
+	color      : #707070;
+	background : #efefef;
+}
+
+#expresscheckout a.servopt:hover {
+	background            : #7d7dc4;
+	color                 : #fff;
 }
 
 #expresscheckout span.servopt {
 	color      : #999999;
 	background : #efefef;
+	background            : #559;
+	color                 : #fff;
 }
 
 /****************  quicklinks  ***********************/
@@ -361,6 +372,7 @@ table#cart table td {
 
 #shipping-method-options .shippingmethodimg {
 	float : left;
+	margin-right: 22px;
 }
 
 #shipping-method-options .sm-info {
@@ -378,3 +390,10 @@ table#cart table td {
 	padding-bottom : 10px;
 	margin-bottom  : 10px;
 }
+
+a.shopping-cart.awesome,
+a.reply.awesome,
+a.delete.awesome  {
+	padding-left: 20px!important;
+}
+

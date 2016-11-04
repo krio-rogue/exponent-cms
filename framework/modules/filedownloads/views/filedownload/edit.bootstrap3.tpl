@@ -1,5 +1,5 @@
 {*
- * Copyright (c) 2004-2014 OIC Group, Inc.
+ * Copyright (c) 2004-2016 OIC Group, Inc.
  *
  * This file is part of Exponent
  *
@@ -19,17 +19,23 @@
         {control type=hidden name=id value=$record->id}
         {control type=hidden name=rank value=$record->rank}
         <div id="editfile-tabs" class="">
-            <ul class="nav nav-tabs">
-                <li class="active"><a href="#tab1" data-toggle="tab"><em>{'General'|gettext}</em></a></li>
-                <li><a href="#tab2" data-toggle="tab"><em>{'Publish'|gettext}</em></a></li>
-                <li><a href="#tab3" data-toggle="tab"><em>{'SEO'|gettext}</em></a></li>
-            </ul>            
+            <ul class="nav nav-tabs" role="tablist">
+                <li role="presentation" class="active"><a href="#tab1" role="tab" data-toggle="tab"><em>{'General'|gettext}</em></a></li>
+                <li role="presentation"><a href="#tab2" role="tab" data-toggle="tab"><em>{'Publish'|gettext}</em></a></li>
+                <li role="presentation"><a href="#tab3" role="tab" data-toggle="tab"><em>{'SEO'|gettext}</em></a></li>
+                {if !$config.disable_facebook_meta}
+                    <li role="presentation"><a href="#tab4" role="tab" data-toggle="tab"><em>{'Facebook'|gettext}</em></a></li>
+                {/if}
+                {if !$config.disable_twitter_meta}
+                    <li role="presentation"><a href="#tab5" role="tab" data-toggle="tab"><em>{'Twitter'|gettext}</em></a></li>
+                {/if}
+            </ul>
             <div class="tab-content yui3-skin-sam">
-                <div id="tab1" class="tab-pane fade in active">
+                <div id="tab1" role="tabpanel" class="tab-pane fade in active">
                     <h2>{'File Download'|gettext}</h2>
                     {control type=text name=title label="Title"|gettext value=$record->title focus=1}
 
-                    <div id="alt-control" class="alt-control">
+                    <div id="alt-control-file" class="alt-control">
                         <div class="control"><label class="label">{'Type of Media'|gettext}</label></div>
                         <div class="alt-body">
                             {control type=radiogroup columns=2 name="file_type" items="Uploaded File,External File"|gettxtlist values="file,ext_file" default=$record->file_type|default:"file"}
@@ -63,10 +69,10 @@
                    	    {control type="checkbox" name="disable_comments" label="Disable Comments to this Item?"|gettext value=1 checked=$record->disable_comments}
                    	{/if}
                 </div>
-                <div id="tab2" class="tab-pane fade">
+                <div id="tab2" role="tabpanel" class="tab-pane fade">
                     {control type="yuidatetimecontrol" name="publish" label="Publish Date"|gettext edit_text="Publish Immediately" value=$record->publish}
                 </div>
-                <div id="tab3" class="tab-pane fade">
+                <div id="tab3" role="tabpanel" class="tab-pane fade">
                      <h2>{'SEO Settings'|gettext}</h2>
                     {control type="text" name="sef_url" label="SEF URL"|gettext value=$record->sef_url description='If you don\'t put in an SEF URL one will be generated based on the title provided. SEF URLs can only contain alpha-numeric characters, hyphens, forward slashes, and underscores.'|gettext}
                     {control type="text" name="canonical" label="Canonical URL"|gettext value=$record->canonical description='Helps get rid of duplicate search engine entries'|gettext}
@@ -76,27 +82,33 @@
                     {control type="checkbox" name="meta_noindex" label="Do Not Index"|gettext|cat:"?" checked=$section->meta_noindex value=1 description='Should this page be indexed by search engines?'|gettext}
                     {control type="checkbox" name="meta_nofollow" label="Do Not Follow Links"|gettext|cat:"?" checked=$section->meta_nofollow value=1 description='Should links on this page be indexed and followed by search engines?'|gettext}
                 </div>
+                {if !$config.disable_facebook_meta}
+                    <div id="tab4" role="tabpanel" class="tab-pane fade">
+                        <h2>{'Facebook Meta'|gettext}</h2>
+                        <blockquote>
+                            {'Also used for Twitter, Pinterest, etc...'|gettext}
+                        </blockquote>
+                        {control type="text" name="fb[title]" label="Meta Title"|gettext value=$record->meta_fb.title size=88 description='Override the item title for social media'|gettext}
+                        {control type="textarea" name="fb[description]" label="Meta Description"|gettext rows=5 cols=35 size=200 value=$record->meta_fb.description description='Override the item summary for social media'|gettext}
+                        {control type="text" name="fb[url]" label="Meta URL"|gettext value=$record->meta_fb.url description='Canonical URL for social media if different than Canonical URL'|gettext}
+                        {control type="files" name="fbimage" subtype=fbimage label="Meta Image"|gettext value=$record->meta_fb folder=$config.upload_folder limit=1 description='Image for social media (1200px x 630px or 600px x 315px, but larger than 200px x 200px)'|gettext}
+                    </div>
+                {/if}
+                {if !$config.disable_twitter_meta}
+                    <div id="tab5" role="tabpanel" class="tab-pane fade">
+                        <h2>{'Twitter Meta'|gettext}</h2>
+                        {control type="text" name="tw[title]" label="Meta Title"|gettext value=$record->meta_tw.title size=88 description='Override the item title for social media'|gettext}
+                        {control type="textarea" name="tw[description]" label="Meta Description"|gettext rows=5 cols=35 size=200 value=$record->meta_tw.description description='Override the item summary for social media'|gettext}
+                        {control type="text" name="tw[site]" label="Twitter Account"|gettext value=$record->meta_tw.twsite description='Must include @'|gettext}
+                        {control type="files" name="twimage" subtype=twimage label="Meta Image"|gettext value=$record->meta_tw folder=$config.upload_folder limit=1 description='Image for social media (120px x 120px minimum)'|gettext}
+                    </div>
+                {/if}
             </div>
         </div>
-	    <div class="loadingdiv">{"Loading File Download Item"|gettext}</div>
+        {loading title="Loading File Download Item"|gettext}
         {control type=buttongroup submit="Save File"|gettext cancel="Cancel"|gettext}
     {/form}   
 </div>
-
-{*{script unique="editform" yui3mods=1}*}
-{*{literal}*}
-    {*EXPONENT.YUI3_CONFIG.modules.exptabs = {*}
-        {*fullpath: EXPONENT.JS_RELATIVE+'exp-tabs.js',*}
-        {*requires: ['history','tabview','event-custom']*}
-    {*};*}
-
-	{*YUI(EXPONENT.YUI3_CONFIG).use('exptabs', function(Y) {*}
-        {*Y.expTabs({srcNode: '#editfile-tabs'});*}
-		{*Y.one('#editfile-tabs').removeClass('hide');*}
-		{*Y.one('.loadingdiv').remove();*}
-    {*});*}
-{*{/literal}*}
-{*{/script}*}
 
 {script unique="tabload" jquery=1 bootstrap="tab,transition"}
 {literal}
@@ -104,19 +116,19 @@
 {/literal}
 {/script}
 
-{script unique="file-type" yui3mods="node,node-event-simulate"}
+{script unique="file-type" jquery=1}
 {literal}
-YUI(EXPONENT.YUI3_CONFIG).use('node','node-event-simulate', function(Y) {
-    var radioSwitchers = Y.all('#alt-control input[type="radio"]');
-    radioSwitchers.on('click',function(e){
-        Y.all(".alt-item").setStyle('display','none');
-        var curdiv = Y.one("#" + e.target.get('value') + "-div");
-        curdiv.setStyle('display','block');
+$(document).ready(function(){
+    var radioSwitcher_file = $('#alt-control-file input[type="radio"]');
+    radioSwitcher_file.on('click', function(e){
+        $("#alt-control-file .alt-item").css('display', 'none');
+        var curdiv = $("#" + e.target.value + "-div");
+        curdiv.css('display', 'block');
     });
 
-    radioSwitchers.each(function(node,k){
-        if(node.get('checked')==true){
-            node.simulate('click');
+    radioSwitcher_file.each(function(k, node){
+        if(node.checked == true){
+            $(node).trigger('click');
         }
     });
 });

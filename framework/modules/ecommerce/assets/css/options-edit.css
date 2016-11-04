@@ -10,6 +10,11 @@
 	padding-top : 20px;
 }
 
+.options-partial .panel,
+.options-partial table.options {
+	margin-bottom: 0;
+}
+
 .options-partial .hd {
 	margin                : 0;
 	position              : relative;
@@ -20,7 +25,7 @@
 	border-radius         : 2px;
 }
 
-.options-partial .hd a.collapse {
+.options-partial .hd a.ycollapse {
 	background  : url(../images/ecom-sprite.png) repeat-x -4px -386px;
 	position    : absolute;
 	text-indent : 20px;
@@ -32,7 +37,7 @@
 	right       : 1px;
 }
 
-.options-partial .hd a.expand {
+.options-partial .hd a.yexpand {
 	background  : url(../images/ecom-sprite.png) repeat-x -4px -413px;
 	position    : absolute;
 	text-indent : 20px;
@@ -51,7 +56,7 @@
 .options-partial .hd h2 {
 	margin            : 0;
 	color             : #103684;
-	padding           : 8px 0 8px 8px;
+	padding           : 8px 0 8px 8px;  /*NOTE 0 0 0 8px is not so fat */
 	font-size         : 14px;
 	/*    background-image:url(../images/ecom-sprite.png);*/
 	background-repeat : no-repeat;
@@ -131,3 +136,25 @@
 	margin  : 0 10px;
 }
 
+.options-partial select.select.form-control,
+.options-partial select.select.control {
+	width: auto;
+}
+
+.options-partial table.options .checkbox,
+.options-partial table.options .form-group {
+	margin-top: 0;
+	margin-bottom: 0;
+}
+
+.options-partial table.options .radio input {
+	margin-top: 2px;
+}
+
+.options-partial input.text.form-control {
+	width: 60px;
+}
+
+.options-partial select.select.control {
+	width: 50px;
+}

@@ -1,7 +1,7 @@
 <?php
 ##################################################
 #
-# Copyright (c) 2004-2014 OIC Group, Inc.
+# Copyright (c) 2004-2016 OIC Group, Inc.
 #
 # This file is part of Exponent
 #
@@ -22,9 +22,13 @@
 /** @define "BASE" "../../../.." */
 
 class passthru extends billingcalculator {
+
     function name() {
         return gt("Passthru Payment");
     }
+
+//    public $use_title = 'Pass-Thru';
+    public $payment_type = 'Passthru';
 
     function description() {
         return gt("Enabling this payment option will allow you or your customers to bypass payment processing at the cart and allow payment methods after the order is processed, such as cash, check, pay in store, or manually process via credit card.") . "<br>** " . gt("This is a restricted payment option and only accessible by site admins.");
@@ -38,40 +42,29 @@ class passthru extends billingcalculator {
         return false;
     }
 
-    function isOffsite() {
-        return false;
-    }
-
-    function isSelectable() {
-        return true;
-    }
-
     function isRestricted() {
         return true;
     }
 
-    public $title = 'Pass-Thru';
-    public $payment_type = 'Passthru';
-
     //Called for billing medthod seletion screen, return true if it's a valid billing method.
-    function pre_process($config_object, $order, $billaddress, $shippingaddress) {
-        return true;
-    }
+//    function pre_process($config_object, $order, $billaddress, $shippingaddress) {
+//        return true;
+//    }
 
-    function post_process() {
-        return true;
-    }
+//    function post_process() {
+//        return true;
+//    }
 
     //Config Form
-    function form($config_object) {
-        $form = new form();
-        if (!$config_object) {
-            $config_object->give_change = true;
-        }
-        $form->register("give_change", gt("Give Change?"), new checkboxcontrol($config_object->give_change));
-        $form->register("submit", "", new buttongroupcontrol("Save", "", "Cancel"));
-        return $form->toHTML();
-    }
+//    function form($config_object) {
+//        $form = new form();
+//        if (!$config_object) {
+//            $config_object->give_change = true;
+//        }
+//        $form->register("give_change", gt("Give Change?"), new checkboxcontrol($config_object->give_change));
+//        $form->register("submit", "", new buttongroupcontrol("Save", "", "Cancel"));
+//        return $form->toHTML();
+//    }
 
     //process config form
 //	function update($values, $config_object) {  //FIXME doesn't match parent declaration update($params = array())
@@ -88,7 +81,7 @@ class passthru extends billingcalculator {
         return $form->toHTML();
     }
 
-    //process user input. This function should return an object of the user input.
+    //process user input. This function should return an object of the user input.  //FIXME never used
     //the returnd object will be saved in the session and passed to post_process.
     //If need be this could use another method of data storage, as long post_process can get the data.
     function userProcess($values, $config_object, $user_data) {
@@ -109,19 +102,20 @@ class passthru extends billingcalculator {
     }
 
     //Should return html to display user data.
-    function userView($opts) {
-        //eDebug($opts,true);
+    function userView($billingmethod) {
+        $opts = expUnserialize($billingmethod->billing_options);
+           //eDebug($opts,true);
         if (isset($opts->result)) return '';
         $ot = new order_type($opts->order_type);
         $os = new order_status($opts->order_status);
-        $sr1 = new sales_rep($opts->sales_rep_1_id);
-        $sr2 = new sales_rep($opts->sales_rep_2_id);
-        $sr3 = new sales_rep($opts->sales_rep_3_id);
+        if (!empty($opts->sales_rep_1_id)) $sr1 = new sales_rep($opts->sales_rep_1_id);
+        if (!empty($opts->sales_rep_2_id)) $sr2 = new sales_rep($opts->sales_rep_2_id);
+        if (!empty($opts->sales_rep_3_id)) $sr3 = new sales_rep($opts->sales_rep_3_id);
         $msg = gt('Order Type') . ': ' . $ot->title;
         $msg .= '<br>' . gt('Order Status') . ': ' . $os->title;
-        $msg .= '<br>' . gt('Sales Rep 1') . ': ' . $sr1->initials;
-        $msg .= '<br>' . gt('Sales Rep 2') . ': ' . $sr2->initials;
-        $msg .= '<br>' . gt('Sales Rep 3') . ': ' . $sr3->initials;
+        if (!empty($sr1)) $msg .= '<br>' . gt('Sales Rep 1') . ': ' . $sr1->initials;
+        if (!empty($sr2)) $msg .= '<br>' . gt('Sales Rep 2') . ': ' . $sr2->initials;
+        if (!empty($sr3)) $msg .= '<br>' . gt('Sales Rep 3') . ': ' . $sr3->initials;
         //$order
         return $msg;
     }
@@ -132,48 +126,47 @@ class passthru extends billingcalculator {
         $obj = new stdClass();
         $obj->order_type = $params['order_type'];
         $obj->order_status = $params['order_status'];
-        $obj->sales_rep_1_id = $params['sales_rep_1_id'];
-        $obj->sales_rep_2_id = $params['sales_rep_2_id'];
-        $obj->sales_rep_3_id = $params['sales_rep_3_id'];
+        if (isset($params['sales_rep_1_id'])) $obj->sales_rep_1_id = $params['sales_rep_1_id'];
+        if (isset($params['sales_rep_2_id'])) $obj->sales_rep_2_id = $params['sales_rep_2_id'];
+        if (isset($params['sales_rep_2_id'])) $obj->sales_rep_3_id = $params['sales_rep_3_id'];
         return $obj;
     }
 
-    function preprocess($method, $opts, $params, $order) {
-        $method->update(array('billing_options' => serialize($opts)));
+    function preprocess($billingmethod, $opts, $params, $order) {
+        $billingmethod->update(array('billing_options' => serialize($opts)));
         if (isset($params['sales_rep_1_id'])) $order->sales_rep_1_id = $params['sales_rep_1_id'];
         if (isset($params['sales_rep_2_id'])) $order->sales_rep_2_id = $params['sales_rep_2_id'];
         if (isset($params['sales_rep_3_id'])) $order->sales_rep_3_id = $params['sales_rep_3_id'];
         $order->save();
-        /* eDebug($method);
+        /* eDebug($billingmethod);
          eDebug($opts);
          eDebug($params,true); */
         return true;
     }
 
-//    function process($method, $opts, $params, $invoice_number) {
-    function process($method, $opts, $params, $order) {
-//        global $order;
-
-        $object = new stdClass();
-        $object->errorCode = 0;
-        $object->message = 'Authorization pending.';
-        $object->PNREF = 'Pending';
-        $object->authorization_code = 'Pending';
-        $object->AVSADDR = 'Pending';
-        $object->AVSZIP = 'Pending';
-        $object->CVV2MATCH = 'Pending';
-        $object->traction_type = 'Pending';
+//    function process($billingmethod, $opts, $params, $invoice_number) {
+    function process($billingmethod, $opts, $params, $order) {
+        $opts = expUnserialize($billingmethod->billing_options);  //FIXME why aren't we passing $opts?
+        $opts->result->errorCode = 0;
+        $opts->result->message = 'Authorization pending.';
+        $opts->result->PNREF = 'Pending';
+        $opts->result->authorization_code = 'Pending';
+        $opts->result->AVSADDR = 'Pending';
+        $opts->result->AVSZIP = 'Pending';
+        $opts->result->CVV2MATCH = 'Pending';
+        $opts->result->traction_type = 'Pending';
         $trax_state = "authorization pending";
+        $trax_state->payment_status = $trax_state;
 
         //$opts2->billing_info = $opts;
-        $opts2 = new stdClass();
-        $opts2->result = $object;
+//        $opts2 = new stdClass();
+//        $opts2->result = $object;
         //eDebug($opts,true);
         /*$opts->result = $object;        
         $opts->cc_number = 'xxxx-xxxx-xxxx-'.substr($opts->cc_number, -4);*/
-        $method->update(array('billing_options' => serialize($opts2), 'transaction_state' => $trax_state));
-        $this->createBillingTransaction($method, number_format($order->grand_total, 2, '.', ''), $object, $trax_state);
-        return $object;
+        $billingmethod->update(array('billing_options' => serialize($opts), 'transaction_state' => $trax_state));
+        $this->createBillingTransaction($billingmethod, number_format(0, 2, '.', ''), $opts->result, $trax_state);
+        return $opts->result;
     }
 
     function postProcess($order, $params) {
@@ -185,7 +178,7 @@ class passthru extends billingcalculator {
             $addy = new address($order->billingmethod[0]->addresses_id);
             $newUser = new user();
             $newUser->username = $addy->email . time(); //make a unique username
-            $password = md5(time() . rand(50, 000)); //generate random password
+            $password = md5(time() . mt_rand(50, 1000)); //generate random password
             $newUser->setPassword($password, $password);
             $newUser->email = $addy->email;
             $newUser->firstname = $addy->firstname;
@@ -223,8 +216,8 @@ class passthru extends billingcalculator {
         return $ret->result->authorization_code;
     }
 
-    function getPaymentReferenceNumber($opts) {
-        $ret = expUnserialize($opts);
+    function getPaymentReferenceNumber($billingmethod) {
+        $ret = expUnserialize($billingmethod->billing_options);
         if (isset($ret->result)) {
             return $ret->result->PNREF;
         } else {
@@ -256,6 +249,7 @@ class passthru extends billingcalculator {
         //$ret = expUnserialize($billingmethod->billing_options);
         return 'Manual';
     }
+
 }
 
 ?>

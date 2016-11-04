@@ -1,5 +1,5 @@
 {*
- * Copyright (c) 2004-2014 OIC Group, Inc.
+ * Copyright (c) 2004-2016 OIC Group, Inc.
  *
  * This file is part of Exponent
  *
@@ -14,10 +14,10 @@
  *}
 
 <div class="scaffold browseTags">
-    {if $smarty.const.DEVLEOPMENT}
+    {if $smarty.const.DEVELOPMENT}
         <h4>{'This is the scaffold view'|gettext}</h4>
     {/if}
-	<h1>{$moduletitle|default:""}</h1>
+    <h1>{$moduletitle|default:"Browse Tags for"|gettext|cat:" `$model_name`"}</h1>
 
     {foreach from=$tags item=tag names=tags}
         <a href="{link action=browseTags tags=$tag->id}">{$tag->title}</a>

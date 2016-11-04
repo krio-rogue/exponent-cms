@@ -2,7 +2,7 @@
 
 ##################################################
 #
-# Copyright (c) 2004-2014 OIC Group, Inc.
+# Copyright (c) 2004-2016 OIC Group, Inc.
 #
 # This file is part of Exponent
 #
@@ -27,9 +27,6 @@ if (!defined('EXPONENT')) exit('');
  */
 class hiddenfieldcontrol extends formcontrol {
 
-	var $flip = false;
-	var $jsHooks = array();
-	
 	static function name() { return "Hidden Field"; }
 
 	function __construct($default = "") {
@@ -43,8 +40,8 @@ class hiddenfieldcontrol extends formcontrol {
 
 	function controlToHTML($name=null,$label=null) {
         $this->name = empty($this->name) ? $name : $this->name;
-        $inputID  = (!empty($this->id)) ? ' id="'.$this->id.'"' : "";
-		$html = '<input type="hidden"' . $inputID . ' name="' . $this->name . '" value="'.$this->default.'"';
+        $idname  = (!empty($this->id)) ? ' id="'.$this->id.'"' : "";
+		$html = '<input type="hidden"' . $idname . ' name="' . $this->name . '" value="'.$this->default.'"';
 		$html .= ' />';
 		return $html;
 	}
@@ -74,7 +71,8 @@ class hiddenfieldcontrol extends formcontrol {
 		$form->register(null, null, new htmlcontrol('<br />'));
         $form->register("required", gt('Make this a required field.'), new checkboxcontrol($object->required,true));
         $form->register(null, null, new htmlcontrol('<br />'));
-		$form->register("submit","",new buttongroupcontrol(gt('Save'),'',gt('Cancel'),"",'editable'));
+		if (!expJavascript::inAjaxAction())
+			$form->register("submit","",new buttongroupcontrol(gt('Save'),'',gt('Cancel'),"",'editable'));
 		
 		return $form;
 	}
@@ -82,7 +80,7 @@ class hiddenfieldcontrol extends formcontrol {
     static function update($values, $object) {
 		if ($object == null) $object = new checkboxcontrol();
 		if ($values['identifier'] == "") {
-			$post = $_POST;
+			$post = expString::sanitize($_POST);
 			$post['_formError'] = gt('Identifier is required.');
 			expSession::set("last_POST",$post);
 			return null;

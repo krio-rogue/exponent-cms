@@ -1,5 +1,5 @@
 {*
- * Copyright (c) 2004-2014 OIC Group, Inc.
+ * Copyright (c) 2004-2016 OIC Group, Inc.
  *
  * This file is part of Exponent
  *
@@ -55,12 +55,12 @@
     <div id="{$id}" class="yui-navset">
         <ul class="yui-nav">
             {foreach name=tabs from=$page->cats key=catid item=cat}
-                <li><a href="#tab{$smarty.foreach.tabs.iteration}">{$cat->name}</a></li>
+                <li><a href="#tab{$smarty.foreach.tabs.iteration}-{$id}">{$cat->name}</a></li>
             {/foreach}
         </ul>
         <div class="yui-content">
             {foreach name=items from=$page->cats key=catid item=cat}
-                <div id="tab{$smarty.foreach.items.iteration}">
+                <div id="tab{$smarty.foreach.items.iteration}-{$id}">
                     {foreach from=$cat->records item=item}
                         {exp_include file='filedownloaditem.tpl'}
                     {/foreach}
@@ -68,23 +68,9 @@
             {/foreach}
         </div>
     </div>
-    <div class="loadingdiv">{'Loading'|gettext}</div>
+    {*<div class="loadingdiv">{'Loading'|gettext}</div>*}
+    {loading}
 </div>
-
-{*{script unique="`$id`" yui3mods="1"}*}
-{*{literal}*}
-    {*EXPONENT.YUI3_CONFIG.modules.exptabs = {*}
-        {*fullpath: EXPONENT.JS_RELATIVE+'exp-tabs.js',*}
-        {*requires: ['history','tabview','event-custom']*}
-    {*};*}
-
-	{*YUI(EXPONENT.YUI3_CONFIG).use('exptabs', function(Y) {*}
-        {*Y.expTabs({srcNode: '#{/literal}{$id}{literal}'});*}
-		{*Y.one('#{/literal}{$id}{literal}').removeClass('hide');*}
-		{*Y.one('.loadingdiv').remove();*}
-	{*});*}
-{*{/literal}*}
-{*{/script}*}
 
 {script unique="`$id`" jquery="jqueryui"}
 {literal}

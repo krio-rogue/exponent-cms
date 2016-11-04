@@ -1,5 +1,5 @@
 {*
- * Copyright (c) 2004-2014 OIC Group, Inc.
+ * Copyright (c) 2004-2016 OIC Group, Inc.
  *
  * This file is part of Exponent
  *
@@ -13,7 +13,8 @@
  *
  *}
 
-{exp_include file='menu.tpl'}
+<div class="module report dashboard">
+    {exp_include file='menu.tpl'}
 
 	<div class="rightcol">
 	    <div id="dashboard-tabs" class="yui-navset exp-skin-tabview hide">
@@ -51,19 +52,20 @@
                 </div>
             </div>
 	    </div>
-	    <div class="loadingdiv">{'Loading Dashboard'|gettext}</div>
+	    {*<div class="loadingdiv">{'Loading Dashboard'|gettext}</div>*}
+        {loading title='Loading Dashboard'|gettext}
     </div>
     {clear}
 </div>
 
-{script unique="editform" yui3mods=1}
+{script unique="editform" yui3mods="exptabs"}
 {literal}
     EXPONENT.YUI3_CONFIG.modules.exptabs = {
         fullpath: EXPONENT.JS_RELATIVE+'exp-tabs.js',
         requires: ['history','tabview','event-custom']
     };
 
-	YUI(EXPONENT.YUI3_CONFIG).use('exptabs', function(Y) {
+	YUI(EXPONENT.YUI3_CONFIG).use('*', function(Y) {
         Y.expTabs({srcNode: '#dashboard-tabs'});
 		Y.one('#dashboard-tabs').removeClass('hide');
 		Y.one('.loadingdiv').remove();

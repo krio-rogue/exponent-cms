@@ -2,7 +2,7 @@
 
 ##################################################
 #
-# Copyright (c) 2004-2014 OIC Group, Inc.
+# Copyright (c) 2004-2016 OIC Group, Inc.
 #
 # This file is part of Exponent
 #
@@ -22,18 +22,11 @@
  */
 
 class storeCategoryController extends expNestedNodeController {
-    static function displayname() {
-        return gt("Store Category Manager");
-    }
-
-    static function description() {
-        return gt("This module is for managing categories in your store.");
-    }
-
-    protected $add_permissions = array(
+    protected $manage_permissions = array(
+//        'import' => 'Import Category',
+//        'importCategory' => 'Import Category',
         'fix_categories' => 'to run this action.'
     );
-
     // hide the configs we don't need
     public $remove_configs = array(
         'aggregation',
@@ -48,6 +41,22 @@ class storeCategoryController extends expNestedNodeController {
         'tags',
         'twitter',
     ); // all options: ('aggregation','categories','comments','ealerts','facebook','files','module_title','pagination','rss','tags','twitter',)
+
+    static function displayname() {
+        return gt("e-Commerce Category Manager");
+    }
+
+    static function description() {
+        return gt("This module is for managing categories in your store.");
+    }
+
+    static function canImportData() {
+        return true;
+    }
+
+    static function canExportData() {
+        return true;
+    }
 
     public function edit() {
         global $db;
@@ -93,7 +102,7 @@ class storeCategoryController extends expNestedNodeController {
                 }
             }
 
-            $recorded_product_type = $db->selectObjectsBySql("SELECT {$product_type_id}, title FROM " . DB_TABLE_PREFIX . "_{$value}s_storeCategories, " . DB_TABLE_PREFIX . "_{$product_type} WHERE {$product_type_id} = id and storecategories_id = " . $this->params['id']);
+            $recorded_product_type = $db->selectObjectsBySql("SELECT {$product_type_id}, title FROM " . $db->prefix . "{$value}s_storeCategories, " . $db->prefix . "{$product_type} WHERE {$product_type_id} = id and storecategories_id = " . $id);
 
             foreach ($db->selectFormattedNestedTree("{$product_type}") as $item) {
                 $f_types[$item->id] = $item->title;
@@ -130,21 +139,29 @@ class storeCategoryController extends expNestedNodeController {
             'config'           => $this->config,
 //            'pullable_modules' => $pullable_modules,
             'views'            => $views,
-//            'title'=>$this->displayname()
+//            'title'=>static::displayname()
             'title'            => gt('Store Category named') . ' ' . $cat->title
         ));
     }
 
     function saveconfig() {
-
         // unset some unneeded params
-        unset($this->params['module']);
-        unset($this->params['controller']);
-        unset($this->params['src']);
-        unset($this->params['int']);
-        unset($this->params['id']);
-        unset($this->params['action']);
-        unset($this->params['PHPSESSID']);
+        unset(
+            $this->params['module'],
+            $this->params['controller'],
+            $this->params['src'],
+            $this->params['int'],
+            $this->params['id'],
+            $this->params['action'],
+            $this->params['PHPSESSID'],
+            $this->params['__utma'],
+            $this->params['__utmb'],
+            $this->params['__utmc'],
+            $this->params['__utmz'],
+            $this->params['__utmt'],
+            $this->params['__utmli'],
+            $this->params['__cfduid']
+        );
 
         // setup and save the config
         $this->loc->src = "@store-" . $this->params['cat-id'];
@@ -160,11 +177,11 @@ class storeCategoryController extends expNestedNodeController {
         $rank = 1;
         $category = new storeCategory($this->params['id']);
         foreach ($this->params['rerank'] as $id) {
-            $sql = "SELECT DISTINCT sc.* FROM " . DB_TABLE_PREFIX . "_product_storeCategories sc JOIN " . DB_TABLE_PREFIX . "_product p ON p.id = sc.product_id WHERE p.id=" . $id . " AND sc.storecategories_id IN (SELECT id FROM " . DB_TABLE_PREFIX . "_storeCategories WHERE rgt BETWEEN " . $category->lft . " AND " . $category->rgt . ") ORDER BY rank ASC";
+            $sql = "SELECT DISTINCT sc.* FROM " . $db->prefix . "product_storeCategories sc JOIN " . $db->prefix . "product p ON p.id = sc.product_id WHERE p.id=" . $id . " AND sc.storecategories_id IN (SELECT id FROM " . $db->prefix . "storeCategories WHERE rgt BETWEEN " . $category->lft . " AND " . $category->rgt . ") ORDER BY rank ASC";
             $prod = $db->selectObjectBySQL($sql);
             $prod->rank = $rank;
             $db->updateObject($prod, "product_storeCategories", "storecategories_id=" . $prod->storecategories_id . " AND product_id=" . $id);
-            $rank += 1;
+            $rank++;
         }
 
         expHistory::back();
@@ -174,18 +191,18 @@ class storeCategoryController extends expNestedNodeController {
         expHistory::set('viewable', $this->params);
         //         $category = new storeCategory();
         //         $categories = $category->getFullTree();
-        //         
+        //
         //         // foreach($categories as $i=>$val){
         //         //  if (!empty($this->values) && in_array($val->id,$this->values)) {
         //         //      $this->tags[$i]->value = true;
         //         //  } else {
         //         //      $this->tags[$i]->value = false;
         //         //  }
-        //         //  $this->tags[$i]->draggable = $this->draggable; 
-        //         //  $this->tags[$i]->checkable = $this->checkable; 
+        //         //  $this->tags[$i]->draggable = $this->draggable;
+        //         //  $this->tags[$i]->checkable = $this->checkable;
         //         // }
         //
-        // $obj = json_encode($categories);  
+        // $obj = json_encode($categories);
     }
 
     public function update() {
@@ -212,6 +229,102 @@ class storeCategoryController extends expNestedNodeController {
         parent::update();
     }
 
+    function export() {
+        $out = '"storeCategory"' . chr(13) . chr(10);  //FIXME or should this simply be 'category'?
+        $sc = new storeCategory();
+        $cats = $sc->find('all');
+        set_time_limit(0);
+        foreach ($cats as $cat) {
+            $out .= expString::outputField(storeCategory::buildCategoryString($cat->id, true), chr(13) . chr(10));
+        }
+
+        $filename = 'storecategory_export_' . time() . '.csv';
+
+        ob_end_clean();
+        ob_start("ob_gzhandler");
+
+        // 'application/octet-stream' is the registered IANA type but
+        //        MSIE and Opera seems to prefer 'application/octetstream'
+        $mime_type = (EXPONENT_USER_BROWSER == 'IE' || EXPONENT_USER_BROWSER == 'OPERA') ? 'application/octetstream' : 'application/octet-stream';
+
+        header('Content-Type: ' . $mime_type);
+        header('Expires: ' . gmdate('D, d M Y H:i:s') . ' GMT');
+        // IE need specific headers
+        if (EXPONENT_USER_BROWSER == 'IE') {
+            header('Content-Disposition: inline; filename="' . $filename . '"');
+            header('Cache-Control: must-revalidate, post-check=0, pre-check=0');
+            header('Pragma: public');
+        } else {
+            header('Content-Disposition: attachment; filename="' . $filename . '"');
+            header('Pragma: no-cache');
+        }
+        echo $out;
+        exit; // Exit, since we are exporting
+    }
+
+    function import() {
+        assign_to_template(array(
+            'type' => $this
+        ));
+    }
+
+    function importCategory($file=null) {
+        if (empty($file->path)) {
+            $file = new stdClass();
+            $file->path = $_FILES['import_file']['tmp_name'];
+        }
+        if (empty($file->path)) {
+            echo gt('Not a Store Category Import CSV File');
+            return;
+        }
+        $line_end = ini_get('auto_detect_line_endings');
+        ini_set('auto_detect_line_endings',TRUE);
+        $handle = fopen($file->path, "r");
+
+        // read in the header line
+        $header = fgetcsv($handle, 10000, ",");
+        if (!in_array('storeCategory', $header)) {  //FIXME or should this simply be 'category' and a rank?
+            echo gt('Not a Store Category Import CSV File');
+            return;
+        }
+
+        $count = 1;
+        $errorSet = array();
+
+        // read in the data lines
+        while (($row = fgetcsv($handle, 10000, ",")) !== FALSE) {
+            $count++;
+            $data = array_combine($header, $row);
+
+            if (empty($data['storeCategory'])) {  //FIXME or should this simply be 'category' and a rank?
+                $errorSet[$count] = gt("Is not a store category.");
+                continue;
+            } else {
+                $result = storeCategory::importCategoryString($data['storeCategory']);
+                if ($result) {
+                    echo "Successfully added row " . $count . ", category: " . $data['storeCategory'] . "<br/>";
+                } else {
+                    echo "Already existed row " . $count . ", category: " . $data['storeCategory'] . "<br/>";
+                }
+            }
+        }
+        fclose($handle);
+        ini_set('auto_detect_line_endings',$line_end);
+
+        if (count($errorSet)) {
+            echo "<br/><hr><br/><div style='color:red'><strong>".gt('The following records were NOT imported').":</strong><br/>";
+            foreach ($errorSet as $rownum => $err) {
+                echo "Row: " . $rownum;
+                if (is_array($err)) {
+                    foreach ($err as $e) {
+                        echo " -- " . $e . "<br/>";
+                    }
+                } else echo " -- " . $err . "<br/>";
+            }
+            echo "</div>";
+        }
+    }
+
     function fix_categories() {
         //--Flat Structure--//
 //        global $db;
@@ -230,7 +343,7 @@ class storeCategoryController extends expNestedNodeController {
                     }
                 }
                 $depth++;
-                for ($x = 0; $x < count($Tree); $x++) {
+                for ($x = 0, $xMax = count($Tree); $x < $xMax; $x++) {
                     $Tree[$x]->depth = $depth;
                     $Tree[$x]->kids = BuildTree($TheNodes, $Tree[$x]->id, $depth);
                     //array_merge($test,$Tree[$x]["kids"]);
@@ -293,7 +406,7 @@ class storeCategoryController extends expNestedNodeController {
         // and adds the lft and rgt extents correctly for a nested set
 
         /*function nestify($categories) {
-            // Trees mapped            
+            // Trees mapped
             $trees = array();
             $trackParents = array();
             $depth=0;
@@ -327,10 +440,10 @@ class storeCategoryController extends expNestedNodeController {
                         $counter++;
                         $l--;
                     }
-                    
+
                     $categories[$key]['lft'] = $counter;
                     //???$counter++;
-                }        
+                }
                 $prevDepth=$val['depth'];
             }
 
@@ -385,7 +498,7 @@ class storeCategoryController extends expNestedNodeController {
         // eDebug(toHierarchy(nestify(flattenArray($TheTree))),1);
 
         /*$flat_fixed_cats = nestify(flattenArray($TheTree));
-                
+
         foreach ($flat_fixed_cats as $k=>$v) {
             $cat = new storeCategory($v['id']);
             $cat->lft = $v['lft'];
@@ -396,13 +509,13 @@ class storeCategoryController extends expNestedNodeController {
           */
         //-Show Array Structure--//
         // print_r($TheTree);
-        // 
-        // 
+        //
+        //
         // //--Print the Categories, and send their children to DrawBranch--//
         // //--The code below allows you to keep track of what category you're currently drawing--//
-        // 
+        //
         // printf("<ul>");
-        // 
+        //
         // foreach($TheTree as $MyNode) {
         //     printf("<li>{$MyNode['Name']}</li>");
         //     if(is_array($MyNode["Children"]) && !empty($MyNode["Children"])) {
@@ -411,21 +524,22 @@ class storeCategoryController extends expNestedNodeController {
         // }
         // printf("</ul>");
         // //--Recursive printer, should draw a child, and any of its children--//
-        // 
+        //
         // function DrawBranch($Node){
         //     printf("<ul>");
-        // 
+        //
         //     foreach($Node as $Entity) {
         //         printf("<li>{$Entity['Name']}</li>");
-        // 
+        //
         //         if(is_array($Entity["Children"]) && !empty($Entity["Children"])) {
         //             DrawBranch($Entity["Children"]);
         //         }
-        // 
+        //
         //         printf("</ul>");
         //     }
         // }
     }
+
 }
 
 ?>

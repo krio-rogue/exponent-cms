@@ -1,5 +1,5 @@
 {*
- * Copyright (c) 2004-2014 OIC Group, Inc.
+ * Copyright (c) 2004-2016 OIC Group, Inc.
  *
  * This file is part of Exponent
  *
@@ -15,16 +15,17 @@
 
 <div id="instore">
     <div id="instore-tabs" class="">
-        <ul class="nav nav-tabs">
-	        <li class="active"><a href="#tab1" data-toggle="tab"><em>{'General'|gettext}</em></a></li>
+        <ul class="nav nav-tabs" role="tablist">
+	        <li role="presentation" class="active"><a href="#tab1" role="tab" data-toggle="tab"><em>{'General Settings'|gettext}</em></a></li>
         </ul>            
         <div class="tab-content">
-	        <div id="tab1" class="tab-pane fade in active">
-	            {control type="text" name="rate" label="In Store Pickup Charge"|gettext size=5 filter=money value=$calculator->configdata.rate}
+	        <div id="tab1" role="tabpanel" class="tab-pane fade in active">
+	            {control type="text" name="rate" label="In Store Pickup Handling Charge"|gettext size=5 filter=money value=$calculator->configdata.rate|default:0}
 	        </div>
         </div>
     </div>
-	<div class="loadingdiv">{'Loading'|gettext}</div>
+	{*<div class="loadingdiv">{'Loading'|gettext}</div>*}
+    {loading}
 </div>
 
 {script unique="tabload" jquery=1 bootstrap="tab,transition"}

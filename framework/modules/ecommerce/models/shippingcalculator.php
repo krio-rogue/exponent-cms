@@ -2,7 +2,7 @@
 
 ##################################################
 #
-# Copyright (c) 2004-2014 OIC Group, Inc.
+# Copyright (c) 2004-2016 OIC Group, Inc.
 #
 # This file is part of Exponent
 #
@@ -18,16 +18,23 @@
 
 /**
  * @subpackage Models
- * @package    Core
+ * @package    Modules
  */
 class shippingcalculator extends expRecord {
     public $table = 'shippingcalculator';
     public $icon = '';
     public $configdata = array();
+    public $multiple_carriers = false;
 
-    public function addressRequired() {
-        return true;
-    }
+//    public function hasUserForm() { return true; }
+   	public function hasConfig() { return true; }
+   	public function addressRequired() { return true; }
+   	public function isSelectable() { return true; }
+    public function labelsEnabled() {return false; }
+    public function pickupEnabled() {return false; }
+    public function trackerEnabled() {return false; }
+
+    public $shippingmethods = array();
 
     public function __construct($params = null, $get_assoc = true, $get_attached = true) {
         parent::__construct($params, $get_assoc, $get_attached);
@@ -43,8 +50,39 @@ class shippingcalculator extends expRecord {
 
     }
 
-    public function meetsCriteria() {
+    public function meetsCriteria($shippingmethod) { //FIXME probably needs to be passed order object
         return true;
+    }
+
+    public function getRates($order)
+    {
+        return array();
+    }
+
+    public function configForm()
+    {
+        if (bs3(true)) {
+            $tpl = 'configure.bootstrap3.tpl';
+            if (!file_exists(BASE . 'framework/modules/ecommerce/shippingcalculators/views/' . $this->calculator_name . '/' . $tpl)) {
+                $tpl = 'configure.tpl';
+            }
+        } else {
+            $tpl = 'configure.tpl';
+        }
+        return BASE . 'framework/modules/ecommerce/shippingcalculators/views/' . $this->calculator_name . '/' . $tpl;
+    }
+
+    function parseConfig($values)
+    {
+        return array();
+    }
+
+    function availableMethods() {
+   	    return array();
+   	}
+
+    function getPackages($carrier) {
+        return array();
     }
 
     /**
@@ -87,6 +125,45 @@ class shippingcalculator extends expRecord {
         global $db;
 
         return $db->selectValue('shippingcalculator','title','id='.$calc_id);
+    }
+
+    // functions for handing order fulfillment via shipping labels and package pickup
+    //  primarily for easypost shipping calculator
+
+    function createLabel($shippingmethod) {
+        return false;
+    }
+
+    function buyLabel($shippingmethod) {
+
+    }
+
+    function getLabel($shippingmethod) {
+        return false;
+    }
+
+    function cancelLabel($shippingmethod) {
+
+    }
+
+    function createPickup($shippingmethod, $pickupdate, $pickupenddate, $instructions) {
+        return false;
+    }
+
+    function buyPickup($shippingmethod, $type) {
+
+    }
+
+    function cancelPickup($shippingmethod) {
+
+    }
+
+    function handleTracking() {
+
+    }
+
+    function getPackageDetails($shippingmethod, $tracking_only=false) {
+
     }
 
 }

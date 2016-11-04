@@ -1,5 +1,5 @@
 {*
- * Copyright (c) 2004-2014 OIC Group, Inc.
+ * Copyright (c) 2004-2016 OIC Group, Inc.
  *
  * This file is part of Exponent
  *
@@ -91,7 +91,7 @@
                 null,
                 null,
                 { searchable: false },
-                { searchable: false, sortable: false },
+                { searchable: false, orderable: false },
             ],
             autoWidth: false,
             preDrawCallback: function () {

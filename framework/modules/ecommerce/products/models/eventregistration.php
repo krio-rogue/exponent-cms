@@ -2,7 +2,7 @@
 
 ##################################################
 #
-# Copyright (c) 2004-2014 OIC Group, Inc.
+# Copyright (c) 2004-2016 OIC Group, Inc.
 #
 # This file is part of Exponent
 #
@@ -376,7 +376,7 @@ class eventregistration extends expRecord {
                     if ($def != null) {
                         if ($control_type == 'uploadcontrol') $registrant['registration'] = $key + 1;
                         $emailValue = htmlspecialchars_decode(call_user_func(array($control_type, 'parseData'), $c->name, $registrant, true));
-                        $value = stripslashes($db->escapeString($emailValue));
+                        $value = stripslashes(expString::escape($emailValue));
                         $varname = $c->name;
                         $db_data->$varname = $value;
                     }
@@ -529,7 +529,8 @@ class eventregistration extends expRecord {
      * @return bool
      */
     public function process($item, $affects_inventory=false) {
-        global $user, $db, $order;
+//        global $user, $db, $order;
+        global $user, $db;
 
         // save the names of the registrants to the eventregistration table too
         //FIXME we need to be dealing w/ eventregistration_registrants here also/primarily
@@ -681,12 +682,12 @@ class eventregistration extends expRecord {
             BASE . 'themes/' . DISPLAY_THEME . '/modules/ecommerce/products/views/product/',
             BASE . 'framework/modules/ecommerce/products/views/product/',
         );
-        if (expSession::get('framework') == 'bootstrap') {
+        if (bs2()) {
             $vars = array(
                 '.bootstrap',
                 '',
             );
-        } elseif (expSession::get('framework') == 'bootstrap3') {
+        } elseif (bs3(true)) {
             $vars = array(
                 '.bootstrap3',
                 '.bootstrap',
@@ -885,6 +886,13 @@ class eventregistration extends expRecord {
 
         if ($id == null) return;
         $db->delete('eventregistration_registrants', "id='{$id}'");
+    }
+
+    public function paginationCallback(&$item)
+    {
+        // add passed properties to the object and pass back an instantiated object
+        $item = (object) array_merge((array) $this, (array) $item);
+        $item = expCore::cast($item, 'eventregistration');
     }
 
 }

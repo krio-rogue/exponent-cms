@@ -1,5 +1,5 @@
 {*
- * Copyright (c) 2004-2014 OIC Group, Inc.
+ * Copyright (c) 2004-2016 OIC Group, Inc.
  *
  * This file is part of Exponent
  *
@@ -13,7 +13,7 @@
  *
  *}
 
-{css unique="general-ecom" link="`$smarty.const.PATH_RELATIVE`framework/modules/ecommerce/assets/css/ecom.css"}
+{css unique="general-ecom" link="`$smarty.const.PATH_RELATIVE`framework/modules/ecommerce/assets/css/ecom.css" corecss="tables,admin-global"}
 
 {/css}
 
@@ -110,19 +110,21 @@
                     </th>
                 </tr>
             </thead>
-            <tbody>                  
-                <tr>
-                    <th>{$tax_type}</th>
-                    <td>{$tax_total|currency}</td>
-                </tr>
-                
+            <tbody>
+                {foreach $taxes as $tax}
+                    <tr>
+                        <th>{$tax.format}</th>
+                        <td>{$tax.total|currency}</td>
+                    </tr>
+                {/foreach}
             </tbody>
         </table>                
     </div>
-    <div class="loadingdiv">{'Loading'|gettext}</div>
+    {*<div class="loadingdiv">{'Loading'|gettext}</div>*}
+    {loading}
 </div>
 
-{script unique="payment-summary" yui3mods=1}
+{script unique="payment-summary" yui3mods="charts,exptabs"}
 {literal}
 EXPONENT.YUI3_CONFIG.modules.exptabs = {
     fullpath: EXPONENT.JS_RELATIVE+'exp-tabs.js',
@@ -132,7 +134,7 @@ EXPONENT.YUI3_CONFIG.modules.exptabs = {
 var renderIntoTabview,
     handlerArray = [];
 
-YUI(EXPONENT.YUI3_CONFIG).use('charts','exptabs', function(Y) {
+YUI(EXPONENT.YUI3_CONFIG).use('*', function(Y) {
     mytab = Y.expTabs({srcNode: '#payments'});
     var tabhistory = Y.expTabs({srcNode: '#payments'});
     Y.one('#payments').removeClass('hide');

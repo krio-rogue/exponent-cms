@@ -1,5 +1,5 @@
 {*
- * Copyright (c) 2004-2014 OIC Group, Inc.
+ * Copyright (c) 2004-2016 OIC Group, Inc.
  *
  * This file is part of Exponent
  *
@@ -17,7 +17,7 @@
 
 {/css}
 
-<div class="module navigation collapsing collapsing-hierarchy">
+<div class="module navigation collapsin collapsing-hierarchy">
     {if $moduletitle && !($config.hidemoduletitle xor $smarty.const.INVERT_HIDE_TITLE)}<{$config.heading_level|default:'h1'}>{$moduletitle}</{$config.heading_level|default:'h1'}>{/if}
     {if $config.moduledescription != ""}
         {$config.moduledescription}

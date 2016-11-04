@@ -1,7 +1,7 @@
 <?php
 ##################################################
 #
-# Copyright (c) 2004-2014 OIC Group, Inc.
+# Copyright (c) 2004-2016 OIC Group, Inc.
 #
 # This file is part of Exponent
 #
@@ -29,8 +29,10 @@ class expTheme
     public static function initialize()
     {
         global $auto_dirs2;
-        // Initialize the theme subsystem 1.0 compatibility layer
-//		require_once(BASE.'framework/core/compat/theme.php');
+
+        // Initialize the theme subsystem 1.0 compatibility layer if requested
+		if (defined('OLD_THEME_COMPATIBLE') && OLD_THEME_COMPATIBLE)
+            require_once(BASE.'framework/core/compat/theme.php');
 
         if (!defined('DISPLAY_THEME')) {
             /* exdoc
@@ -73,12 +75,6 @@ class expTheme
         if (!defined('SWATCH')) {
             define('SWATCH', "''");
         } // Twitter Bootstrap theme
-        if (!defined('JQUERYUI_THEME')) {
-            define('JQUERYUI_THEME', 'exponent');
-        } // jQueryUI theme
-        if (!defined('JQUERYUI_CSS')) {
-            define('JQUERYUI_CSS', JQUERY_RELATIVE . 'css/' . JQUERYUI_THEME . '/jquery-ui.min.css');
-        } // local jQueryUI stylesheet
 
         // add our theme folder into autoload to prioritize custom (theme) modules
         array_unshift($auto_dirs2, BASE . 'themes/' . DISPLAY_THEME . '/modules');
@@ -92,13 +88,26 @@ class expTheme
 
     public static function headerInfo($config)
     {
-        global $sectionObj, $validateTheme, $head_config, $auto_dirs, $less_vars;
+        global $sectionObj, $validateTheme, $head_config, $auto_dirs, $less_vars, $framework;
 
         $validateTheme['headerinfo'] = true;
         // end checking for headerInfo
 
         // globalize header configuration
         $head_config = $config;
+
+        // set theme framework type
+        $framework = !empty($head_config['framework']) ? $head_config['framework'] : '';
+        if (empty($framework)) {
+            if (NEWUI) {
+                $framework = 'newui';
+            } else {
+                $framework = 'yui';  // yui is the 2.x default framework
+            }
+        }
+        expSession::set('framework', $framework);
+
+        // set the global less variables from the head config
         if (!empty($config['lessvars'])) {
             $less_vars = $config['lessvars'];
         } else {
@@ -114,8 +123,8 @@ class expTheme
             define('XHTML_CLOSING', "");
         }
 
-        // load primer, lessprimer, & normalize CSS files
-        if (!empty($config['css_primer']) || !empty($config['lessprimer']) || !empty($config['normalize'])) {
+        // load primer, lessprimer, link (css) and lesscss & normalize CSS files
+        if (!empty($config['css_primer']) || !empty($config['lessprimer']) || !empty($config['link']) || !empty($config['lesscss']) || !empty($config['normalize'])) {
             expCSS::pushToHead($config);
         };
 
@@ -156,25 +165,25 @@ class expTheme
         if (empty($head_config['framework'])) {
             $head_config['framework'] = '';
         }
-        if (NEWUI || $head_config['framework'] == 'jquery' || $head_config['framework'] == 'bootstrap' || $head_config['framework'] == 'bootstrap3') {
+        if (bs() || $framework == 'jquery') {
             array_unshift(
                 $auto_dirs,
                 BASE . 'framework/core/forms/controls/jquery'
             );
         }
-        if ($head_config['framework'] == 'bootstrap' || $head_config['framework'] == 'bootstrap3') {
+        if (bs(true)) {
             array_unshift(
                 $auto_dirs,
                 BASE . 'framework/core/forms/controls/bootstrap'
             );
         }
-        if ($head_config['framework'] == 'bootstrap3') {
+        if (bs3(true)) {
             array_unshift(
                 $auto_dirs,
                 BASE . 'framework/core/forms/controls/bootstrap3'
             );
         }
-        if (NEWUI && $head_config['framework'] != 'bootstrap' && $head_config['framework'] != 'bootstrap3') {
+        if (newui()) {
             expCSS::pushToHead(array(
                 "lessprimer"=>"external/bootstrap3/less/newui.less",
 //                "lessvars"=>array(
@@ -187,12 +196,13 @@ class expTheme
         }
         array_unshift($auto_dirs, BASE . 'themes/' . DISPLAY_THEME . '/controls');
 
-        if (!expSession::is_set('framework') || expSession::get(
-                'framework'
-            ) != $head_config['framework']
-        ) {
-            expSession::set('framework', $head_config['framework']);
-        }
+//        if (!expSession::is_set('framework') || expSession::get(
+//                'framework'
+//            ) != $head_config['framework']
+//        ) {
+//            expSession::set('framework', $head_config['framework']);
+//        }
+        // mark the theme framework
 
         $metainfo = self::pageMetaInfo();
 
@@ -218,6 +228,12 @@ class expTheme
         if (!isset($config['meta']['rich'])) {
             $config['meta']['rich'] = true;
         }
+        if (!isset($config['meta']['fb'])) {
+            $config['meta']['fb'] = true;
+        }
+        if (!isset($config['meta']['tw'])) {
+            $config['meta']['tw'] = true;
+        }
         if (!isset($config['meta']['viewport'])) {
             $config['meta']['viewport'] = true;
         }
@@ -225,18 +241,24 @@ class expTheme
             $config['meta']['ie_compat'] = true;
         }
 
-        $str = '<title>' . $metainfo['title'] . "</title>\n";
+        $str = '';
         if ($config['meta']['content_type']) {
-            $str .= "\t" . '<meta http-equiv="Content-Type" content="text/html; charset=' . LANG_CHARSET . '" ' . XHTML_CLOSING . '>' . "\n";
+            $str .= '<meta charset="' . LANG_CHARSET . XHTML_CLOSING . '>' . "\n";  // html5
+//            $str .= "\t" . '<meta http-equiv="Content-Type" content="text/html; charset=' . LANG_CHARSET . '" ' . XHTML_CLOSING . '>' . "\n";  // html4 or xhtml?
         }
+        if ($config['meta']['ie_compat']) {
+            // turn off ie compatibility mode which will break the display
+            $str .= "\t" . '<meta http-equiv="X-UA-Compatible" content="IE=edge"' . XHTML_CLOSING . '>' . "\n";
+        }
+        $str .= "\t" . '<title>' . $metainfo['title'] . "</title>\n";
         $locale = strtolower(str_replace('_', '-', LOCALE));
         if ($config['meta']['content_language']) {
-            $str .= "\t" . '<meta content="' . $locale . '" http-equiv="Content-Language" ' . XHTML_CLOSING . '>' . "\n";
+            $str .= "\t" . '<meta http-equiv="Content-Language" content="' . $locale . '" ' . XHTML_CLOSING . '>' . "\n";  //fixme should be in <html> tag for html5
         }
         if ($config['meta']['generator']) {
             $str .= "\t" . '<meta name="Generator" content="Exponent Content Management System - v' . expVersion::getVersion(
                     true
-                ) . '" ' . XHTML_CLOSING . '>' . "\n";
+                ) . self::getThemeDetails() . '" ' . XHTML_CLOSING . '>' . "\n";
         }
         if ($config['meta']['keywords']) {
             $str .= "\t" . '<meta name="Keywords" content="' . $metainfo['keywords'] . '" ' . XHTML_CLOSING . '>' . "\n";
@@ -250,6 +272,21 @@ class expTheme
         if ($config['meta']['rich'] && !empty($metainfo['rich'])) {
             $str .= "\t" . $metainfo['rich'] . "\n";
         }
+        if ($config['meta']['fb'] && !empty($metainfo['fb'])) {
+            foreach ($metainfo['fb'] as $key => $value) {
+                if (!empty($value)) {
+                    $str .= "\t" . '<meta property="og:' . $key . '" content="' . $value . '" ' . XHTML_CLOSING . '>' . "\n";
+                }
+            }
+        }
+        if ($config['meta']['tw'] && !empty($metainfo['tw'])) {
+            foreach ($metainfo['tw'] as $key => $value) {
+                if (!empty($value)) {
+                    $str .= "\t" . '<meta name="twitter:' . $key . '" content="' . $value . '" ' . XHTML_CLOSING . '>' . "\n";
+                }
+            }
+        }
+
         if ($metainfo['noindex'] || $metainfo['nofollow']) {
             $str .= "\t" . '<meta name="robots" content="' . (!empty($metainfo['noindex']) ? 'noindex' : '') . ' ' . ($metainfo['nofollow'] ? 'nofollow' : '') . '" ' . XHTML_CLOSING . '>' . "\n";
         }
@@ -287,8 +324,10 @@ class expTheme
         }
 
         // favicon
-        if (file_exists(BASE . 'themes/' . DISPLAY_THEME . '/favicon.ico')) {
-            $str .= "\t" . '<link rel="shortcut icon" href="' . URL_FULL . 'themes/' . DISPLAY_THEME . '/favicon.ico" type="image/x-icon" ' . XHTML_CLOSING . '>' . "\n";
+        if (file_exists(BASE . 'themes/' . DISPLAY_THEME . '/favicon.png')) {
+            $str .= "\t" . '<link rel="icon" href="' . URL_FULL . 'themes/' . DISPLAY_THEME . '/favicon.png" type="image/png" ' . XHTML_CLOSING . '>' . "\n";
+        } elseif (file_exists(BASE . 'themes/' . DISPLAY_THEME . '/favicon.ico')) {
+            $str .= "\t" . '<link rel="icon" href="' . URL_FULL . 'themes/' . DISPLAY_THEME . '/favicon.ico" type="image/x-icon" ' . XHTML_CLOSING . '>' . "\n";
         }
         // touch icons
         if (file_exists(BASE . 'themes/' . DISPLAY_THEME . '/apple-touch-icon.png')) {
@@ -298,9 +337,23 @@ class expTheme
             $str .= "\t" . '<link rel="apple-touch-icon-precomposed" href="' . URL_FULL . 'themes/' . DISPLAY_THEME . '/apple-touch-icon-precomposed.png" ' . XHTML_CLOSING . '>' . "\n";
         }
 
+        // support for xmlrpc blog editors like Windows Live Writer, etc...
+        if (USE_XMLRPC) {
+            if (file_exists(BASE . 'rsd.xml')) {
+                $str .= "\t" . '<link rel="EditURI" href="' . URL_FULL . 'rsd.xml" type="application/rsd+xml" ' . XHTML_CLOSING . '>' . "\n";
+            }
+            $str .= "\t" . '<link rel="wlwmanifest" href="' . URL_FULL . 'wlwmanifest.xml" type="application/wlwmanifest+xml" ' . XHTML_CLOSING . '>' . "\n";
+        }
+
+        // when minification is used, the comment below gets replaced when the buffer is dumped
+        $str .= '<!-- MINIFY REPLACE -->';
+
         if ($config['meta']['ie_compat']) {
             // some IE 6 support
             $str .= "\t" . '<!--[if IE 6]><style type="text/css">  body { behavior: url(' . PATH_RELATIVE . 'external/csshover.htc); }</style><![endif]-->' . "\n";
+
+            // css3 transform support for IE 6-8
+//            $str .= "\t" . '<!--[if lt IE 9]><style type="text/css">  body { behavior: url(' . PATH_RELATIVE . 'external/ms-transform.htc); }</style><![endif]-->' . "\n";
 
             // html5 support for IE 6-8
             $str .= "\t" . '<!--[if lt IE 9]><script src="' . PATH_RELATIVE . 'external/html5shiv/html5shiv-shiv.js"></script><![endif]-->' . "\n";
@@ -308,12 +361,13 @@ class expTheme
             // media css support for IE 6-8
             $str .= "\t" . '<!--[if lt IE 9]><script src="' . PATH_RELATIVE . 'external/Respond-1.4.2/dest/respond.min.js"></script><![endif]-->' . "\n";
 
-            // canvas support for IE 6-8
-            $str .= "\t" . '<!--[if lt IE 9]><script src="' . PATH_RELATIVE . 'external/excanvas.js"></script><![endif]-->' . "\n";
-        }
+            // canvas support for IE 6-8 - now done by webshims
+//            $str .= "\t" . '<!--[if lt IE 9]><script src="' . PATH_RELATIVE . 'external/excanvas.js"></script><![endif]-->' . "\n";
 
-        // when minification is used, the comment below gets replaced when the buffer is dumped
-        $str .= '<!-- MINIFY REPLACE -->';
+            //Win 8/IE 10 work around
+            $str .= "\t" . '<!--[if IE 10]><link rel="stylesheet" href="' . PATH_RELATIVE . 'external/ie10-viewport-bug-workaround.css" type="text/css"' . XHTML_CLOSING . '><![endif]-->' . "\n";
+            $str .= "\t" . '<!--[if IE 10]><script src="' . PATH_RELATIVE . 'external/ie10-viewport-bug-workaround.js"></script><![endif]-->' . "\n";
+        }
 
         return $str;
     }
@@ -337,13 +391,12 @@ class expTheme
             self::module(array("controller" => "administration", "action" => "toolbar", "source" => "admin"));
         }
 
-//   		if ((self::is_mobile() || FORCE_MOBILE) && is_readable(BASE.'themes/'.DISPLAY_THEME.'/mobile/index.php')) {
         if (MOBILE && is_readable(BASE . 'themes/' . DISPLAY_THEME . '/mobile/index.php')) {
-            echo('<div style="text-align:center"><a href="' . makeLink(
+            echo '<div style="text-align:center"><a href="', makeLink(
                     array('module' => 'administration', 'action' => 'togglemobile')
-                ) . '">' . gt('View site in') . ' ' . (MOBILE ? "Classic" : "Mobile") . ' ' . gt('mode') . '</a></div>');
+                ), '">', gt('View site in'), ' ', (MOBILE ? "Classic" : "Mobile"), ' ', gt('mode'), '</a></div>';
         }
-                // load primer, lessprimer, & normalize CSS files
+        // load primer, lessprimer, & normalize CSS files
 
         if (!empty($params['src']) || !empty($params['content']) || !empty($params['yui3mods']) || !empty($params['jquery']) || !empty($params['bootstrap'])) {
             expJavascript::pushToFoot($params);
@@ -372,7 +425,8 @@ class expTheme
 //            $controller = new $classname();
             $controller = expModules::getController($router->url_parts[0]);
             $metainfo = $controller->metainfo();
-        } else {
+        }
+        if (empty($metainfo)) {
             $metainfo['title'] = empty($sectionObj->page_title) ? SITE_TITLE : $sectionObj->page_title;
             $metainfo['keywords'] = empty($sectionObj->keywords) ? SITE_KEYWORDS : $sectionObj->keywords;
             $metainfo['description'] = empty($sectionObj->description) ? SITE_DESCRIPTION : $sectionObj->description;
@@ -381,6 +435,10 @@ class expTheme
             $metainfo['nofollow'] = empty($sectionObj->nofollow) ? false : $sectionObj->nofollow;
         }
 
+        // clean up meta tag output
+        foreach ($metainfo as $key=>$value) {
+            $metainfo[$key] = expString::parseAndTrim($value, true);
+        }
         return $metainfo;
     }
 
@@ -473,9 +531,9 @@ class expTheme
                     $params['src'] = $feed->src;
 //					echo "\t".'<link rel="alternate" type="application/rss+xml" title="' . $title . '" href="' . expCore::makeRSSLink($params) . "\" />\n";
                     //FIXME need to use $feed instead of $params
-                    echo "\t" . '<link rel="alternate" type="application/rss+xml" title="' . $title . '" href="' . expCore::makeLink(
+                    echo "\t" . '<link rel="alternate" type="application/rss+xml" title="', $title, '" href="', expCore::makeLink(
                             array('controller' => 'rss', 'action' => 'feed', 'title' => $feed->sef_url)
-                        ) . "\" />\r\n";
+                        ), "\" />\r\n";
                 }
             }
         }
@@ -520,9 +578,10 @@ class expTheme
 
         // if we are in an action, get the particulars for the module
         if (self::inAction()) {
-            $module = isset($_REQUEST['module']) ? expString::sanitize(
-                $_REQUEST['module']
-            ) : expString::sanitize($_REQUEST['controller']);
+//            $module = isset($_REQUEST['module']) ? expString::sanitize(
+//                $_REQUEST['module']
+//            ) : expString::sanitize($_REQUEST['controller']);
+            $module = isset($_REQUEST['module']) ? $_REQUEST['module'] : $_REQUEST['controller'];
         }
 
         // if we are in an action and have action maps to work with...
@@ -574,8 +633,8 @@ class expTheme
             }
         }
         if (!is_readable($theme)) {
-            if (is_readable(BASE . 'themes/basetheme/index.php')) {
-                $theme = BASE . 'framework/core/index.php';
+            if (is_readable(BASE . 'framework/core/index.php')) {
+                $theme = BASE . 'framework/core/index.php';  // use the fallback bare essentials theme
             }
         }
         return $theme;
@@ -625,11 +684,21 @@ class expTheme
 
     public static function getPrinterFriendlyTheme()
     {
+        global $framework;
+
         $common = 'framework/core/printer-friendly.php';
         $theme = 'themes/' . DISPLAY_THEME . '/printer-friendly.php';
+        if (empty($framework)) {
+            $fw = expSession::get('framework');
+            $fwprint = 'framework/core/printer-friendly.' . $fw . '.php';
+        } else {
+            $fwprint = 'framework/core/printer-friendly.' . $framework . '.php';
+        }
 
         if (is_readable($theme)) {
             return $theme;
+        } elseif (is_readable($fwprint)) {
+            return $fwprint;
         } elseif (is_readable($common)) {
             return $common;
         } else {
@@ -678,20 +747,31 @@ class expTheme
      */
     public static function runAction()
     {
+        global $user;
+
         if (self::inAction()) {
-            if (!AUTHORIZED_SECTION) {
-//				echo SITE_403_HTML;
+            if (!AUTHORIZED_SECTION && !expJavascript::inAjaxAction())
                 notfoundController::handle_not_authorized();
-            }
 //			if (expSession::is_set("themeopt_override")) {
 //				$config = expSession::get("themeopt_override");
 //				echo "<a href='".$config['mainpage']."'>".$config['backlinktext']."</a><br /><br />";
 //			}
 
+            //FIXME clean our passed parameters
+//            foreach ($_REQUEST as $key=>$param) {  //FIXME need array sanitizer
+//                $_REQUEST[$key] = expString::sanitize($param);
+//            }
+//            if (empty($_REQUEST['route_sanitized'])) {
+            if (!$user->isAdmin())
+                expString::sanitize($_REQUEST);
+//            } elseif (empty($_REQUEST['array_sanitized'])) {
+//                $tmp =1;  //FIXME we've already sanitized at this point
+//            } else {
+//                $tmp =1;  //FIXME we've already sanitized at this point
+//            }
+
             //FIXME: module/controller glue code..remove ASAP
-            $module = empty($_REQUEST['controller']) ? expString::sanitize($_REQUEST['module']) : expString::sanitize(
-                $_REQUEST['controller']
-            );
+            $module = empty($_REQUEST['controller']) ? $_REQUEST['module'] : $_REQUEST['controller'];
 //			$isController = expModules::controllerExists($module);
 
 //			if ($isController && !isset($_REQUEST['_common'])) {
@@ -756,14 +836,18 @@ class expTheme
 
     public static function showAction($module, $action, $src = "", $params = array())
     { //FIXME only used by smarty functions, old school?
+        global $user;
 
         $loc = expCore::makeLocation($module, (isset($src) ? $src : ""), (isset($int) ? $int : ""));
 
         $actfile = "/" . $module . "/actions/" . $action . ".php";
         if (isset($params)) {
-            foreach ($params as $key => $value) {
-                $_GET[$key] = $value;
-            }
+//            foreach ($params as $key => $value) {  //FIXME need array sanitizer
+////                $_GET[$key] = $value;
+//                $_GET[$key] = expString::sanitize($value);
+//            }
+            if (!$user->isAdmin())
+                expString::sanitize($_GET);
         }
         //if (isset($['_common'])) $actfile = "/common/actions/" . $_REQUEST['action'] . ".php";
 
@@ -772,7 +856,6 @@ class expTheme
 //   		} elseif (is_readable(BASE.'framework/modules-1/'.$actfile)) {
 //   			include(BASE.'framework/modules-1/'.$actfile);
         } else {
-//   			echo SITE_404_HTML . '<br /><br /><hr size="1" />';
             notfoundController::handle_not_found();
             echo '<br /><hr size="1" />';
             echo sprintf(
@@ -803,7 +886,6 @@ class expTheme
                 header("Location: " . URL_FULL . "index.php?section=" . $section->id);
                 exit();
             } else {
-//   				echo SITE_404_HTML;
                 notfoundController::handle_not_found();
             }
         }
@@ -818,18 +900,20 @@ class expTheme
     {
         global $db;
 
-        if (!PRINTER_FRIENDLY && !EXPORT_AS_PDF)
-            echo show_msg_queue();
         if ((!defined('SOURCE_SELECTOR') || SOURCE_SELECTOR == 1)) {
             $last_section = expSession::get("last_section");
             $section = $db->selectObject("section", "id=" . $last_section);
             // View authorization will be taken care of by the runAction and mainContainer functions
             if (self::inAction()) {
+                if (!PRINTER_FRIENDLY && !EXPORT_AS_PDF)
+                    echo show_msg_queue();
                 self::runAction();
             } else {
                 if ($section == null) {
                     self::goDefaultSection();
                 } else {
+                    if (!PRINTER_FRIENDLY && !EXPORT_AS_PDF)
+                        echo show_msg_queue();
                     self::mainContainer();
                 }
             }
@@ -857,7 +941,6 @@ class expTheme
             // Set this so that a login on an Auth Denied page takes them back to the previously Auth-Denied page
             //			expHistory::flowSet(SYS_FLOW_PROTECTED,SYS_FLOW_SECTIONAL);
             expHistory::set('manageable', $router->params);
-//   			echo SITE_403_HTML;
             notfoundController::handle_not_authorized();
             return;
         }
@@ -888,7 +971,6 @@ class expTheme
         #   }
     }
 
-    //FIXME Deprecated
     /** exdoc
      * Calls the necessary methods to show a specific module, in a section-sensitive way.
      *
@@ -901,6 +983,7 @@ class expTheme
      *
      * @return void
      * @node Subsystems:Theme
+     * @deprecated 2.2.1
      */
     public static function showSectionalModule(
         $module,
@@ -938,7 +1021,6 @@ class expTheme
         self::showModule($module, $view, $title, $src, false, null, $hide_menu);
     }
 
-    //FIXME Deprecated
     /** exdoc
      * Calls the necessary methods to show a specific module in such a way that the current
      * section displays the same content as its top-level parent and all of the top-level parent's
@@ -952,6 +1034,7 @@ class expTheme
      * @param bool   $hide_menu
      *
      * @node Subsystems:Theme
+     * @deprecated 2.2.1
      */
     public static function showTopSectionalModule(
         $module,
@@ -981,7 +1064,6 @@ class expTheme
         self::showModule($module, $view, $title, $prefix . $section->id, false, null, $hide_menu);
     }
 
-    //FIXME Deprecated
     /** exdoc
      * Calls the necessary methods to show a specific controller, in a section-sensitive way.
      *
@@ -995,6 +1077,7 @@ class expTheme
      * @internal param bool $hide_menu
      * @return void
      * @node     Subsystems:Theme
+     * @deprecated 2.2.1
      */
     public static function showSectionalController($params = array())
     { //FIXME not used in base system (custom themes?)
@@ -1010,7 +1093,9 @@ class expTheme
         self::module($params);
     }
 
-    //FIXME Deprecated
+    /**
+     * @deprecated 2.2.1
+     */
     public static function showController($params = array())
     {
         $module = !empty($params['module']) ? $params['module'] : $params['controller'];
@@ -1086,7 +1171,6 @@ class expTheme
             $params['view'] = 'showall';
         }
 //	    if (isset($params['controller'])) {
-//            $controller = expModules::getControllerClassName($params['controller']);  //FIXME long controller name
         $controller = expModules::getModuleName($params['controller']);
 //            $params['view'] = isset($params['view']) ? $params['view'] : $params['action'];
         $params['title'] = isset($params['moduletitle']) ? $params['moduletitle'] : '';
@@ -1116,7 +1200,7 @@ class expTheme
         $module_scope[$params['source']][$controller] = new stdClass();
         $module_scope[$params['source']][$controller]->scope = $params['scope'];
 //            self::showModule(expModules::getControllerClassName($params['controller']),$params['view'],$params['title'],$params['source'],false,null,$params['chrome'],$requestvars);
-        self::showModule(
+        return self::showModule(
             $controller,
             $params['view'],
             $params['title'],
@@ -1171,7 +1255,7 @@ class expTheme
 //                self::showModule($module,$params['view'],$moduletitle,$src,false,null,$chrome);
 //            }
 //        }
-        return false;
+//        return false;
     }
 
     /** exdoc
@@ -1336,14 +1420,32 @@ class expTheme
                 $params['controller'] = $module;
                 $params['view'] = $view;
                 $params['moduletitle'] = $title;
-                renderAction($params);
+                return renderAction($params);
 //				} else {
 //					call_user_func(array($module,"show"),$view,$loc,$title);
 //				}
             } else {
                 echo sprintf(gt('The module "%s" was not found in the system.'), $module);
+                return false;
             }
         }
+    }
+
+    public static function getThemeDetails() {
+        $theme_file = DISPLAY_THEME;
+        if (is_readable(BASE.'themes/'.$theme_file.'/class.php')) {
+            // Need to avoid the duplicate theme problem.
+            if (!class_exists($theme_file)) {
+                include_once(BASE.'themes/'.$theme_file.'/class.php');
+            }
+
+            if (class_exists($theme_file)) {
+                // Need to avoid instantiating non-existent classes.
+                $theme = new $theme_file();
+                return ' ' . gt('using') . ' ' . $theme->name() . ' ' . gt('by') . ' ' . $theme->author();
+            }
+        }
+        return '';
     }
 
     /**
@@ -1367,7 +1469,7 @@ class expTheme
             'black'   => 'btn-inverse',
             'pink'    => 'btn-danger',
         );
-        if (NEWUI || expSession::get('framework') == 'bootstrap' || expSession::get('framework') == 'bootstrap3') {
+        if (bs()) {
             if (!empty($colors[$color])) { // awesome to bootstrap button conversion
                 $found = $colors[$color];
             } else {
@@ -1377,6 +1479,8 @@ class expTheme
             $found = array_search($color, $colors); // bootstrap to awesome button conversion?
             if (empty($found)) {
                 $found = $color;
+            } else {
+                $found = BTN_COLOR;
             }
         }
         return $found;
@@ -1391,22 +1495,24 @@ class expTheme
      */
     public static function buttonSize($size = null)
     {
-        if (expSession::get('framework') == 'bootstrap') {
+        if (bs2()) {
             if (BTN_SIZE == 'large' || (!empty($size) && $size == 'large')) {
-                $btn_size = ''; // actually default size, NOT true boostrap large
+                $btn_size = ''; // actually default size, NOT true bootstrap large
             } elseif (BTN_SIZE == 'small' || (!empty($size) && $size == 'small')) {
                 $btn_size = 'btn-mini';
             } else { // medium
                 $btn_size = 'btn-small';
             }
             return $btn_size;
-        } elseif (NEWUI || expSession::get('framework') == 'bootstrap3') {
+        } elseif (bs3()) {
             if (BTN_SIZE == 'large' || (!empty($size) && $size == 'large')) {
-                $btn_size = ''; // actually default size, NOT true boostrap large
+                $btn_size = 'btn-lg';
             } elseif (BTN_SIZE == 'small' || (!empty($size) && $size == 'small')) {
+                $btn_size = 'btn-sm';
+            } elseif (BTN_SIZE == 'extrasmall' || (!empty($size) && $size == 'extrasmall')) {
                 $btn_size = 'btn-xs';
             } else { // medium
-                $btn_size = 'btn-sm';
+                $btn_size = '';
             }
             return $btn_size;
         } else {
@@ -1427,7 +1533,7 @@ class expTheme
      */
     public static function buttonStyle($color = null, $size = null)
     {
-        if (NEWUI || expSession::get('framework') == 'bootstrap' || expSession::get('framework') == 'bootstrap3') {
+        if (bs()) {
             $btn_class = 'btn ' . self::buttonColor($color) . ' ' . self::buttonSize($size);
         } else {
             $btn_size = !empty($size) ? $size : BTN_SIZE;
@@ -1447,15 +1553,16 @@ class expTheme
     public static function buttonIcon($class, $size=null)
     {
         $btn_type = '';
-        if (expSession::get('framework') == 'bootstrap') {
+        if (bs2()) {
             switch ($class) {
                 case 'delete' :
-                case 'deletetitle' :
+                case 'delete-title' :
                     $class = "remove-sign";
                     $btn_type = "btn-danger"; // red
                     break;
                 case 'add' :
-                case 'addtitle' :
+                case 'add-title' :
+                case 'add-body' :
                 case 'switchtheme add' :
                     $class = "plus-sign";
                     $btn_type = "btn-success"; // green
@@ -1501,6 +1608,9 @@ class expTheme
                 case 'clean' :
                     $class = 'check';
                     break;
+                case 'userperms' :
+                    $class = 'user';
+                    break;
                 case 'groupperms' :
                     $class = 'group';
                     break;
@@ -1518,21 +1628,26 @@ class expTheme
                     $class = "check";
                     $btn_type = "btn-success"; // green
                     break;
+                case 'ajax' :
+                    $class = "spinner icon-spin";
+                    break;
             }
             $found = new stdClass();
             $found->type = $btn_type;
             $found->class = $class;
             $found->size = self::iconSize($size);
+            $found->prefix = 'icon-';
             return $found;
-        } elseif (NEWUI || expSession::get('framework') == 'bootstrap3') {
+        } elseif (bs3()) {
             switch ($class) {
                 case 'delete' :
-                case 'deletetitle' :
+                case 'delete-title' :
                     $class = "times-circle";
                     $btn_type = "btn-danger";  // red
                     break;
                 case 'add' :
-                case 'addtitle' :
+                case 'add-title' :
+                case 'add-body' :
                 case 'switchtheme add' :
                     $class = "plus-circle";
                     $btn_type = "btn-success";  // green
@@ -1581,6 +1696,9 @@ class expTheme
                 case 'trash' :
                     $class = "trash-o";
                     break;
+                case 'userperms' :
+                    $class = 'user';
+                    break;
                 case 'groupperms' :
                     $class = 'group';
                     break;
@@ -1598,14 +1716,38 @@ class expTheme
                     $class = "check";
                     $btn_type = "btn-success"; // green
                     break;
+                case 'ajax' :
+                    $class = "spinner fa-spin";
+                    break;
             }
             $found = new stdClass();
             $found->type = $btn_type;
             $found->class = $class;
             $found->size = self::iconSize($size);
+            $found->prefix = 'fa fa-';
             return $found;
         } else {
             return $class;
+        }
+    }
+
+    /**
+     * Return the full icon style string for the current framework
+     *
+     * @param        $class
+     *
+     * @return string
+     */
+    public static function iconStyle($class, $text = null) {
+        $style = self::buttonIcon($class);
+        if (!empty($style->prefix)) {
+            if ($text) {
+                return '<i class="' .$style->prefix . $style->class . '"></i> '. $text;
+            } else {
+                return $style->prefix . $style->class;
+            }
+        } else {
+            return $style;
         }
     }
 
@@ -1618,7 +1760,7 @@ class expTheme
      */
     public static function iconSize($size = null)
     {
-        if (expSession::get('framework') == 'bootstrap') {
+        if (bs2()) {
             if (BTN_SIZE == 'large' || (!empty($size) && $size == 'large')) {
                 $icon_size = 'icon-large';
             } elseif (BTN_SIZE == 'small' || (!empty($size) && $size == 'small')) {
@@ -1627,7 +1769,7 @@ class expTheme
                 $icon_size = 'icon-large';
             }
             return $icon_size;
-        } elseif (NEWUI || expSession::get('framework') == 'bootstrap3') {
+        } elseif (bs3()) {
             if (BTN_SIZE == 'large' || (!empty($size) && $size == 'large')) {
                 $icon_size = 'fa-lg';
             } elseif (BTN_SIZE == 'small' || (!empty($size) && $size == 'small')) {
@@ -1792,6 +1934,13 @@ class expTheme
         return $mobile_browser;
     }
 
+    /**
+     * Warn admin of obsolete theme methods
+     *
+     * @param string $newcall
+     * @param null $controller
+     * @param null $actionview
+     */
     public static function deprecated($newcall = "expTheme::module()", $controller = null, $actionview = null)
     {
         global $user;

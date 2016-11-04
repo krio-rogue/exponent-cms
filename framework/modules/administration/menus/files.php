@@ -2,7 +2,7 @@
 
 ##################################################
 #
-# Copyright (c) 2004-2014 OIC Group, Inc.
+# Copyright (c) 2004-2016 OIC Group, Inc.
 #
 # This file is part of Exponent
 #
@@ -16,11 +16,13 @@
 #
 ##################################################
 
-if (!defined('EXPONENT')) exit('');
+if (!defined('EXPONENT'))
+    exit('');
 
 global $user;
 
-if ($user->globalPerm('hide_files_menu')) return array();
+if ($user->globalPerm('hide_files_menu'))
+    return false;
 
 /////////////////////////////////////////////////////////////////////////
 // BUILD THE MENU

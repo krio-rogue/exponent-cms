@@ -2,7 +2,7 @@
 
 ##################################################
 #
-# Copyright (c) 2004-2014 OIC Group, Inc.
+# Copyright (c) 2004-2016 OIC Group, Inc.
 #
 # This file is part of Exponent
 #
@@ -53,7 +53,7 @@ class fix_sectionref extends upgradescript {
 	 * @return bool
 	 */
 	function upgrade() {
-        $ret = navigationController::rebuild_sectionrefs();
+        $ret = sectionref::rebuild_sectionrefs();
         if (empty($ret)) $ret = gt('No sectionref problems were discovered');
         return $ret;
 	}

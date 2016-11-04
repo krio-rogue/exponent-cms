@@ -2,7 +2,7 @@
 
 ##################################################
 #
-# Copyright (c) 2004-2014 OIC Group, Inc.
+# Copyright (c) 2004-2016 OIC Group, Inc.
 #
 # This file is part of Exponent
 #
@@ -33,6 +33,6 @@
  * @param \Smarty $smarty
  */
 function smarty_function_navtojson($params,&$smarty) {
-    echo navigationController::navtojson();
+    echo section::navtojson();
 }
 ?>

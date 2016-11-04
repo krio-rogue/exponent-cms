@@ -2,7 +2,7 @@
 
 ##################################################
 #
-# Copyright (c) 2004-2014 OIC Group, Inc.
+# Copyright (c) 2004-2016 OIC Group, Inc.
 #
 # This file is part of Exponent
 #
@@ -33,37 +33,28 @@ function epb($buffer, $mode) {
 }
 
 ob_start('epb');
-$microtime_str = explode(' ',microtime());
-$i_start = $microtime_str[0] + $microtime_str[1];
 
 // Initialize the Exponent Framework
 require_once('exponent.php');
 
 //active global timer if in DEVELOPMENT mode
-if(DEVELOPMENT) $timer = new expTimer();    
+if(DEVELOPMENT)
+	$timer = new expTimer();
 
 // if the user has turned on sef_urls then we need to route the request, otherwise we can just 
 // skip it and default back to the old way of doing things.
-$router->routeRequest();
+if ($db->havedb) {
+    $router->routeRequest();
+}
 
-// initialize this users cart if they have ecom installed.
-// define whether or not ecom is enabled
-//if ($db->selectValue('modstate', 'active', 'module="storeController"') ||
-//  $db->selectValue('modstate', 'active', 'module="eventregistrationController"') ||
-//  $db->selectValue('modstate', 'active', 'module="donationController"') || FORCE_ECOM) {
-if ($db->selectValue('modstate', 'active', 'module="store"') ||
-  $db->selectValue('modstate', 'active', 'module="eventregistration"') ||
-  $db->selectValue('modstate', 'active', 'module="donation"') || FORCE_ECOM) {
+// define whether or not ecom is enabled &initialize this users cart if they have ecom installed.
+if (ecom_active()) {
     define('ECOM',1);
-    $order = order::getUserCart();
-    // global store config
-    // We're forcing the location. Global store setting will always have this loc
-//    $storeConfig = new expConfig(expCore::makeLocation("ecomconfig","@globalstoresettings",""));
+    $order = order::getUserCart();  // set global store $order
 } else {
     define('ECOM',0);
 }
 
-if (isset($_GET['id']) && !is_numeric($_GET['id'])) $_GET['id'] = intval($_GET['id']);
 if ($db->havedb) {
     $section = $router->getSection();
     $sectionObj = $router->getSectionObj($section);
@@ -71,7 +62,8 @@ if ($db->havedb) {
         redirect_to(substr($sectionObj->external_link, 0, 4) == 'http' ? $sectionObj->external_link : 'http://' . $sectionObj->external_link);
     }
 }
-if (ENABLE_TRACKING) $router->updateHistory($section);
+if (ENABLE_TRACKING)
+	$router->updateHistory($section);
 
 // set the output header
 if (expJavascript::requiresJSON()) {
@@ -81,17 +73,16 @@ if (expJavascript::requiresJSON()) {
 }
 
 // Check to see if we are in maintenance mode.
-if (MAINTENANCE_MODE && !$user->isAdmin() && (!isset($_REQUEST['controller']) || $_REQUEST['controller'] != 'login') && !expJavascript::inAjaxAction()) {
+//if (MAINTENANCE_MODE && !$user->isAdmin() && (!isset($_REQUEST['controller']) || $_REQUEST['controller'] != 'login') && !expJavascript::inAjaxAction()) {
+if (MAINTENANCE_MODE && !$user->isAdmin() && !expJavascript::inAjaxAction() && !(!empty($_REQUEST['controller']) && $_REQUEST['controller'] == 'login' && !empty($_REQUEST['action']) && $_REQUEST['action'] == 'login')) {
 	//only admins/acting_admins are allowed to get to the site, all others get the maintenance view
 	$template = new standalonetemplate('_maintenance');
+    if (!empty($_REQUEST['controller']) && $_REQUEST['controller'] == 'login') {
+        $template->assign("login", true);
+    }
 	$template->output();
 } else {
 	if (MAINTENANCE_MODE > 0) flash('error', gt('Maintenance Mode is Enabled'));
-	//the default user is anonymous
-//	if (!expSession::loggedIn()) {
-		//TODO: Maxims initial anonymous user implementation
-		//user::login("anonymous", "anonymous");
-//	}
 
 	// check to see if we need to install or upgrade the system
 	expVersion::checkVersion();
@@ -108,15 +99,18 @@ if (MAINTENANCE_MODE && !$user->isAdmin() && (!isset($_REQUEST['controller']) ||
  
 	if (is_readable($page)) {
 		if (!expJavascript::inAjaxAction()) {
-			include_once($page);
+			include($page);
 			expTheme::satisfyThemeRequirements();
 		} else {  // ajax request
             // set up controls search order based on framework
-            $framework = expSession::get('framework');
+//            $framework = framework();
+            if (empty($framework)) {
+                $framework = expSession::get('framework');
+            }
             if ($framework == 'jquery' || $framework == 'bootstrap' || $framework == 'bootstrap3') array_unshift($auto_dirs, BASE . 'framework/core/forms/controls/jquery');
             if ($framework == 'bootstrap' || $framework == 'bootstrap3') array_unshift($auto_dirs, BASE . 'framework/core/forms/controls/bootstrap');
             if ($framework == 'bootstrap3') array_unshift($auto_dirs, BASE . 'framework/core/forms/controls/bootstrap3');
-            if (NEWUI && $framework != 'bootstrap' && $framework != 'bootstrap3') array_unshift($auto_dirs, BASE . 'framework/core/forms/controls/newui');
+            if (newui()) array_unshift($auto_dirs, BASE . 'framework/core/forms/controls/newui');
             array_unshift($auto_dirs, BASE . 'themes/' . DISPLAY_THEME . '/controls');
 
 			expTheme::runAction();
@@ -130,16 +124,19 @@ if (MAINTENANCE_MODE && !$user->isAdmin() && (!isset($_REQUEST['controller']) ||
 	}
 }
 
-//$microtime_str = explode(' ',microtime());
-//$i_end = $microtime_str[0] + $microtime_str[1];
-//echo "\r\n<!--".sprintf(gt('Execution time : %d seconds'),round($i_end - $i_start,4)).'-->';
+if (DEBUG_HISTORY && $user->isAdmin() && !expJavascript::inAjaxAction())
+	eDebug(expHistory::print_history());
+//write page build/load time if in DEVELOPMENT mode with logging
+if (DEVELOPMENT && LOGGER)
+	eLog($timer->mark() . ' - ' . $section . '/' . $sectionObj->sef_name, gt('LOAD TIME'));
 
 if (EXPORT_AS_PDF == 1) {
     $content = ob_get_clean();
+	$content = expProcessBuffer($content);  // we didn't actually process the output buffer by adding styles
 
     // convert to PDF
     $pdf = new expHtmlToPDF('Letter',EXPORT_AS_PDF_LANDSCAPE?'landscape':'portrait',$content);
-    $pdf->createpdf(HTML2PDF_OUTPUT?'D':'I',$sectionObj->name.".pdf");
+    $pdf->createpdf(HTMLTOPDF_OUTPUT?'D':'I',$sectionObj->name.".pdf");
     echo '<script type="text/javascript">
         <!--
         setTimeout("self.close();",10000);

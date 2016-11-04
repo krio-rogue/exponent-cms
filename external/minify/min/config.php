@@ -12,7 +12,14 @@ include_once(dirname(__FILE__) .'/../../../exponent_bootstrap.php');
 /**
  * Allow use of the Minify URI Builder app. Only set this to true while you need it.
  */
-$min_enableBuilder = true;
+$min_enableBuilder = false;
+
+
+/**
+ * Concatenate but do not minify the files. This can be used for testing.
+ */
+$min_concatOnly = false;
+
 
 /**
  * If non-empty, the Builder will be protected with HTTP Digest auth.
@@ -56,13 +63,14 @@ $min_allowDebugFlag = MINIFY_ERROR_LOGGER == 1;
 //$min_cachePath = 'c:\\WINDOWS\\Temp';
 //$min_cachePath = '/tmp';
 //$min_cachePath = preg_replace('/^\\d+;/', '', session_save_path());
+
 /**
  * To use APC/Memcache/ZendPlatform for cache storage, require the class and
  * set $min_cachePath to an instance. Example below:
  */
 //require dirname(__FILE__) . '/lib/Minify/Cache/APC.php';
 //$min_cachePath = new Minify_Cache_APC();
-$min_cachePath = BASE.'/tmp/minify';
+$min_cachePath = BASE.'tmp/minify';
 
 
 /**

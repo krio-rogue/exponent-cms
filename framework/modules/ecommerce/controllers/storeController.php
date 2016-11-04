@@ -2,7 +2,7 @@
 
 ##################################################
 #
-# Copyright (c) 2004-2014 OIC Group, Inc.
+# Copyright (c) 2004-2016 OIC Group, Inc.
 #
 # This file is part of Exponent
 #
@@ -24,28 +24,50 @@
 
 class storeController extends expController {
     public $basemodel_name = 'product';
-
     public $useractions = array(
-        'showall'                         => 'All Products and Categories',
-        'showallFeaturedProducts'         => 'Products - Only show Featured',
+        'showall'                         => 'Products - All Products and Categories',
+        'showallFeaturedProducts'         => 'Products - Only Featured',
+        'showallCategoryFeaturedProducts' => 'Products - Featured Products under current category',
         'showallManufacturers'            => 'Products - By Manufacturer',
-        'showTopLevel'                    => 'Categories - Show Top Level',
-        'showFullTree'                    => 'Categories - Show Full Tree',  //FIXME image variant needs separate method
-        'showallSubcategories'            => 'Categories - Subcategories of current category',
+        'showTopLevel'                    => 'Product Categories Menu - Show Top Level',
+        'showFullTree'                    => 'Product Categories Menu - Show Full Tree',  //FIXME image variant needs a separate method
+        'showallSubcategories'            => 'Product Categories Menu - Subcategories of current category',
 //        'upcomingEvents'                  => 'Event Registration - Upcoming Events',
 //        'eventsCalendar'                  => 'Event Registration - Calendar View',
-        'ecomSearch'                      => 'Search - Autocomplete',
-        'searchByModelForm'               => 'Search - By Model',  //FIXME broken? doesn't work as initial view
-        'quicklinks'                      => 'Links - Users Links',
-        'showallCategoryFeaturedProducts' => 'Show Featured Products under the current category',  //FIXME broken? doesn't work as initial view
+        'ecomSearch'                      => 'Product Search - Autocomplete',
+        'searchByModel'                   => 'Product Search - By Model',
+        'quicklinks'                      => 'Links - User Links',
         'showGiftCards'                   => 'Gift Cards UI',
     );
-
+    protected $manage_permissions = array(
+        'batch_process'               => 'Batch capture order transactions',
+        'cleanNonUnicodeProducts'     => 'Clean all non-unicode charset products',
+        'copyProduct'                 => "Copy Product",
+//        'delete_children'             => "Delete Children",
+        'reimport'                    => 'ReImport Products',
+        'findDupes'                   => 'Fix Duplicate SEF Names',
+//        'manage_sales_reps'           => 'Manage Sales Reps',
+//        'import_external_addresses'   => 'Import addresses from other sources',
+        'showallImpropercategorized'  => 'View products in top level categories that should not be',
+        'showallUncategorized'        => 'View all uncategorized products',
+        'nonUnicodeProducts'          => 'View all non-unicode charset products',
+        'process_orders'              => 'Batch capture order transactions',
+        'processModelAliases'         => 'Process uploaded model aliases',
+        'saveModelAliases'            => 'Save uploaded model aliases',
+//        'deleteProcessedModelAliases' => 'Delete processed uploaded model aliases',
+//        'delete_model_alias'          => 'Process model aliases',
+//        'update_model_alias'          => 'Save model aliases',
+//        'edit_model_alias'            => 'Delete model aliases',
+//        'import'                      => 'Import Products',
+//        'importProduct'               => 'Import Products',
+//        'export'                      => 'Export Products',
+        'uploadModelAliases'          => 'Upload model aliases',
+    );
     // hide the configs we don't need
     public $remove_configs = array(
         'aggregation',
         'categories',
-        'comments',
+//        'comments',
         'ealerts',
         'facebook',
         'files',
@@ -54,37 +76,12 @@ class storeController extends expController {
         'twitter',
     );  // all options: ('aggregation','categories','comments','ealerts','facebook','files','module_title','pagination','rss','tags','twitter',)
 
-    //protected $permissions = array_merge(array("test"=>'Test'), array('copyProduct'=>"Copy Product"));
-    protected $add_permissions = array(
-        'copyProduct'                 => "Copy Product",
-        'delete_children'             => "Delete Children",
-        'reimport'                    => 'ReImport Products',
-        'findDupes'                   => 'Fix Duplicate SEF Names',
-        'manage_sales_reps'           => 'Manage Sales Reps',
-        'batch_process'               => 'Batch capture order transactions',
-        'process_orders'              => 'Batch capture order transactions',
-        'import_external_addresses'   => 'Import addresses from other sources',
-        'showallImpropercategorized'  => 'View products in top level categories that should not be',
-        'showallUncategorized'        => 'View all uncategorized products',
-        'nonUnicodeProducts'          => 'View all non-unicode charset products',
-        'cleanNonUnicodeProducts'     => 'Clean all non-unicode charset products',
-        'uploadModelAliases'          => 'Upload model aliases',
-        'processModelAliases'         => 'Process uploaded model aliases',
-        'saveModelAliases'            => 'Save uploaded model aliases',
-        'deleteProcessedModelAliases' => 'Delete processed uploaded model aliases',
-        'delete_model_alias'          => 'Process model aliases',
-        'update_model_alias'          => 'Save model aliases',
-        'edit_model_alias'            => 'Delete model aliases',
-        'import'                      => 'Import Products',
-        'export'                      => 'Export Products',
-    );
-
     static function displayname() {
         return gt("e-Commerce Store Front");
     }
 
     static function description() {
-        return gt("Displays products and categories from your e-Commerce store");
+        return gt("Displays the products and categories in your store");
     }
 
     static function author() {
@@ -93,6 +90,10 @@ class storeController extends expController {
 
     static function isSearchable() {
         return true;
+    }
+
+    public function searchName() {
+        return gt('e-Commerce Item');
     }
 
     static function canImportData() {
@@ -115,7 +116,7 @@ class storeController extends expController {
         $this->grabConfig();
 
 //        if (expTheme::inAction() && !empty($router->url_parts[1]) && ($router->url_parts[0] == "store" && $router->url_parts[1] == "showall")) {
-        if (!empty($params['action']) && ($params['controller'] == "store" && $params['action'] == "showall")) {
+        if (!empty($params['action']) && ($params['controller'] == "store" && $params['action'] == "showall") ) {
 //            if (isset($router->url_parts[array_search('title', $router->url_parts) + 1]) && is_string($router->url_parts[array_search('title', $router->url_parts) + 1])) {
             if (isset($params['title']) && is_string($params['title'])) {
 //                $default_id = $db->selectValue('storeCategories', 'id', "sef_url='" . $router->url_parts[array_search('title', $router->url_parts) + 1] . "'");
@@ -127,9 +128,11 @@ class storeController extends expController {
                 }
             } elseif (isset($this->config['category'])) { // the module category to display
                 $default_id = $this->config['category'];
+            } else {
+                $default_id = 0;
             }
 //        } elseif (expTheme::inAction() && !empty($router->url_parts[1]) && ($router->url_parts[0] == "store" && ($router->url_parts[1] == "show" || $router->url_parts[1] == "showByTitle"))) {
-        } elseif (!empty($params['action']) && ($params['controller'] == "store" && ($params['action'] == "show" || $params['action'] == "showByTitle"))) {
+        } elseif (!empty($params['action']) && ($params['controller'] == "store" && ($params['action'] == "show" || $params['action'] == "showByTitle" || $params['action'] == "categoryBreadcrumb"))) {
 //            if (isset($router->url_parts[array_search('id', $router->url_parts) + 1]) && ($router->url_parts[array_search('id', $router->url_parts) + 1] != 0)) {
             if (!empty($params['id'])) {
 //                $default_id = $db->selectValue('product_storeCategories', 'storecategories_id', "product_id='" . $router->url_parts[array_search('id', $router->url_parts) + 1] . "'");
@@ -143,15 +146,17 @@ class storeController extends expController {
             if (!empty($this->config['show_first_category'])) {
                 $default_id = $db->selectValue('storeCategories', 'id', 'lft=1');
             } else {
-                $default_id = 0;
+                $default_id = null;
+//                flash('error','store-show first category empty, but default seciton');
             }
         } elseif (!isset($this->config['show_first_category']) && !expTheme::inAction()) {
-            $default_id = 0;
+            $default_id = null;
+//            flash('error','store-don\'t show first category empty');
         } else {
-            $default_id = 0;
+            $default_id = null;
         }
-        if (empty($default_id)) $default_id = 0;
-        expSession::set('catid', $default_id);
+//        if (empty($default_id)) $default_id = 0;
+        if (!is_null($default_id)) expSession::set('catid', $default_id);
 
         // figure out if we need to show all categories and products or default to showing the first category.
         // elseif (!empty($this->config['category'])) {
@@ -175,28 +180,31 @@ class storeController extends expController {
         expHistory::set('viewable', $this->params);
 
         if (empty($this->category->is_events)) {
-            $count_sql_start = 'SELECT COUNT(DISTINCT p.id) as c FROM ' . DB_TABLE_PREFIX . '_product p ';
+            $count_sql_start = 'SELECT COUNT(DISTINCT p.id) as c FROM ' . $db->prefix . 'product p ';
 
-            $sql_start = 'SELECT DISTINCT p.*, IF(base_price > special_price AND use_special_price=1,special_price, base_price) as price FROM ' . DB_TABLE_PREFIX . '_product p ';
-            $sql = 'JOIN ' . DB_TABLE_PREFIX . '_product_storeCategories sc ON p.id = sc.product_id ';
+            $sql_start = 'SELECT DISTINCT p.*, IF(base_price > special_price AND use_special_price=1,special_price, base_price) as price FROM ' . $db->prefix . 'product p ';
+            $sql = 'JOIN ' . $db->prefix . 'product_storeCategories sc ON p.id = sc.product_id ';
             $sql .= 'WHERE ';
-            if (!($user->is_admin || $user->is_acting_admin)) $sql .= '(p.active_type=0 OR p.active_type=1) AND ';
+            if (!$user->isAdmin()) $sql .= '(p.active_type=0 OR p.active_type=1) AND ';
             $sql .= 'sc.storecategories_id IN (';
-            $sql .= 'SELECT id FROM ' . DB_TABLE_PREFIX . '_storeCategories WHERE rgt BETWEEN ' . $this->category->lft . ' AND ' . $this->category->rgt . ')';
+            $sql .= 'SELECT id FROM ' . $db->prefix . 'storeCategories WHERE rgt BETWEEN ' . $this->category->lft . ' AND ' . $this->category->rgt . ')';
 
             $count_sql = $count_sql_start . $sql;
             $sql = $sql_start . $sql;
 
-            $order = 'title'; // $order = 'sc.rank'; //$this->config['orderby'];
-            $dir = 'ASC'; //$this->config['orderby_dir'];
-            //eDebug($this->config);
+//            $order = 'title'; // $order = 'sc.rank'; //$this->config['orderby'];
+//            $dir = 'ASC'; //$this->config['orderby_dir'];
+            $order = !empty($this->params['order']) ? $this->params['order'] : $this->config['orderby'];
+            $dir = !empty($this->params['dir']) ? $this->params['dir'] : $this->config['orderby_dir'];
+            if (empty($order)) $order = 'title';
+            if (empty($dir)) $dir = 'ASC';
         } else { // this is an event category
-            $sql_start = 'SELECT DISTINCT p.*, er.event_starttime, er.signup_cutoff FROM ' . DB_TABLE_PREFIX . '_product p ';
-            $count_sql_start = 'SELECT COUNT(DISTINCT p.id) as c, er.event_starttime, er.signup_cutoff FROM ' . DB_TABLE_PREFIX . '_product p ';
-            $sql = 'JOIN ' . DB_TABLE_PREFIX . '_product_storeCategories sc ON p.id = sc.product_id ';
-            $sql .= 'JOIN ' . DB_TABLE_PREFIX . '_eventregistration er ON p.product_type_id = er.id ';
+            $sql_start = 'SELECT DISTINCT p.*, er.event_starttime, er.signup_cutoff FROM ' . $db->prefix . 'product p ';
+            $count_sql_start = 'SELECT COUNT(DISTINCT p.id) as c, er.event_starttime, er.signup_cutoff FROM ' . $db->prefix . 'product p ';
+            $sql = 'JOIN ' . $db->prefix . 'product_storeCategories sc ON p.id = sc.product_id ';
+            $sql .= 'JOIN ' . $db->prefix . 'eventregistration er ON p.product_type_id = er.id ';
             $sql .= 'WHERE sc.storecategories_id IN (';
-            $sql .= 'SELECT id FROM ' . DB_TABLE_PREFIX . '_storeCategories WHERE rgt BETWEEN ' . $this->category->lft . ' AND ' . $this->category->rgt . ')';
+            $sql .= 'SELECT id FROM ' . $db->prefix . 'storeCategories WHERE rgt BETWEEN ' . $this->category->lft . ' AND ' . $this->category->rgt . ')';
             if ($this->category->hide_closed_events) {
                 $sql .= ' AND er.signup_cutoff > ' . time();
             }
@@ -204,10 +212,12 @@ class storeController extends expController {
             $count_sql = $count_sql_start . $sql;
             $sql = $sql_start . $sql;
 
-            $order = 'event_starttime';
-            $dir = 'ASC';
+            $order = !empty($this->params['order']) ? $this->params['order'] : 'event_starttime';
+            $dir = !empty($this->params['dir']) ? $this->params['dir'] : 'ASC';
         }
 
+        if (empty($router->params['title']))  // we need to pass on the category for proper paging
+            $router->params['title'] = $this->category->sef_url;
         $limit = !empty($this->config['limit']) ? $this->config['limit'] : (!empty($this->config['pagination_default']) ? $this->config['pagination_default'] : 10);
         if ($this->category->find('count') > 0) { // there are categories
             $page = new expPaginator(array(
@@ -229,7 +239,7 @@ class storeController extends expController {
         } else { // there are no categories
             $page = new expPaginator(array(
                 'model_field' => 'product_type',
-                'sql'         => 'SELECT * FROM ' . DB_TABLE_PREFIX . '_product WHERE 1',
+                'sql'         => 'SELECT * FROM ' . $db->prefix . 'product WHERE 1',
                 'limit'       => $limit,
                 'order'       => $order,
                 'dir'         => $dir,
@@ -247,7 +257,7 @@ class storeController extends expController {
         $ancestors = $this->category->pathToNode();
         $categories = ($this->parent == 0) ? $this->category->getTopLevel(null, false, true) : $this->category->getChildren(null, false, true);
 
-        $rerankSQL = "SELECT DISTINCT p.* FROM " . DB_TABLE_PREFIX . "_product p JOIN " . DB_TABLE_PREFIX . "_product_storeCategories sc ON  p.id = sc.product_id WHERE sc.storecategories_id=" . $this->category->id . " ORDER BY rank ASC";
+        $rerankSQL = "SELECT DISTINCT p.* FROM " . $db->prefix . "product p JOIN " . $db->prefix . "product_storeCategories sc ON p.id = sc.product_id WHERE sc.storecategories_id=" . $this->category->id . " ORDER BY rank ASC";
         //eDebug($router);
         $defaultSort = $router->current_url;
 
@@ -259,6 +269,7 @@ class storeController extends expController {
             'current_category' => $this->category,
             'rerankSQL'        => $rerankSQL
         ));
+        $this->categoryBreadcrumb();
     }
 
     function grabConfig($category = null) {
@@ -285,7 +296,14 @@ class storeController extends expController {
         }
     }
 
-    function upcomingEvents() {  //FIXME Deprecated, moved to eventregistration
+    /**
+     * @deprecated 2.0.0 moved to eventregistration
+     */
+    function upcomingEvents() {
+        $this->params['controller'] = 'eventregistration';
+        redirect_to($this->params);
+
+        //fixme old code
         $sql = 'SELECT DISTINCT p.*, er.event_starttime, er.signup_cutoff FROM ' . DB_TABLE_PREFIX . '_product p ';
         $sql .= 'JOIN ' . DB_TABLE_PREFIX . '_eventregistration er ON p.product_type_id = er.id ';
         $sql .= 'WHERE 1 AND er.signup_cutoff > ' . time();
@@ -315,7 +333,14 @@ class storeController extends expController {
         ));
     }
 
-    function eventsCalendar() {  //FIXME Deprecated, moved to eventregistration
+    /**
+     * @deprecated 2.0.0 moved to eventregistration
+     */
+    function eventsCalendar() {
+        $this->params['controller'] = 'eventregistration';
+        redirect_to($this->params);
+
+        //fixme old code
         global $db, $user;
 
         expHistory::set('viewable', $this->params);
@@ -391,7 +416,7 @@ class storeController extends expController {
                 // eDebug($event->signup_cutoff, true);
             }
 
-            $monthly[$week][$i] = self::getEventsForDates($dates);
+            $monthly[$week][$i] = $this->getEventsForDates($dates);
             $counts[$week][$i] = count($monthly[$week][$i]);
             if ($weekday >= (6 + DISPLAY_START_OF_WEEK)) {
                 $week++;
@@ -406,6 +431,7 @@ class storeController extends expController {
             $counts[$week][$i + $endofmonth] = -1;
         }
 
+        $this->params['time'] = $time;
         assign_to_template(array(
             'currentweek' => $currentweek,
             'monthly'     => $monthly,
@@ -417,14 +443,17 @@ class storeController extends expController {
             "nextmonth2"  => strtotime('+2 months', $timefirst),
             "nextmonth3"  => strtotime('+3 months', $timefirst),
             'now'         => $timefirst,
-            "today"       => expDateTime::startOfDayTimestamp(time())
+            "today"       => expDateTime::startOfDayTimestamp(time()),
+            'params'      => $this->params,
+            'daynames'    => event::dayNames(),
         ));
     }
 
     /*
     * Helper function for the Calendar view
+     * @deprecated 2.0.0 moved to eventregistration
     */
-    function getEventsForDates($edates, $sort_asc = true) {  //FIXME Deprecated, moved to eventregistration
+    function getEventsForDates($edates, $sort_asc = true) {
         global $db;
         $events = array();
         foreach ($edates as $edate) {
@@ -444,9 +473,9 @@ class storeController extends expController {
 //
 //            $category = new storeCategory($parent);
 
-            $sql = 'SELECT DISTINCT p.*, er.event_starttime, er.signup_cutoff FROM ' . DB_TABLE_PREFIX . '_product p ';
-//            $sql .= 'JOIN ' . DB_TABLE_PREFIX . '_product_storeCategories sc ON p.id = sc.product_id ';
-            $sql .= 'JOIN ' . DB_TABLE_PREFIX . '_eventregistration er ON p.product_type_id = er.id ';
+            $sql = 'SELECT DISTINCT p.*, er.event_starttime, er.signup_cutoff FROM ' . $db->prefix . 'product p ';
+//            $sql .= 'JOIN ' . $db->prefix . 'product_storeCategories sc ON p.id = sc.product_id ';
+            $sql .= 'JOIN ' . $db->prefix . 'eventregistration er ON p.product_type_id = er.id ';
             $sql .= 'WHERE 1 ';
 //            $sql .= ' AND sc.storecategories_id IN (SELECT id FROM exponent_storeCategories WHERE rgt BETWEEN ' . $category->lft . ' AND ' . $category->rgt . ')';
 //            if ($category->hide_closed_events) {
@@ -476,13 +505,13 @@ class storeController extends expController {
 
         /*if(isset($router->params['action']))
         {
-            $ancestors = $this->category->pathToNode();       
+            $ancestors = $this->category->pathToNode();
         }else if(isset($router->params['section']))
         {
             $current = $db->selectObject('section',' id= '.$router->params['section']);
             $ancestors[] = $current;
             if( $current->parent != -1 || $current->parent != 0 )
-            {                   
+            {
                 while ($db->selectObject('section',' id= '.$router->params['section']);)
                     if ($section->id == $id) {
                         $current = $section;
@@ -491,7 +520,7 @@ class storeController extends expController {
                 }
             }
             eDebug($sections);
-            $ancestors = $this->category->pathToNode();       
+            $ancestors = $this->category->pathToNode();
         }*/
 
         $ancestors = $this->category->pathToNode();
@@ -534,12 +563,18 @@ class storeController extends expController {
 
     function manage() {
         expHistory::set('manageable', $this->params);
-        $limit = !empty($this->config['limit']) ? $this->config['limit'] : 10;
+
+        if (ECOM_LARGE_DB) {
+            $limit = !empty($this->config['pagination_default']) ? $this->config['pagination_default'] : 10;
+        } else {
+            $limit = 0;  // we'll paginate on the page
+        }
         $page = new expPaginator(array(
             'model'      => 'product',
             'where'      => 'parent_id=0',
-            'limit'      => !empty($this->config['pagination_default']) ? $this->config['pagination_default'] : $limit,
-            'order'      => 'title',
+            'limit'      => $limit,
+            'order'      => (isset($this->params['order']) ? $this->params['order'] : 'title'),
+            'dir'        => (isset($this->params['dir']) ? $this->params['dir'] : 'ASC'),
             'page'       => (isset($this->params['page']) ? $this->params['page'] : 1),
             'controller' => $this->params['controller'],
             'action'     => $this->params['action'],
@@ -559,9 +594,10 @@ class storeController extends expController {
         expHistory::set('viewable', $this->params);
 
         //FIXME not sure this is the correct sql, not sure what we are trying to pull out
-        $sql = 'SELECT DISTINCT(p.id),p.product_type FROM ' . DB_TABLE_PREFIX . '_product p JOIN ' . DB_TABLE_PREFIX . '_product_storeCategories psc ON p.id = psc.product_id ';
-        $sql .= 'JOIN '.DB_TABLE_PREFIX.'_storeCategories sc ON psc.storecategories_id = sc.parent_id WHERE ';
-        $sql .= 'p.parent_id=0 AND sc.parent_id != 0';
+        $sql = 'SELECT DISTINCT(p.id),p.product_type FROM ' . DB_TABLE_PREFIX . '_product p ';
+        $sql .= 'JOIN ' . DB_TABLE_PREFIX . '_product_storeCategories psc ON p.id = psc.product_id ';
+        $sql .= 'JOIN '.DB_TABLE_PREFIX.'_storeCategories sc ON psc.storecategories_id = sc.parent_id ';
+        $sql .= 'WHERE p.parent_id=0 AND sc.parent_id != 0';
 
         expSession::set('product_export_query', $sql);
 
@@ -597,9 +633,11 @@ class storeController extends expController {
 
         //eDebug($this->params);
         //$sql = "SELECT * INTO OUTFILE '" . BASE . "tmp/export.csv' FIELDS TERMINATED BY ','  FROM exponent_product WHERE 1 LIMIT 10";
-        $out = '"id","parent_id","child_rank","title","body","model","warehouse_location","sef_url","canonical","meta_title","meta_keywords","meta_description","tax_class_id","quantity","availability_type","base_price","special_price","use_special_price","active_type","product_status_id","category1","category2","category3","category4","category5","category6","category7","category8","category9","category10","category11","category12","surcharge","category_rank","feed_title","feed_body"' . chr(13) . chr(10);
+//        $out = '"id","parent_id","child_rank","title","body","model","warehouse_location","sef_url","canonical","meta_title","meta_keywords","meta_description","tax_class_id","quantity","availability_type","base_price","special_price","use_special_price","active_type","product_status_id","category1","category2","category3","category4","category5","category6","category7","category8","category9","category10","category11","category12","surcharge","category_rank","feed_title","feed_body"' . chr(13) . chr(10);
+        $out = '"id","parent_id","child_rank","title","body","model","warehouse_location","sef_url","meta_title","meta_keywords","meta_description","tax_class_id","quantity","availability_type","base_price","special_price","use_special_price","active_type","product_status_id","category1","category2","category3","category4","category5","category6","category7","category8","category9","category10","category11","category12","surcharge","category_rank","feed_title","feed_body","weight","width","height","length","image1","image2","image3","image4","image5","companies_id"' . chr(13) . chr(10);
         if (isset($this->params['applytoall']) && $this->params['applytoall'] == 1) {
             $sql = expSession::get('product_export_query');
+            if (empty($sql)) $sql = 'SELECT DISTINCT(p.id) from ' . $db->prefix . 'product as p WHERE (product_type="product")';
             //eDebug($sql);
             //expSession::set('product_export_query','');
             $prods = $db->selectArraysBySql($sql);
@@ -615,7 +653,7 @@ class storeController extends expController {
         //$p = new product($pid['id'], false, false);
         foreach ($prods as $pid) {
             $except = array('company', 'crosssellItem', 'optiongroup');
-            $p = $baseProd->find('first', 'id=' . $pid['id'], null, null, 0, true, false, $except, true);
+            $p = $baseProd->find('first', 'id=' . $pid['id'], null, null, 0, true, true, $except, true);
 
             //eDebug($p,true);
             $out .= expString::outputField($p->id);
@@ -626,7 +664,7 @@ class storeController extends expController {
             $out .= expString::outputField($p->model);
             $out .= expString::outputField($p->warehouse_location);
             $out .= expString::outputField($p->sef_url);
-            $out .= expString::outputField($p->canonical);
+//            $out .= expString::outputField($p->canonical);  FIXME this is NOT in the import sequence
             $out .= expString::outputField($p->meta_title);
             $out .= expString::outputField($p->meta_keywords);
             $out .= expString::outputField($p->meta_description);
@@ -644,14 +682,29 @@ class storeController extends expController {
             for ($x = 0; $x < 12; $x++) {
                 $this->catstring = '';
                 if (isset($p->storeCategory[$x])) {
-                    $out .= expString::outputField(reportController::buildCategoryString($p->storeCategory[$x]->id, true));
+                    $out .= expString::outputField(storeCategory::buildCategoryString($p->storeCategory[$x]->id, true));
                     $rank = $db->selectValue('product_storeCategories', 'rank', 'product_id=' . $p->id . ' AND storecategories_id=' . $p->storeCategory[$x]->id);
                 } else $out .= ',';
             }
             $out .= expString::outputField($p->surcharge);
-            $out .= expString::outputField($rank);
+            $out .= expString::outputField($rank);  // no longer used
             $out .= expString::outputField($p->feed_title);
-            $out .= substr(expString::outputField($p->feed_body), 0, -1) . chr(13) . chr(10); //Removed the extra "," in the last element
+            $out .= expString::outputField($p->feed_body);
+            $out .= expString::outputField($p->weight);
+            $out .= expString::outputField($p->height);
+            $out .= expString::outputField($p->width);
+            $out .= expString::outputField($p->length);
+            //output images
+            if (isset($p->expFile['mainimage'][0])) {
+                $out .= expString::outputField($p->expFile['mainimage'][0]->id);
+            } else $out .= ',';
+            for ($x = 0; $x < 3; $x++) {
+                if (isset($p->expFile['images'][$x])) {
+                    $out .= expString::outputField($p->expFile['images'][$x]->id);
+                } else $out .= ',';
+            }
+            $out .= expString::outputField($p->companies_id, chr(13) . chr(10)); //Removed the extra "," in the last element
+
             foreach ($p->childProduct as $cp) {
                 //$p = new product($pid['id'], true, false);
                 //eDebug($p,true);
@@ -663,7 +716,7 @@ class storeController extends expController {
                 $out .= expString::outputField($cp->model);
                 $out .= expString::outputField($cp->warehouse_location);
                 $out .= expString::outputField($cp->sef_url);
-                $out .= expString::outputField($cp->canonical);
+//                $out .= expString::outputField($cp->canonical);  FIXME this is NOT in the import sequence
                 $out .= expString::outputField($cp->meta_title);
                 $out .= expString::outputField($cp->meta_keywords);
                 $out .= expString::outputField($cp->meta_description);
@@ -675,10 +728,15 @@ class storeController extends expController {
                 $out .= expString::outputField($cp->use_special_price);
                 $out .= expString::outputField($cp->active_type);
                 $out .= expString::outputField($cp->product_status_id);
-                $out .= ',,,,,,,,,,,,';
+                $out .= ',,,,,,,,,,,,';  // for categories
                 $out .= expString::outputField($cp->surcharge);
-                $out .= ',,'; //for rank, feed title, feed body
-                $out .= chr(13) . chr(10);
+                $out .= ',,,'; //for rank, feed title, feed body
+                $out .= expString::outputField($cp->weight);
+                $out .= expString::outputField($cp->height);
+                $out .= expString::outputField($cp->width);
+                $out .= expString::outputField($cp->length);
+                $out .= ',,,,,';  // for images
+                $out .= expString::outputField($cp->companies_id, chr(13) . chr(10));
 
                 //echo($out);
             }
@@ -692,7 +750,7 @@ class storeController extends expController {
 //
 //        echo "<br/><br/>Download the file here: <a href='" . PATH_RELATIVE . $outFile . "'>Product Export</a>";
 
-        $filename = 'tmp/product_export_' . time() . '.csv';
+        $filename = 'product_export_' . time() . '.csv';
 
         ob_end_clean();
         ob_start("ob_gzhandler");
@@ -724,7 +782,10 @@ class storeController extends expController {
         "' */
     }
 
-    function showallByManufacturer() {  //FIXME Deprecated??, moved to company??
+    /**
+     * @deprecated 2.3.3 moved to company
+     */
+    function showallByManufacturer() {
         expHistory::set('viewable', $this->params);
 
         $limit = !empty($this->config['limit']) ? $this->config['limit'] : 10;
@@ -751,10 +812,13 @@ class storeController extends expController {
         ));
     }
 
-    function showallManufacturers() {  //FIXME Deprecated??, moved to company??
+    /**
+     * @deprecated 2.3.3 moved to company
+     */
+    function showallManufacturers() {
         global $db;
         expHistory::set('viewable', $this->params);
-        $sql = 'SELECT comp.* FROM ' . DB_TABLE_PREFIX . '_companies as comp JOIN ' . DB_TABLE_PREFIX . '_product AS prod ON prod.companies_id = comp.id WHERE parent_id=0 GROUP BY comp.title ORDER BY comp.title;';
+        $sql = 'SELECT comp.* FROM ' . $db->prefix . 'companies as comp JOIN ' . $db->prefix . 'product AS prod ON prod.companies_id = comp.id WHERE parent_id=0 GROUP BY comp.title ORDER BY comp.title;';
         $manufacturers = $db->selectObjectsBySql($sql);
         assign_to_template(array(
             'manufacturers' => $manufacturers
@@ -762,7 +826,7 @@ class storeController extends expController {
     }
 
     function showGiftCards() {
-
+        expHistory::set('viewable', $this->params);
         //Get all giftcards
         $product_type = 'giftcard';
         $giftcard = new $product_type();
@@ -790,7 +854,7 @@ class storeController extends expController {
 //        $classname = $db->selectValue('product', 'product_type', 'id=' . $this->params['id']);
 //        $product   = new $classname($this->params['id'], true, true);
 
-        $id = isset($this->params['title']) ? $this->params['title'] : $this->params['id'];
+        $id = isset($this->params['title']) ? expString::escape($this->params['title']) : $this->params['id'];
         $product = new product($id);
         $product_type = new $product->product_type($product->id);
         $product_type->title = expString::parseAndTrim($product_type->title, true);
@@ -808,10 +872,10 @@ class storeController extends expController {
         }
         if ($product->active_type == 1) {
             $product_type->user_message = "This product is temporarily unavailable for purchase.";
-        } elseif ($product->active_type == 2 && !($user->is_admin || $user->is_acting_admin)) {
+        } elseif ($product->active_type == 2 && !$user->isAdmin()) {
             flash("error", $product->title . " " . gt("is currently unavailable."));
             expHistory::back();
-        } elseif ($product->active_type == 2 && ($user->is_admin || $user->is_acting_admin)) {
+        } elseif ($product->active_type == 2 && $user->isAdmin()) {
             $product_type->user_message = $product->title . " is currently marked as unavailable for purchase or display.  Normal users will not see this product.";
         }
 
@@ -836,15 +900,15 @@ class storeController extends expController {
             'product'       => $product_type,
             'last_category' => !empty($order->lastcat) ? $order->lastcat : null,
         ));
+        $this->categoryBreadcrumb();
     }
 
     function showByTitle() {
-
         global $order, $template, $user;
         //need to add a check here for child product and redirect to parent if hit directly by ID
         expHistory::set('viewable', $this->params);
 
-        $product = new product(addslashes($this->params['title']));
+        $product = new product(expString::escape($this->params['title']));
         $product_type = new $product->product_type($product->id);
         $product_type->title = expString::parseAndTrim($product_type->title, true);
         $product_type->image_alt_tag = expString::parseAndTrim($product_type->image_alt_tag, true);
@@ -860,10 +924,10 @@ class storeController extends expController {
         }
         if ($product->active_type == 1) {
             $product_type->user_message = "This product is temporarily unavailable for purchase.";
-        } elseif ($product->active_type == 2 && !($user->is_admin || $user->is_acting_admin)) {
+        } elseif ($product->active_type == 2 && !$user->isAdmin()) {
             flash("error", $product->title . " " . gt("is currently unavailable."));
             expHistory::back();
-        } elseif ($product->active_type == 2 && ($user->is_admin || $user->is_acting_admin)) {
+        } elseif ($product->active_type == 2 && $user->isAdmin()) {
             $product_type->user_message = $product->title . " is currently marked as unavailable for purchase or display.  Normal users will not see this product.";
         }
         if (!empty($product_type->crosssellItem)) foreach ($product_type->crosssellItem as &$csi) {
@@ -888,7 +952,7 @@ class storeController extends expController {
 
         expHistory::set('viewable', $this->params);
         $product = new product();
-        $model = $product->find("first", 'model="' . $this->params['model'] . '"');
+        $model = $product->find("first", 'model="' . expString::escape($this->params['model']) . '"');
         //eDebug($model);
         $product_type = new $model->product_type($model->id);
         //eDebug($product_type);
@@ -907,9 +971,11 @@ class storeController extends expController {
 //        global $db;
 
         expHistory::set('viewable', $this->params);
-        $parent = isset($_REQUEST['cat']) ? $_REQUEST['cat'] : expSession::get('last_ecomm_category');
+//        $parent = isset($this->params['cat']) ? $this->params['cat'] : expSession::get('catid');
+        $catid = expSession::get('catid');
+        $parent = !empty($catid) ? $catid : (!empty($this->params['cat']) ? intval($this->params['cat']) : 0);
         $category = new storeCategory($parent);
-        $categories = $category->getEcomSubcategories();  //FIXME returns a product count of 0
+        $categories = $category->getEcomSubcategories();
         $ancestors = $category->pathToNode();
         assign_to_template(array(
             'categories' => $categories,
@@ -919,8 +985,11 @@ class storeController extends expController {
     }
 
     function showallFeaturedProducts() {
-        $order = 'title';
-        $dir = 'ASC';
+        expHistory::set('viewable', $this->params);
+        $order = !empty($this->params['order']) ? $this->params['order'] : $this->config['orderby'];
+        $dir = !empty($this->params['dir']) ? $this->params['dir'] : $this->config['orderby_dir'];
+        if (empty($order)) $order = 'title';
+        if (empty($dir)) $dir = 'ASC';
 
         $page = new expPaginator(array(
             'model_field' => 'product_type',
@@ -944,13 +1013,15 @@ class storeController extends expController {
     }
 
     function showallCategoryFeaturedProducts() {
-
+        expHistory::set('viewable', $this->params);
         $curcat = $this->category;
 
-        $order = 'title';
-        $dir = 'ASC';
+        $order = !empty($this->params['order']) ? $this->params['order'] : $this->config['orderby'];
+        $dir = !empty($this->params['dir']) ? $this->params['dir'] : $this->config['orderby_dir'];
+        if (empty($order)) $order = 'title';
+        if (empty($dir)) $dir = 'ASC';
         //FIXME bad sql statement needs to be a JOIN
-        $sql = 'SELECT * FROM ' . DB_TABLE_PREFIX . '_product,' . DB_TABLE_PREFIX . '_product_storeCategories WHERE product_id = id and is_featured=1 and storecategories_id =' . $curcat->id;
+        $sql = 'SELECT * FROM ' . DB_TABLE_PREFIX . '_product as p,' . DB_TABLE_PREFIX . '_product_storeCategories as sc WHERE sc.product_id = p.id and p.is_featured=1 and sc.storecategories_id =' . $curcat->id;
         $page = new expPaginator(array(
             'model_field' => 'product_type',
             'sql'         => $sql,
@@ -973,6 +1044,7 @@ class storeController extends expController {
     }
 
     function showTopLevel() {
+        expHistory::set('viewable', $this->params);
         $category = new storeCategory(null, false, false);
         //$categories = $category->getEcomSubcategories();
         $categories = $category->getTopLevel(null, false, true);
@@ -988,13 +1060,15 @@ class storeController extends expController {
 
     function showTopLevel_images() {
         global $user;
+
+        expHistory::set('viewable', $this->params);
         $count_sql_start = 'SELECT COUNT(DISTINCT p.id) as c FROM ' . DB_TABLE_PREFIX . '_product p ';
         $sql_start = 'SELECT DISTINCT p.* FROM ' . DB_TABLE_PREFIX . '_product p ';
         $sql = 'JOIN ' . DB_TABLE_PREFIX . '_product_storeCategories sc ON p.id = sc.product_id ';
         $sql .= 'WHERE ';
-        if (!($user->is_admin || $user->is_acting_admin)) $sql .= '(p.active_type=0 OR p.active_type=1)'; //' AND ' ;
+        if (!$user->isAdmin()) $sql .= '(p.active_type=0 OR p.active_type=1)'; //' AND ' ;
         //$sql .= 'sc.storecategories_id IN (';
-        //$sql .= 'SELECT id FROM '.DB_TABLE_PREFIX.'_storeCategories WHERE rgt BETWEEN '.$this->category->lft.' AND '.$this->category->rgt.')';         
+        //$sql .= 'SELECT id FROM '.DB_TABLE_PREFIX.'_storeCategories WHERE rgt BETWEEN '.$this->category->lft.' AND '.$this->category->rgt.')';
 
         $count_sql = $count_sql_start . $sql;
         $sql = $sql_start . $sql;
@@ -1033,6 +1107,7 @@ class storeController extends expController {
     }
 
     function showFullTree() {  //FIXME we also need a showFullTree_images method like above
+        expHistory::set('viewable', $this->params);
         $category = new storeCategory(null, false, false);
         //$categories = $category->getEcomSubcategories();
         $categories = $category->getFullTree();
@@ -1054,6 +1129,11 @@ class storeController extends expController {
 
     }
 
+    /**
+     * Add all products (products, event registrations, donations, & gift cards) to search index
+     *
+     * @return int
+     */
     function addContentToSearch() {
         global $db, $router;
 
@@ -1070,8 +1150,9 @@ class storeController extends expController {
                 $origid = $cnt['id'];
                 $prod = new product($cnt['id']);
                 unset($cnt['id']);
-                //$cnt['title'] = $cnt['title'].' - SKU# '.$cnt['model'];
-                $cnt['title'] = (isset($prod->expFile['mainimage'][0]) ? '<img src="' . PATH_RELATIVE . 'thumb.php?id=' . $prod->expFile['mainimage'][0]->id . '&w=40&h=40&zc=1" style="float:left;margin-right:5px;" />' : '') . $cnt['title'] . (!empty($cnt['model']) ? ' - SKU#: ' . $cnt['model'] : '');
+                if (ecomconfig::getConfig('ecom_search_results') == '') {
+                    $cnt['title'] = (isset($prod->expFile['mainimage'][0]) ? '<img src="' . PATH_RELATIVE . 'thumb.php?id=' . $prod->expFile['mainimage'][0]->id . '&w=40&h=40&zc=1" style="float:left;margin-right:5px;" />' : '') . $cnt['title'] . (!empty($cnt['model']) ? ' - SKU#: ' . $cnt['model'] : '');
+                }
 
 //                $search_record = new search($cnt, false, false);
                //build the search record and save it.
@@ -1085,19 +1166,27 @@ class storeController extends expController {
                 }
 
                 $search_record->posted = empty($cnt['created_at']) ? null : $cnt['created_at'];
-                $search_record->view_link = str_replace(URL_FULL, '', $router->makeLink(array('controller' => $this->baseclassname, 'action' => 'show', 'title' => $cnt['sef_url'])));
+                if ($cnt['product_type'] == 'giftcard') {
+                    $search_record->view_link = str_replace(URL_FULL, '', $router->makeLink(array('controller' => 'store', 'action' => 'showGiftCards')));
+                } else {
+//                    $search_record->view_link = str_replace(URL_FULL, '', $router->makeLink(array('controller' => $this->baseclassname, 'action' => 'show', 'title' => $cnt['sef_url'])));
+                    $search_record->view_link = str_replace(URL_FULL, '', $router->makeLink(array('controller' => $cnt['product_type'], 'action' => 'show', 'title' => $cnt['sef_url'])));
+                }
 //                $search_record->ref_module = 'store';
                 $search_record->ref_module  = $this->baseclassname;
 //                $search_record->ref_type = $this->basemodel_name;
                 $search_record->ref_type = $cnt['product_type'];
 //                $search_record->category = 'Products';
-                $prod = new $search_record->ref_type();
+                $prod = new $search_record->ref_type($origid);
                 $search_record->category = $prod->product_name;
+                if ($search_record->ref_type == 'eventregistration') {
+                    $search_record->title .= ' - ' . expDateTime::format_date($prod->eventdate);
+                }
 
                 $search_record->original_id = $origid;
                 //$search_record->location_data = serialize($this->loc);
                 $search_record->save();
-                $count += 1;
+                $count++;
             }
         }
         return $count;
@@ -1122,6 +1211,7 @@ class storeController extends expController {
         if (!empty($this->params['id'])) {
             // if we have an id lets pull the product type from the products table.
             $product_type = $db->selectValue('product', 'product_type', 'id=' . $this->params['id']);
+            if (empty($product_type)) redirect_to(array('controller' => 'store', 'action' => 'picktype'));
         } else {
             if (empty($this->params['product_type'])) redirect_to(array('controller' => 'store', 'action' => 'picktype'));
             $product_type = $this->params['product_type'];
@@ -1181,18 +1271,22 @@ class storeController extends expController {
                     }
                 }
             }
-            //eDebug($editable_options[$group->title]);        
+            //eDebug($editable_options[$group->title]);
         }
         //die();
 
         uasort($editable_options, array("optiongroup", "sortOptiongroups"));
 
         // get the shipping options and their methods
-        $shipping = new shipping();
-        foreach ($shipping->available_calculators as $calcid => $name) {
-            $calc = new $name($calcid);
-            $shipping_services[$calcid] = $calc->title;
-            $shipping_methods[$calcid] = $calc->availableMethods();
+//        $shipping = new shipping();
+//        foreach (shipping::listAvailableCalculators() as $calcid => $name) {
+        foreach (shipping::listCalculators() as $calcid => $name) {
+            // must make sure (custom) calculator exists
+            if (class_exists($name)) {
+                $calc = new $name($calcid);
+                $shipping_services[$calcid] = $calc->title;
+                $shipping_methods[$calcid] = $calc->availableMethods();
+            }
         }
 
 #        eDebug($shipping_services);
@@ -1309,11 +1403,14 @@ class storeController extends expController {
         }
 
         // get the shipping options and their methods
-        $shipping = new shipping();
-        foreach ($shipping->available_calculators as $calcid => $name) {
-            $calc = new $name($calcid);
-            $shipping_services[$calcid] = $calc->title;
-            $shipping_methods[$calcid] = $calc->availableMethods();
+//        $shipping = new shipping();
+//        foreach (shipping::listAvailableCalculators() as $calcid => $name) {
+        foreach (shipping::listCalculators() as $calcid => $name) {
+            if (class_exists($name)) {
+                $calc = new $name($calcid);
+                $shipping_services[$calcid] = $calc->title;
+                $shipping_methods[$calcid] = $calc->availableMethods();
+            }
         }
 
         $record->original_id = $record->id;
@@ -1396,13 +1493,13 @@ class storeController extends expController {
         if (empty($this->params['id'])) return false;
         $product_type = $db->selectValue('product', 'product_type', 'id=' . $this->params['id']);
         $product = new $product_type($this->params['id'], true, false);
-        //eDebug($product_type);  
+        //eDebug($product_type);
         //eDebug($product, true);
         //if (!empty($product->product_type_id)) {
         //$db->delete($product_type, 'id='.$product->product_id);
         //}
 
-        $db->delete('option', 'product_id=' . $product->id . " AND optiongroup_id IN (SELECT id from " . DB_TABLE_PREFIX . "_optiongroup WHERE product_id=" . $product->id . ")");
+        $db->delete('option', 'product_id=' . $product->id . " AND optiongroup_id IN (SELECT id from " . $db->prefix . "optiongroup WHERE product_id=" . $product->id . ")");
         $db->delete('optiongroup', 'product_id=' . $product->id);
         //die();
         $db->delete('product_storeCategories', 'product_id=' . $product->id . ' AND product_type="' . $product_type . '"');
@@ -1429,7 +1526,7 @@ class storeController extends expController {
         ));
     }
 
-    static public function getProductTypes() {
+    public static function getProductTypes() {
         $paths = array(
             BASE . 'framework/modules/ecommerce/products/models',
         );
@@ -1453,85 +1550,107 @@ class storeController extends expController {
     function metainfo() {
         global $router;
 
-        if (empty($router->params['action'])) return false;
+        if (empty($router->params['action'])) return array();
 
         // figure out what metadata to pass back based on the action we are in.
-        $action = $_REQUEST['action'];
-        $metainfo = array('title'=>'', 'keywords'=>'', 'description'=>'', 'canonical'=> '', 'noindex' => '', 'nofollow' => '');
+        $action = $router->params['action'];
+        $metainfo = array('title'=>'', 'keywords'=>'', 'description'=>'', 'canonical'=> '', 'noindex' => false, 'nofollow' => false);
+        $storename = ecomconfig::getConfig('storename');
         switch ($action) {
             case 'showall': //category page
                 $cat = $this->category;
                 if (!empty($cat)) {
-                    $metainfo['title'] = empty($cat->meta_title) ? $cat->title : $cat->meta_title;
+                    $metainfo['title'] = empty($cat->meta_title) ? $cat->title . ' ' . gt('Products') . ' - ' . $storename : $cat->meta_title;
                     $metainfo['keywords'] = empty($cat->meta_keywords) ? $cat->title : strip_tags($cat->meta_keywords);
                     $metainfo['description'] = empty($cat->meta_description) ? strip_tags($cat->body) : strip_tags($cat->meta_description);
-                    $metainfo['canonical'] = empty($cat->canonical) ? '' : strip_tags($cat->canonical);
-                    $metainfo['noindex'] = empty($cat->meta_noindex) ? '' : strip_tags($cat->meta_noindex);
-                    $metainfo['nofollow'] = empty($cat->meta_nofollow) ? '' : strip_tags($cat->meta_nofollow);
+                    $metainfo['canonical'] = empty($cat->canonical) ? $router->plainPath() : strip_tags($cat->canonical);
+                    $metainfo['noindex'] = empty($cat->meta_noindex) ? false : $cat->meta_noindex;
+                    $metainfo['nofollow'] = empty($cat->meta_nofollow) ? false : $cat->meta_nofollow;
                 }
                 break;
             case 'show':
             case 'showByTitle':
-                $prod = new product(isset($_REQUEST['title']) ? expString::sanitize($_REQUEST['title']) : intval($_REQUEST['id']));
+                $prod = new product(isset($router->params['title']) ? expString::sanitize($router->params['title']) : intval($router->params['id']));
                 if (!empty($prod)) {
-                    $metainfo['title'] = empty($prod->meta_title) ? $prod->title : $prod->meta_title;
+                    $metainfo['title'] = empty($prod->meta_title) ? $prod->title . " - " . $storename : $prod->meta_title;
                     $metainfo['keywords'] = empty($prod->meta_keywords) ? $prod->title : strip_tags($prod->meta_keywords);
                     $metainfo['description'] = empty($prod->meta_description) ? strip_tags($prod->body) : strip_tags($prod->meta_description);
-                    $metainfo['canonical'] = empty($prod->canonical) ? '' : strip_tags($prod->canonical);
-                    $metainfo['noindex'] = empty($prod->meta_noindex) ? '' : strip_tags($prod->meta_noindex);
-                    $metainfo['nofollow'] = empty($prod->meta_nofollow) ? '' : strip_tags($prod->meta_nofollow);
+                    $metainfo['canonical'] = empty($prod->canonical) ? $router->plainPath() : strip_tags($prod->canonical);
+                    $metainfo['noindex'] = empty($prod->meta_noindex) ? false : $prod->meta_noindex;
+                    $metainfo['nofollow'] = empty($prod->meta_nofollow) ? false : $prod->meta_nofollow;
                     if (!empty($prod->expFile['mainimage'][0]) && file_exists(BASE.$prod->expFile['mainimage'][0]->directory.$prod->expFile['mainimage'][0]->filename)) {
                         $metainfo['rich'] = '<!--
         <PageMap>
             <DataObject type="thumbnail">
-                <Attribute name="src" value="'.URL_FULL.$prod->expFile['mainimage'][0]->directory.$prod->expFile['mainimage'][0]->filename.'"/>
+                <Attribute name="src" value="'.$prod->expFile['mainimage'][0]->url.'"/>
                 <Attribute name="width" value="'.$prod->expFile['mainimage'][0]->image_width.'"/>
                 <Attribute name="height" value="'.$prod->expFile['mainimage'][0]->image_width.'"/>
             </DataObject>
         </PageMap>
     -->';
                     }
+                    $metainfo['fb']['type'] = 'product';
+                    $metainfo['fb']['title'] =  substr(empty($prod->meta_fb['title']) ? $prod->title : $prod->meta_fb['title'], 0, 87);
+                    $metainfo['fb']['description'] = substr(empty($prod->meta_fb['description']) ? $metainfo['description'] : $prod->meta_fb['description'], 0, 199);
+                    $metainfo['fb']['url'] = empty($prod->meta_fb['url']) ? $metainfo['canonical'] : $prod->meta_fb['url'];
+                    $metainfo['fb']['image'] = empty($prod->meta_fb['fbimage'][0]) ? '' : $prod->meta_fb['fbimage'][0]->url;
+                    if (empty($metainfo['fb']['image'])) {
+                        if (!empty($prod->expFile['mainimage'][0]))
+                            $metainfo['fb']['image'] = $prod->expFile['mainimage'][0]->url;
+                        if (empty($metainfo['fb']['image']))
+                            $metainfo['fb']['image'] = URL_BASE . '/framework/modules/ecommerce/assets/images/no-image.jpg';
+                    }
                     break;
                 }
             default:
-                $metainfo['title'] = $this->displayname() . " - " . SITE_TITLE;
+                $metainfo['title'] = gt("Shopping") . " - " . $storename;
                 $metainfo['keywords'] = SITE_KEYWORDS;
                 $metainfo['description'] = SITE_DESCRIPTION;
         }
 
         // Remove any quotes if there are any.
-        $metainfo['title'] = expString::parseAndTrim($metainfo['title'], true);
-        $metainfo['description'] = expString::parseAndTrim($metainfo['description'], true);
-        $metainfo['keywords'] = expString::parseAndTrim($metainfo['keywords'], true);
-        $metainfo['canonical'] = expString::parseAndTrim($metainfo['canonical'], true);
-        $metainfo['noindex'] = expString::parseAndTrim($metainfo['noindex'], true);
-        $metainfo['nofollow'] = expString::parseAndTrim($metainfo['nofollow'], true);
+//        $metainfo['title'] = expString::parseAndTrim($metainfo['title'], true);
+//        $metainfo['description'] = expString::parseAndTrim($metainfo['description'], true);
+//        $metainfo['keywords'] = expString::parseAndTrim($metainfo['keywords'], true);
+//        $metainfo['canonical'] = expString::parseAndTrim($metainfo['canonical'], true);
+//        $metainfo['noindex'] = expString::parseAndTrim($metainfo['noindex'], true);
+//        $metainfo['nofollow'] = expString::parseAndTrim($metainfo['nofollow'], true);
 
         return $metainfo;
+    }
+
+    /**
+     * Configure the module
+     */
+    public function configure() {
+        if (empty($this->config['enable_ratings_and_reviews'])) {
+            $this->remove_configs[] = 'comments';
+        }
+        parent::configure();
     }
 
     public function deleteChildren() {
         //eDebug($data[0],true);
         //if($id!=null) $this->params['id'] = $id;
-        //eDebug($this->params,true);        
+        //eDebug($this->params,true);
         $product = new product($this->params['id']);
         //$product = $product->find("first", "previous_id =" . $previous_id);
         //eDebug($product, true);
-        if (empty($product->id)) // || empty($product->previous_id)) 
+        if (empty($product->id)) // || empty($product->previous_id))
         {
             flash('error', gt('There was an error deleting the child products.'));
             expHistory::back();
         }
         $childrenToDelete = $product->find('all', 'parent_id=' . $product->id);
         foreach ($childrenToDelete as $ctd) {
-            //fwrite($lfh, "Deleting:" . $ctd->id . "\n");                             
+            //fwrite($lfh, "Deleting:" . $ctd->id . "\n");
             $ctd->delete();
         }
     }
 
     function searchByModelForm() {
         // get the search terms
-        $terms = $this->params['search_string'];
+        $terms = expString::escape($this->params['search_string']);
 
         $sql = "model like '%" . $terms . "%'";
 
@@ -1558,13 +1677,18 @@ class storeController extends expController {
         ));
     }
 
+    /**
+     * AJAX search for products by model/sku
+     */
+
     function search_by_model() {
         global $db, $user;
 
         $sql = "select DISTINCT(p.id) as id, p.title, model from " . $db->prefix . "product as p WHERE ";
-        if (!($user->is_admin || $user->is_acting_admin)) $sql .= '(p.active_type=0 OR p.active_type=1) AND ';
+        if (!($user->isAdmin())) $sql .= '(p.active_type=0 OR p.active_type=1) AND ';
 
         //if first character of search is a -, then we do a wild card, else from beginning
+        $this->params['query'] = expString::escape($this->params['query']);
         if ($this->params['query'][0] == '-') {
             $sql .= " p.model LIKE '%" . $this->params['query'];
         } else {
@@ -1579,38 +1703,55 @@ class storeController extends expController {
         $ar->send();
     }
 
+    /**
+     * AJAX search for products by title, description, or model/sku
+     *
+     */
     public function search() {
         global $db, $user;
 
-        if (INCLUDE_AJAX_SEARCH == 1) {
+        $this->params['query'] = expString::escape($this->params['query']);
+        if (SAVE_SEARCH_QUERIES && INCLUDE_AJAX_SEARCH == 1) {  // only to add search query record
             $qry = trim($this->params['query']);
             if (!empty($qry)) {
-                $search = new search();
-                $r = $search->getSearchResults($this->params['query']);
+                if (INCLUDE_ANONYMOUS_SEARCH == 1 || $user->id <> 0) {
+                    $queryObj = new stdClass();
+                    $queryObj->user_id = $user->id;
+                    $queryObj->query = $qry;
+                    $queryObj->timestamp = time();
+
+                    $db->insertObject($queryObj, 'search_queries');
+                }
             }
         }
         //$this->params['query'] = str_ireplace('-','\-',$this->params['query']);
         $terms = explode(" ", $this->params['query']);
+        $search_type = ecomconfig::getConfig('ecom_search_results');
+
+        // look for term in full text search
         $sql = "select DISTINCT(p.id) as id, p.title, model, sef_url, f.id as fileid, match (p.title,p.body) against ('" . $this->params['query'] . "*' IN BOOLEAN MODE) as score ";
-        $sql .= "  from " . $db->prefix . "product as p INNER JOIN " .
-            $db->prefix . "content_expFiles as cef ON p.id=cef.content_id INNER JOIN " . $db->prefix .
+        $sql .= "  from " . $db->prefix . "product as p LEFT JOIN " .
+            $db->prefix . "content_expFiles as cef ON p.id=cef.content_id AND cef.content_type IN ('product','eventregistration','donation','giftcard') AND cef.subtype='mainimage' LEFT JOIN " . $db->prefix .
             "expFiles as f ON cef.expFiles_id = f.id WHERE ";
-        if (!($user->is_admin || $user->is_acting_admin)) $sql .= '(p.active_type=0 OR p.active_type=1) AND ';
+        if (!($user->isAdmin())) $sql .= '(p.active_type=0 OR p.active_type=1) AND ';
+        if ($search_type == 'products') $sql .= 'product_type = "product" AND ';
         $sql .= " match (p.title,p.body) against ('" . $this->params['query'] . "*' IN BOOLEAN MODE) AND p.parent_id=0  GROUP BY p.id ";
         $sql .= "order by score desc LIMIT 10";
 
         $firstObs = $db->selectObjectsBySql($sql);
         foreach ($firstObs as $set) {
             $set->weight = 1;
-
             unset($set->score);
-            $res[$set->model] = $set;
+            $index = !empty($set->model) ? $set->model : $set->sef_url;
+            $res[$index] = $set;
         }
 
-        $sql = "select DISTINCT(p.id) as id, p.title, model, sef_url, f.id as fileid  from " . $db->prefix . "product as p INNER JOIN " .
-            $db->prefix . "content_expFiles as cef ON p.id=cef.content_id INNER JOIN " . $db->prefix .
+        // look for specific term in fields
+        $sql = "select DISTINCT(p.id) as id, p.title, model, sef_url, f.id as fileid  from " . $db->prefix . "product as p LEFT JOIN " .
+            $db->prefix . "content_expFiles as cef ON p.id=cef.content_id AND cef.content_type IN ('product','eventregistration','donation','giftcard') AND cef.subtype='mainimage' LEFT JOIN " . $db->prefix .
             "expFiles as f ON cef.expFiles_id = f.id WHERE ";
-        if (!($user->is_admin || $user->is_acting_admin)) $sql .= '(p.active_type=0 OR p.active_type=1) AND ';
+        if (!($user->isAdmin())) $sql .= '(p.active_type=0 OR p.active_type=1) AND ';
+        if ($search_type == 'products') $sql .= 'product_type = "product" AND ';
         $sql .= " (p.model like '%" . $this->params['query'] . "%' ";
         $sql .= " OR p.title like '%" . $this->params['query'] . "%') ";
         $sql .= " AND p.parent_id=0 GROUP BY p.id LIMIT 10";
@@ -1618,23 +1759,31 @@ class storeController extends expController {
         $secondObs = $db->selectObjectsBySql($sql);
         foreach ($secondObs as $set) {
             $set->weight = 2;
-            $res[$set->model] = $set;
+            $index = !empty($set->model) ? $set->model : $set->sef_url;
+            $res[$index] = $set;
         }
 
-        $sql = "select DISTINCT(p.id) as id, p.title, model, sef_url, f.id as fileid  from " . $db->prefix . "product as p INNER JOIN " .
-            $db->prefix . "content_expFiles as cef ON p.id=cef.content_id INNER JOIN " . $db->prefix .
+        // look for begins with term in fields
+        $sql = "select DISTINCT(p.id) as id, p.title, model, sef_url, f.id as fileid  from " . $db->prefix . "product as p LEFT JOIN " .
+            $db->prefix . "content_expFiles as cef ON p.id=cef.content_id AND cef.content_type IN ('product','eventregistration','donation','giftcard') AND cef.subtype='mainimage' LEFT JOIN " . $db->prefix .
             "expFiles as f ON cef.expFiles_id = f.id WHERE ";
-        if (!($user->is_admin || $user->is_acting_admin)) $sql .= '(p.active_type=0 OR p.active_type=1) AND ';
+        if (!($user->isAdmin())) $sql .= '(p.active_type=0 OR p.active_type=1) AND ';
+        if ($search_type == 'products') $sql .= 'product_type = "product" AND ';
         $sql .= " (p.model like '" . $this->params['query'] . "%' ";
         $sql .= " OR p.title like '" . $this->params['query'] . "%') ";
         $sql .= " AND p.parent_id=0 GROUP BY p.id LIMIT 10";
 
         $thirdObs = $db->selectObjectsBySql($sql);
         foreach ($thirdObs as $set) {
-            if (strcmp(strtolower(trim($this->params['query'])), strtolower(trim($set->model))) == 0) $set->weight = 10;
-            else if (strcmp(strtolower(trim($this->params['query'])), strtolower(trim($set->title))) == 0) $set->weight = 9;
-            else $set->weight = 3;
-            $res[$set->model] = $set;
+            if (strcmp(strtolower(trim($this->params['query'])), strtolower(trim($set->model))) == 0)
+                $set->weight = 10;
+            else if (strcmp(strtolower(trim($this->params['query'])), strtolower(trim($set->title))) == 0)
+                $set->weight = 9;
+            else
+                $set->weight = 3;
+
+            $index = !empty($set->model) ? $set->model : $set->sef_url;
+            $res[$index] = $set;
         }
 
         function sortSearch($a, $b) {
@@ -1643,8 +1792,9 @@ class storeController extends expController {
 
         if (count($terms)) {
             foreach ($res as $r) {
+                $index = !empty($r->model) ? $r->model : $r->sef_url;
                 foreach ($terms as $term) {
-                    if (stristr($r->title, $term)) $res[$r->model]->weight = $res[$r->model]->weight + 1;
+                    if (stristr($r->title, $term)) $res[$index]->weight = $res[$index]->weight + 1;
                 }
             }
         }
@@ -1654,20 +1804,26 @@ class storeController extends expController {
         $ar->send();
     }
 
+    /**
+     * AJAX search for products by title, description, or model/sku
+     *
+     */
     public function searchNew() {
         global $db, $user;
+
+        $this->params['query'] = expString::escape($this->params['query']);
         //$this->params['query'] = str_ireplace('-','\-',$this->params['query']);
         $sql = "select DISTINCT(p.id) as id, p.title, model, sef_url, f.id as fileid, ";
         $sql .= "match (p.title,p.model,p.body) against ('" . $this->params['query'] . "*' IN BOOLEAN MODE) as relevance, ";
         $sql .= "CASE when p.model like '" . $this->params['query'] . "%' then 1 else 0 END as modelmatch, ";
         $sql .= "CASE when p.title like '%" . $this->params['query'] . "%' then 1 else 0 END as titlematch ";
         $sql .= "from " . $db->prefix . "product as p INNER JOIN " .
-            $db->prefix . "content_expFiles as cef ON p.id=cef.content_id INNER JOIN " . $db->prefix .
+            $db->prefix . "content_expFiles as cef ON p.id=cef.content_id AND cef.content_type IN ('product','eventregistration','donation','giftcard') AND cef.subtype='mainimage'  INNER JOIN " . $db->prefix .
             "expFiles as f ON cef.expFiles_id = f.id WHERE ";
-        if (!($user->is_admin || $user->is_acting_admin)) $sql .= '(p.active_type=0 OR p.active_type=1) AND ';
+        if (!$user->isAdmin()) $sql .= '(p.active_type=0 OR p.active_type=1) AND ';
         $sql .= " match (p.title,p.model,p.body) against ('" . $this->params['query'] . "*' IN BOOLEAN MODE) AND p.parent_id=0 ";
         $sql .= " HAVING relevance > 0 ";
-        //$sql .= "GROUP BY p.id "; 
+        //$sql .= "GROUP BY p.id ";
         $sql .= "order by modelmatch,titlematch,relevance desc LIMIT 10";
 
         eDebug($sql);
@@ -1696,32 +1852,32 @@ class storeController extends expController {
         */
         /*echo "Here?";
         $inv = 30234;
-        $req = 'a29f9shsgh32hsf80s7';        
+        $req = 'a29f9shsgh32hsf80s7';
         $amt = 101.00;
         for($count=1;$count<=25;$count+=2)
-        {   
+        {
             $data[2] = $inv + $count;
             $amt += $count*$count;
-            $successSet[$count]['message'] = "Sucessfully imported row " . $count . ", order: " . $data[2] . "<br/>";                
+            $successSet[$count]['message'] = "Sucessfully imported row " . $count . ", order: " . $data[2] . "<br/>";
             $successSet[$count]['order_id'] = $data[2];
             $successSet[$count]['amount'] = $amt;
             $successSet[$count]['request_id'] = $req;
             $successSet[$count]['reference_id'] = $req;
             $successSet[$count]['authorization_code'] = $req;
-            $successSet[$count]['shipping_tracking_number'] = '1ZNF453937547';    
+            $successSet[$count]['shipping_tracking_number'] = '1ZNF453937547';
             $successSet[$count]['carrier'] = 'UPS';
         }
         for($count=2;$count<=25;$count+=2)
-        {   
-            $data[2] = $inv + $count;                
-            $amt += $count*$count;        
+        {
+            $data[2] = $inv + $count;
+            $amt += $count*$count;
             $errorSet[$count]['error_code'] = '42';
             $errorSet[$count]['message'] = "No go for some odd reason. Try again.";
             $errorSet[$count]['order_id'] = $data[2];
             $errorSet[$count]['amount'] = $amt;
         }
-        
-        assign_to_template(array('errorSet'=>$errorSet, 'successSet'=>$successSet));     
+
+        assign_to_template(array('errorSet'=>$errorSet, 'successSet'=>$successSet));
         return;*/
 
         ###########
@@ -1730,7 +1886,7 @@ class storeController extends expController {
         $template = expTemplate::get_template_for_action(new orderController(), 'setStatus', $this->loc);
 
         //eDebug($_FILES);
-        //eDebug($this->params,true); 
+        //eDebug($this->params,true);
         set_time_limit(0);
         //$file = new expFile($this->params['expFile']['batch_process_upload'][0]);
         if (!empty($_FILES['batch_upload_file']['error'])) {
@@ -1743,10 +1899,14 @@ class storeController extends expController {
         $file->path = $_FILES['batch_upload_file']['tmp_name'];
         echo "Validating file...<br/>";
 
+        $line_end = ini_get('auto_detect_line_endings');
+        ini_set('auto_detect_line_endings',TRUE);
         $checkhandle = fopen($file->path, "r");
+        // read in the header line
         $checkdata = fgetcsv($checkhandle, 10000, ",");
         $fieldCount = count($checkdata);
         $count = 1;
+        // read in the data lines
         while (($checkdata = fgetcsv($checkhandle, 10000, ",")) !== FALSE) {
             $count++;
             if (count($checkdata) != $fieldCount) {
@@ -1756,13 +1916,18 @@ class storeController extends expController {
             }
         }
         fclose($checkhandle);
+        ini_set('auto_detect_line_endings',$line_end);
 
         echo "<br/>CSV File passed validation...<br/><br/>Detecting carrier type....<br/>";
         //exit();
+        $line_end = ini_get('auto_detect_line_endings');
+        ini_set('auto_detect_line_endings',TRUE);
         $handle = fopen($file->path, "r");
+
+        // read in the header line
         $data = fgetcsv($handle, 10000, ",");
-        //eDebug($data);      
-        $dataset = array();
+        //eDebug($data);
+//        $dataset = array();
         $carrier = '';
         if (trim($data[0]) == 'ShipmentInformationShipmentID') {
             echo "Detected UPS file...<br/>";
@@ -1781,6 +1946,7 @@ class storeController extends expController {
 
         $oo = new order();
 
+        // read in the data lines
         while (($data = fgetcsv($handle, 10000, ",")) !== FALSE) {
             $count++;
             $originalOrderId = $data[2];
@@ -1835,8 +2001,8 @@ class storeController extends expController {
                     $result = $calc->delayed_capture($bm, $order->grand_total, $order);
                     if ($result->errorCode == 0) {
                         //we've succeeded.  transaction already created and billing info updated.
-                        //just need to set the order shipping info, check and see if we send user an email, and set statuses.  
-                        //shipping info:                                      
+                        //just need to set the order shipping info, check and see if we send user an email, and set statuses.
+                        //shipping info:
                         $successSet[$count]['order_id'] = $data[2];
                         $successSet[$count]['message'] = "Sucessfully captured order " . $data[2] . " and set shipping information.";
                         $successSet[$count]['amount'] = $order->grand_total;
@@ -1848,7 +2014,7 @@ class storeController extends expController {
                     } else {
                         //failed capture, so we report the error but still set the shipping information
                         //because it's already out the door
-                        //$failMessage = "Attempted to delay capture order " . $data[2] . " and it failed with the following error: " . $result->errorCode . " - " .$result->message;   
+                        //$failMessage = "Attempted to delay capture order " . $data[2] . " and it failed with the following error: " . $result->errorCode . " - " .$result->message;
                         //if the user seelected to set a different status for failed orders, set it here.
                         /*if(isset($this->params['order_status_fail'][0]) && $this->params['order_status_fail'][0] > -1)
                         {
@@ -1859,10 +2025,10 @@ class storeController extends expController {
                             $change->to_status_id = $this->params['order_status_fail'][0];
                             $change->orders_id = $order->id;
                             $change->save();
-                            
+
                             // update the status of the order
                             $order->order_status_id = $this->params['order_status_fail'][0];
-                            $order->save();                             
+                            $order->save();
                         }*/
                         $errorSet[$count]['error_code'] = $result->errorCode;
                         $errorSet[$count]['message'] = "Capture failed: " . $result->message . "<br/>Setting shipping information.";
@@ -1870,11 +2036,11 @@ class storeController extends expController {
                         $errorSet[$count]['amount'] = $order->grand_total;
                         $errorSet[$count]['shipping_tracking_number'] = $data[0];
                         $errorSet[$count]['carrier'] = $carrier;
-                        //continue;   
+                        //continue;
                     }
                 } else {
-                    //dont suppose we do anything here, as it may be set to approved manually 
-                    //$errorSet[$count] = "Order " . $data[2] . " does not use a billing method with delayed capture ability.";  
+                    //dont suppose we do anything here, as it may be set to approved manually
+                    //$errorSet[$count] = "Order " . $data[2] . " does not use a billing method with delayed capture ability.";
                     $successSet[$count]['message'] = 'No capture processing available for order:' . $data[2] . '. Setting shipping information.';
                     $successSet[$count]['order_id'] = $data[2];
                     $successSet[$count]['amount'] = $order->grand_total;
@@ -1882,7 +2048,7 @@ class storeController extends expController {
                     $successSet[$count]['carrier'] = $carrier;
                 }
             } //if we hit this else, it means we have an order that is not in an authorized state
-            //so we do not try to process it = still set shipping though.
+            //so we do not try to process it = still set shipping though.  //FIXME what about 'complete'?
             else {
                 $successSet[$count]['message'] = 'No processing necessary for order:' . $data[2] . '. Setting shipping information.';
                 $successSet[$count]['order_id'] = $data[2];
@@ -1938,14 +2104,15 @@ class storeController extends expController {
                         $html = $template->render();
                         $html .= ecomconfig::getConfig('ecomfooter');
 
-                        $from = array(ecomconfig::getConfig('from_address')=> ecomconfig::getConfig('from_name'));
+                        $from = array(ecomconfig::getConfig('from_address') => ecomconfig::getConfig('from_name'));
                         if (empty($from[0])) $from = SMTP_FROMADDRESS;
                         try {
                             $mail = new expMail();
                             $mail->quickSend(array(
                                 'html_message' => $html,
-                                'text_message' => str_replace("<br>", "\r\n", $template->render()),
-                                'to'           => $email_addy,
+//                                'text_message' => str_replace("<br>", "\r\n", $template->render()),
+                                'text_message' => expString::html2text($html),
+                                'to'           => array($email_addy => $order->billingmethod[0]->firstname . ' ' . $order->billingmethod[0]->lastname),
                                 'from'         => $from,
                                 'subject'      => 'Your Order Has Been Shipped (#' . $order->invoice_id . ') - ' . ecomconfig::getConfig('storename')
                             ));
@@ -1961,8 +2128,10 @@ class storeController extends expController {
                 }
             }
 
-            //eDebug($product);        
+            //eDebug($product);
         }
+        fclose($handle);
+        ini_set('auto_detect_line_endings',$line_end);
 
         assign_to_template(array(
             'errorSet'   => $errorSet,
@@ -2016,17 +2185,22 @@ class storeController extends expController {
             fclose($checkhandle);
         }*/
 
+        $line_end = ini_get('auto_detect_line_endings');
+        ini_set('auto_detect_line_endings',TRUE);
         $checkhandle = fopen($file->path, "r");
         if ($this->params['type_of_address'][0] == 'am') {
+            // read in the header line
             $checkdata = fgetcsv($checkhandle, 10000, "\t");
             $fieldCount = count($checkdata);
         } else {
+            // read in the header line
             $checkdata = fgetcsv($checkhandle, 10000, ",");
             $fieldCount = count($checkdata);
         }
 
         $count = 1;
         if ($this->params['type_of_address'][0] == 'am') {
+            // read in the data lines
             while (($checkdata = fgetcsv($checkhandle, 10000, "\t")) !== FALSE) {
                 $count++;
                 //eDebug($checkdata);
@@ -2037,6 +2211,7 @@ class storeController extends expController {
                 }
             }
         } else {
+            // read in the data lines
             while (($checkdata = fgetcsv($checkhandle, 10000, ",")) !== FALSE) {
                 $count++;
                 if (count($checkdata) != $fieldCount) {
@@ -2048,13 +2223,18 @@ class storeController extends expController {
         }
 
         fclose($checkhandle);
+        ini_set('auto_detect_line_endings',$line_end);
 
         echo "<br/>CSV File passed validation...<br/><br/>Importing....<br/><br/>";
         //exit();
+        $line_end = ini_get('auto_detect_line_endings');
+        ini_set('auto_detect_line_endings',TRUE);
         $handle = fopen($file->path, "r");
+
+        // read in the header line and discard it
         $data = fgetcsv($handle, 10000, ",");
-        //eDebug($data);      
-        $dataset = array();
+        //eDebug($data);
+//        $dataset = array();
 
         //mc=1, nt=2, amm=3
 
@@ -2071,6 +2251,7 @@ class storeController extends expController {
         }
 
         if ($this->params['type_of_address'][0] == 'am') {
+            // read in the data lines
             while (($data = fgetcsv($handle, 10000, "\t")) !== FALSE) {
                 //eDebug($data,true);
                 $extAddy = new external_address();
@@ -2108,6 +2289,7 @@ class storeController extends expController {
                 $extAddy->save();
             }
         } else {
+            // read in the data lines
             while (($data = fgetcsv($handle, 10000, ",")) !== FALSE) {
                 eDebug($data);
                 $extAddy = new external_address();
@@ -2183,6 +2365,8 @@ class storeController extends expController {
                 }
             }
         }
+        fclose($handle);
+        ini_set('auto_detect_line_endings',$line_end);
         echo "Done!";
     }
 
@@ -2274,11 +2458,15 @@ class storeController extends expController {
             $file->path = $_FILES['modelaliases']['tmp_name'];
             echo "Validating file...<br/>";
 
+            $line_end = ini_get('auto_detect_line_endings');
+            ini_set('auto_detect_line_endings',TRUE);
             $checkhandle = fopen($file->path, "r");
+            // read in the header line
             $checkdata = fgetcsv($checkhandle, 10000, ",");
             $fieldCount = count($checkdata);
             $count = 1;
 
+            // read in the data lines
             while (($checkdata = fgetcsv($checkhandle, 10000, ",")) !== FALSE) {
                 $count++;
                 if (count($checkdata) != $fieldCount) {
@@ -2289,13 +2477,18 @@ class storeController extends expController {
             }
 
             fclose($checkhandle);
+            ini_set('auto_detect_line_endings',$line_end);
 
             echo "<br/>CSV File passed validation...<br/><br/>Importing....<br/><br/>";
+            $line_end = ini_get('auto_detect_line_endings');
+            ini_set('auto_detect_line_endings',TRUE);
             $handle = fopen($file->path, "r");
+            // read in the header line
             $data = fgetcsv($handle, 10000, ",");
 
             //clear the db
             $db->delete('model_aliases_tmp');
+            // read in the data lines
             while (($data = fgetcsv($handle, 10000, ",")) !== FALSE) {
 
                 $tmp = new stdClass();
@@ -2303,12 +2496,14 @@ class storeController extends expController {
                 $tmp->field2 = expString::onlyReadables($data[1]);
                 $db->insertObject($tmp, 'model_aliases_tmp');
             }
+            fclose($handle);
+            ini_set('auto_detect_line_endings',$line_end);
             redirect_to(array('controller' => 'store', 'action' => 'processModelAliases'));
             echo "Done!";
         }
 
         //check if there are interrupted model alias in the db
-        $res = $db->selectObjectsBySql("SELECT * FROM ".DB_TABLE_PREFIX."_model_aliases_tmp WHERE is_processed = 0");
+        $res = $db->selectObjectsBySql("SELECT * FROM ".$db->prefix."model_aliases_tmp WHERE is_processed = 0");
         if (!empty($res)) {
             assign_to_template(array(
                 'continue' => '1'
@@ -2326,7 +2521,7 @@ class storeController extends expController {
 
             //if go to the next processs
             if (isset($this->params['next'])) {
-                $res = $db->selectObjectBySql("SELECT * FROM ".DB_TABLE_PREFIX."_model_aliases_tmp LIMIT " . ($index - 1) . ", 1");
+                $res = $db->selectObjectBySql("SELECT * FROM ".$db->prefix."model_aliases_tmp LIMIT " . ($index - 1) . ", 1");
                 //Update the record in the tmp table to mark it as process
                 $res->is_processed = 1;
                 $db->updateObject($res, 'model_aliases_tmp');
@@ -2338,7 +2533,7 @@ class storeController extends expController {
 
         do {
             $count = $db->countObjects('model_aliases_tmp', 'is_processed=0');
-            $res = $db->selectObjectBySql("SELECT * FROM ".DB_TABLE_PREFIX."_model_aliases_tmp LIMIT {$index}, 1");
+            $res = $db->selectObjectBySql("SELECT * FROM ".$db->prefix."model_aliases_tmp LIMIT {$index}, 1");
             //Validation
             //Check the field one
             if (!empty($res)) {
@@ -2397,7 +2592,7 @@ class storeController extends expController {
                 if (!empty($model_alias1) || !empty($model_alias2)) {
                     $error = "The {$res->field1} and {$res->field2} are already being used by another product.<br />";
                 } else {
-                    $error = "No product match found, please choose a product to be alias in the following models below:<br />";
+                    $error = gt("No product match found, please choose a product to be alias in the following models below") . ":<br />";
                     $error .= $res->field1 . "<br />";
                     $error .= $res->field2 . "<br />";
                     $autocomplete = 1;
@@ -2420,11 +2615,11 @@ class storeController extends expController {
         global $db;
 
         $index = $this->params['index'];
-        $title = mysql_real_escape_string($this->params['product_title']);
+        $title = expString::escape($this->params['product_title']);
         $product = $db->selectObject("product", "title='{$title}'");
 
         if (!empty($product->id)) {
-            $res = $db->selectObjectBySql("SELECT * FROM ".DB_TABLE_PREFIX."_model_aliases_tmp LIMIT " . ($index - 1) . ", 1");
+            $res = $db->selectObjectBySql("SELECT * FROM ".$db->prefix."model_aliases_tmp LIMIT " . ($index - 1) . ", 1");
             //Add the first field
             $tmp = new stdClass();
             $tmp->model = $res->field1;
@@ -2515,164 +2710,364 @@ class storeController extends expController {
         ));
     }
 
-    function parseCategory($data) {
-        global $db;
-        if (!empty($data)) {
-            $cats1 = explode("::", trim($data));
-            //eDebug($cats1);
-            $cats1count = count($cats1);
-            $counter = 1;
-            $categories1 = array();
-            foreach ($cats1 as $cat) {
-                //eDebug($cat);
-                if ($counter == 1) $categories1[$counter] = $db->selectObject('storeCategories', 'title="' . $cat . '" AND parent_id=0');
-                else $categories1[$counter] = $db->selectObject('storeCategories', 'title="' . $cat . '" AND parent_id=' . $categories1[$counter - 1]->id);
-                //eDebug($categories1);
-                if (empty($categories1[$counter]->id)) {
-                    return "'" . $cat . "' ".gt('of the set').": '" . $data . "' ".gt("is not a valid category").".";
-                }
-
-                if ($counter == $cats1count) {
-                    return $categories1[$counter]->id;
-                }
-                $counter++;
-            }
-            //eDebug($createCats);
-            //eDebug($categories1,true);
-        } else {
-            return gt("Category was empty.");
+    function importProduct($file=null) {
+        if (empty($file->path)) {
+            $file = new stdClass();
+            $file->path = $_FILES['import_file']['tmp_name'];
         }
-    }
-
-    function importProduct($file) {
+        if (empty($file->path)) {
+            echo gt('Not a Product Import CSV File');
+            return;
+        }
+        $line_end = ini_get('auto_detect_line_endings');
+        ini_set('auto_detect_line_endings',TRUE);
         $handle = fopen($file->path, "r");
-        $data = fgetcsv($handle, 10000, ",");
-        //eDebug($data);
-        foreach ($data as $value) {
-            $dataset[$value] = '';
+
+        // read in the header line
+        $header = fgetcsv($handle, 10000, ",");
+        if (!($header[0] == 'id' || $header[0] == 'model')) {
+            echo gt('Not a Product Import CSV File');
+            return;
         }
 
-        //eDebug($dataset,true);
         $count = 1;
         $errorSet = array();
-        $successSet = array();
-        //$createCats = array();
         $product = null;
-        /*
-        0= id
-        1=parent_id
-        2=child_rank
-        3=title
-        4=model
-        5=warehouse_location
-        6=sef_url
-        7=meta_title
-        8=meta_keywords
-        9=meta_description
-        10=base_price
-        11=special_price
-        12=use_special_price
-        13=active_type
-        14=product_status_id
-        15=category1
-        16=category2
-        17=category3
-        18=category4
-        19=surcharge
-        20=rank
-        21=feed_title
-        22=feed_body
-        */
+        /*  original order of columns
+            0=id
+            1=parent_id
+            2=child_rank
+            3=title
+            4=body
+            5=model
+            6=warehouse_location
+            7=sef_url
+//FIXME        this is where canonical should be
+            8=meta_title
+            9=meta_keywords
+            10=meta_description
+            11=tax_class_id
+            12=quantity
+            13=availability_type
+            14=base_price
+            15=special_price
+            16=use_special_price
+            17=active_type
+            18=product_status_id
+            19=category1
+            20=category2
+            21=category3
+            22=category4
+            ..
+            30=category12
+            31=surcharge
+            32=rank category_rank
+            33=feed_title
+            34=feed_body
+            35=weight
+            36=height
+            37=width
+            38=length
+            39=companies_id
+            40=image1 url to mainimage to download
+            41=image2 url to additional image to download
+            ..
+            44=image5 url to additional image to download
+*/
 
-        while (($data = fgetcsv($handle, 10000, ",")) !== FALSE) {
+        // read in the data lines
+//        while (($data = fgetcsv($handle, 10000, ",")) !== FALSE) {
+        while (($row = fgetcsv($handle, 10000, ",")) !== FALSE) {
             $count++;
+            $createCats = array();
+            $createCatsRank = array();
+            $data = array_combine($header, $row);
 
             //eDebug($data, true);
-            if (isset($data[0]) && $data[0] != 0) {
-                $product = new product($data[0], false, false);
-                if (empty($product->id)) {
-                    $errorSet[$count] = $product->id . " ".gt("is not a valid product ID.");
-                    continue;
+            if ($header[0] == 'id') {
+                if (isset($data['id']) && $data['id'] != 0) {
+                    $product = new product($data['id'], false, false);
+                    if (empty($product->id)) {
+                        $errorSet[$count] = gt("Is not an existing product ID.");
+                        continue;
+                    }
+                } else {
+                    //$errorSet[$count] = "Product ID not supplied.";
+                    //continue;
+                    $product = new product();
+                    //$product->save(false);
                 }
-            } else {
-                //$errorSet[$count] = "Product ID not supplied.";
-                //continue;
-                $product = new product();
-                //$product->save(false);
+            } elseif ($header[0] == 'model') {
+                if (!empty($data['model'])) {
+                    $p = new product();
+                    $product = $p->find('first','model="' . $data['model'] . '"');
+                    if (empty($product->id)) {
+                        $errorSet[$count] = gt("Is not an existing product SKU/Model.");
+                        continue;
+                    }
+                } else {
+                    $product = new product();
+                }
             }
-
-            $checkTitle = trim($data[3]);
-            if (empty($checkTitle)) {
-                $errorSet[$count] = gt("No product name (title) supplied, skipping this record...");
+            if ($product->product_type != 'product') {
+                $errorSet[$count] = gt("Existing product is wrong product type.");
                 continue;
             }
-            $product->parent_id = $data[1];
-            $product->child_rank = $data[2];
-            $product->title = stripslashes(stripslashes($data[3]));
-            $product->body = utf8_encode(stripslashes(reportController::parseAndTrimImport(($data[4]), true)));
-            //$product->body = utf8_encode(stripslashes(stripslashes(($data[4]))));
-            $product->model = stripslashes(stripslashes($data[5]));
-            $product->warehouse_location = stripslashes(stripslashes($data[6]));
-            $product->sef_url = stripslashes(stripslashes($data[7]));
-            $product->meta_title = stripslashes(stripslashes($data[8]));
-            $product->meta_keywords = stripslashes(stripslashes($data[9]));
-            $product->meta_description = stripslashes(stripslashes($data[10]));
 
-            $product->tax_class_id = $data[11];
+            // new products must have a title
+            if (empty($product->id)) {  // new product require mandatory values
+                $checkTitle = trim($data['title']);
+                if (empty($checkTitle)) {
+                    $errorSet[$count] = gt("No product name (title) supplied.");
+                    continue;
+                }
+                $product->minimum_order_quantity = 1;
+            }
 
-            $product->quantity = $data[12];
+            // parse $data columns
+            foreach ($data as $key=>$value) {
+                $value = trim($value);
+                switch ($key) {
+                    case 'parent_id': // integer
+                    case 'child_rank':
+                    case 'tax_class_id':
+                    case 'quantity':
+                    case 'availability_type':
+                    case 'use_special_price':
+                    case 'active_type':
+                    case 'product_status_id':
+                        $product->$key = intval($value);
+                        break;
+                    case 'companies_id':
+                        if (is_numeric($value)) {
+                            $product->$key = intval($value);
+                        } elseif (!empty($value)) {  // it's a company name, not a company id#
+                            $co = new company();
+                            $company = $co->find('first', 'title=' . $value);
+                            if (empty($company->id)) {
+                                $params['title'] = $value;
+                                $company->update();
+                            }
+                            $product->$key = $company->id;
+                        }
+                        break;
+                    case 'sef_url':
+                        $product->$key = stripslashes(stripslashes($value));
+                        if (!is_bool(expValidator::uniqueness_of('sef_url', $product, array()))) {
+                            $product->makeSefUrl();
+                        }
+                        break;
+                    case 'title':  // string
+                    case 'model':
+                    case 'warehouse_location':
+                    case 'meta_title':
+                    case 'meta_keywords':
+                    case 'meta_description':
+                    case 'feed_title':
+                    case 'feed_body':
+                        $product->$key = stripslashes(stripslashes($value));
+                        break;
+                    case 'body':
+                        $product->$key = utf8_encode(stripslashes(expString::parseAndTrimImport(($value), true)));
+                        break;
+                    case 'base_price':  // float
+                    case 'special_price':
+                    case 'surcharge':
+                    case 'weight':
+                    case 'height':
+                    case 'width':
+                    case 'length':
+                        $product->$key = floatval($value);
+                        break;
+                    case 'image1':
+                    case 'image2':
+                    case 'image3':
+                    case 'image4':
+                    case 'image5':
+                        if (!empty($value)) {
+                            $product->save(false);
+                            if (is_integer($value)) {
+                                $_objFile = new expFile ($value);
+                            } else {
+                                // import image from url
+                                $_destFile = basename($value);  // get filename from end of url
+                                $_destDir = UPLOAD_DIRECTORY_RELATIVE;
+                                $_destFullPath = BASE . $_destDir . $_destFile;
+                                if (file_exists($_destFullPath)) {
+                                    $_destFile = expFile::resolveDuplicateFilename($_destFullPath);
+                                    $_destFullPath = BASE . $_destDir . $_destFile;
+                                }
 
-            $product->availability_type = $data[13];
+                                expCore::saveData($value, $_destFullPath);  // download the image
 
-            $product->base_price = $data[14];
-            $product->special_price = $data[15];
-            $product->use_special_price = $data[16];
-            $product->active_type = $data[17];
-            $product->product_status_id = $data[18];
+                                if (file_exists($_destFullPath)) {
+                                    $__oldumask = umask(0);
+                                    chmod($_destFullPath, octdec(FILE_DEFAULT_MODE_STR + 0));
+                                    umask($__oldumask);
 
-            $product->surcharge = $data[31];
-            $product->feed_title = stripslashes(stripslashes($data[33]));
-            $product->feed_body = stripslashes(stripslashes($data[34]));
+                                    // Create a new expFile Object
+                                    $_fileParams = array('filename' => $_destFile, 'directory' => $_destDir);
+                                    $_objFile = new expFile ($_fileParams);
+                                    $_objFile->save();
+                                }
+                            }
+                            // attach product images expFile object
+                            if (!empty($_objFile->id)) {
+                                if ($key == 'image1') {
+                                    $product->attachItem($_objFile, 'mainimage');
+                                } else {
+                                    $product->attachItem($_objFile, 'images', false);
+                                }
+                            }
+                        }
+                        break;
+                    case 'category1':
+                    case 'category2':
+                    case 'category3':
+                    case 'category4':
+                    case 'category5':
+                    case 'category6':
+                    case 'category7':
+                    case 'category8':
+                    case 'category9':
+                    case 'category10':
+                    case 'category11':
+                    case 'category12':
+                        if ($product->parent_id == 0) {
+//                            $rank = !empty($data['rank']) ? $data['rank'] : 1;
+                            $rank = intval(str_replace('category', '', $key));
+//                            if (!empty($value)) $result = storeCategory::parseCategory($value);
+                            if (!empty($value)) $result = storeCategory::importCategoryString($value);
+                            else continue;
 
-            if (empty($product->id)) $product->minimum_order_quantity = 1;
-
-            if ($product->parent_id == 0) {
-                $createCats = array();
-                $createCatsRank = array();
-                for ($x = 19; $x <= 30; $x++) {
-                    if (!empty($data[$x])) $result = $this->parseCategory($data[$x]);
-                    else continue;
-
-                    if (is_numeric($result)) {
-                        $createCats[] = $result;
-                        $createCatsRank[$result] = $data[32];
-                    } else {
-                        $errorSet[$count][] = $result;
-                        continue 2;
-                    }
+//                            if (is_numeric($result)) {
+                            if ($result) {
+                                $createCats[] = $result;
+                                $createCatsRank[$result] = $rank;
+                            } else {
+                                $errorSet[$count][] = $result;
+                                continue 2;
+                            }
+                        }
+                        break;
+                    default:
+                        if (property_exists('product', $key)) {
+                            $product->key = $value;
+                        }
                 }
             }
-            /*[0] => id
-            [1] => parent_id
-            [2] => child_rank
-            [3] => title
-            [4] => model
-            [5] => warehouse_location
-            [6] => sef_url
-            [7] => meta_title
-            [8] => meta_keywords
-            [9] => meta_description
-            [10] => base_price
-            [11] => special_price
-            [12] => use_special_price
-            [13] => active_type
-            [14] => product_status_id
-            [15] => category1
-            [16] => category2
-            [17] => category3
-            [18] => category4
-            [19] => surcharge*/
 
+//            $checkTitle = trim($data['title']);
+//            if (empty($checkTitle)) {
+//                $errorSet[$count] = gt("No product name (title) supplied, skipping this record...");
+//                continue;
+//            }
+//            $product->parent_id = $data[1];
+//            $product->child_rank = $data[2];
+//            $product->title = stripslashes(stripslashes($data[3]));
+//            $product->body = utf8_encode(stripslashes(expString::parseAndTrimImport(($data[4]), true)));
+//            //$product->body = utf8_encode(stripslashes(stripslashes(($data[4]))));
+//            $product->model = stripslashes(stripslashes($data[5]));
+//            $product->warehouse_location = stripslashes(stripslashes($data[6]));
+//            $product->sef_url = stripslashes(stripslashes($data[7]));
+////FIXME        this is where canonical should be
+//            $product->meta_title = stripslashes(stripslashes($data[8]));
+//            $product->meta_keywords = stripslashes(stripslashes($data[9]));
+//            $product->meta_description = stripslashes(stripslashes($data[10]));
+//
+//            $product->tax_class_id = $data[11];
+//
+//            $product->quantity = $data[12];
+//
+//            $product->availability_type = $data[13];
+//
+//            $product->base_price = $data[14];
+//            $product->special_price = $data[15];
+//            $product->use_special_price = $data[16];
+//            $product->active_type = $data[17];
+//            $product->product_status_id = $data[18];
+//
+//            $product->surcharge = $data[31];
+//            $product->feed_title = stripslashes(stripslashes($data[33]));
+//            $product->feed_body = stripslashes(stripslashes($data[34]));
+//            if (!empty($data[35])) $product->weight = $data[35];
+//            if (!empty($data[36])) $product->height = $data[36];
+//            if (!empty($data[37])) $product->width = $data[37];
+//            if (!empty($data[38])) $product->length = $data[38];
+//            if (!empty($data[39])) $product->companies_id = $data[39];
+//            if (!empty($data[40])) {
+//                // import image from url
+//                $_destFile = basename($data[40]);  // get filename from end of url
+//                $_destDir = UPLOAD_DIRECTORY_RELATIVE;
+//                $_destFullPath = BASE . $_destDir . $_destFile;
+//                if (file_exists($_destFullPath)) {
+//                    $_destFile = expFile::resolveDuplicateFilename($_destFullPath);
+//                    $_destFullPath = BASE . $_destDir . $_destFile;
+//                }
+//
+//                expCore::saveData($data[40], $_destFullPath);  // download the image
+//
+//                if (file_exists($_destFullPath)) {
+//                    $__oldumask = umask(0);
+//                    chmod($_destFullPath, octdec(FILE_DEFAULT_MODE_STR + 0));
+//                    umask($__oldumask);
+//
+//                    // Create a new expFile Object
+//                    $_fileParams = array('filename' => $_destFile, 'directory' => $_destDir);
+//                    $_objFile = new expFile ($_fileParams);
+//                    $_objFile->save();
+//                    // attach/replace product main image with new expFile object
+//                    $product->attachItem($_objFile, 'mainimage');
+//                }
+//            }
+//            for ($i=41; $i<=44; $i++) {
+//                if (!empty($data[$i])) {
+//                    // import image from url
+//                    $_destFile = basename($data[$i]);  // get filename from end of url
+//                    $_destDir = UPLOAD_DIRECTORY_RELATIVE;
+//                    $_destFullPath = BASE . $_destDir . $_destFile;
+//                    if (file_exists($_destFullPath)) {
+//                        $_destFile = expFile::resolveDuplicateFilename($_destFullPath);
+//                        $_destFullPath = BASE . $_destDir . $_destFile;
+//                    }
+//
+//                    expCore::saveData($data[$i], $_destFullPath);  // download the image
+//
+//                    if (file_exists($_destFullPath)) {
+//                        $__oldumask = umask(0);
+//                        chmod($_destFullPath, octdec(FILE_DEFAULT_MODE_STR + 0));
+//                        umask($__oldumask);
+//
+//                        // Create a new expFile Object
+//                        $_fileParams = array('filename' => $_destFile, 'directory' => $_destDir);
+//                        $_objFile = new expFile ($_fileParams);
+//                        $_objFile->save();
+//                        // attach product additional images with new expFile object
+//                        $product->attachItem($_objFile, 'images', false);
+//                    }
+//                }
+//            }
+//
+//            if (empty($product->id)) $product->minimum_order_quantity = 1;
+//
+//            if ($product->parent_id == 0) {
+//                $createCats = array();
+//                $createCatsRank = array();
+//                for ($x = 19; $x <= 30; $x++) {
+//                    if (!empty($data[$x])) $result = storeCategory::parseCategory($data[$x]);
+//                    else continue;
+//
+//                    if (is_numeric($result)) {
+//                        $createCats[] = $result;
+//                        $createCatsRank[$result] = $data[32];
+//                    } else {
+//                        $errorSet[$count][] = $result;
+//                        continue 2;
+//                    }
+//                }
+//            }
+
+            //NOTE: we manipulate existing user input fields to store them properly?
             //eDebug($createCats,true);
             if (!empty($product->user_input_fields) && is_array($product->user_input_fields))
                 $product->user_input_fields = serialize($product->user_input_fields);
@@ -2682,7 +3077,7 @@ class storeController extends expController {
                 $product->user_input_fields = str_replace("'", "\'", $product->user_input_fields);
 
             //eDebug($product->user_input_fields,true);
-            $product->save(false);
+            $product->save(true);
             //eDebug($product->body);
 
             //sort order and categories
@@ -2690,23 +3085,29 @@ class storeController extends expController {
                 $product->saveCategories($createCats, $createCatsRank);
                 //eDebug($createCatsRank);
             }
-            echo "Successfully imported row " . $count . ", product: " . $product->title . "<br/>";
+            echo "Successfully imported/updated row " . $count . ", product: " . $product->title . "<br/>";
             //eDebug($product);
 
         }
 
         if (count($errorSet)) {
-            echo "<br/><hr><br/><style color:'red'>".gt('The following records were NOT imported').":<br/>";
-            foreach ($errorSet as $row => $err) {
-                echo "Row: " . $row . ". Reason:<br/>";
+            echo "<br/><hr><br/><div style='color:red'><strong>".gt('The following records were NOT imported').":</strong><br/>";
+            foreach ($errorSet as $rownum => $err) {
+                echo "Row: " . $rownum;
                 if (is_array($err)) {
                     foreach ($err as $e) {
-                        echo "--" . $e . "<br/>";
+                        echo " -- " . $e . "<br/>";
                     }
-                } else echo "--" . $err . "<br/>";
+                } else echo " -- " . $err . "<br/>";
             }
-            echo "</style>";
+            echo "</div>";
         }
+
+        fclose($handle);
+        ini_set('auto_detect_line_endings',$line_end);
+
+        // update search index
+        $this->addContentToSearch();
     }
 
 }

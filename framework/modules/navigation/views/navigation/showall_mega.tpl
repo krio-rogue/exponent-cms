@@ -1,5 +1,5 @@
 {*
- * Copyright (c) 2004-2014 OIC Group, Inc.
+ * Copyright (c) 2004-2016 OIC Group, Inc.
  *
  * This file is part of Exponent
  *
@@ -41,9 +41,9 @@
                 {/if}
                 {*top level menu*}
                 {if $parent->type != 3}
-                    <li class="drop{$class}"><a {if $parent->url != "#"}href="{$parent->url}"{/if}{if !empty($parent->itemdata)} class="drop"{/if}{if $parent->new_window} target="_blank"{/if}>{if !empty($parent->expFile[0]->id)}{img class=img_left file_id=$parent->expFile[0]->id w=16 h=16} {/if}{$parent->text}</a>
+                    <li class="drop{$class}"><a {if $parent->url != "#"}href="{$parent->url}"{/if}{if !empty($parent->itemdata)} class="drop"{/if}{if $parent->new_window} target="_blank"{/if}>{if !empty($parent->expFile[0]->id)}{img class=img_left file_id=$parent->expFile[0]->id w=16 h=16 alt="{$parent->text}"} {/if}{if !$parent->glyph_only}{$parent->text}{/if}</a>
                 {else}
-                    <li class="drop{$class}"><a class="drop">{if !empty($parent->expFile[0]->id)}{img class=img_left file_id=$parent->expFile[0]->id w=16 h=16} {/if}{$parent->text}</a>
+                    <li class="drop{$class}"><a class="drop">{if !empty($parent->expFile[0]->id)}{img class=img_left file_id=$parent->expFile[0]->id w=16 h=16 alt="{$parent->text}"} {/if}{if !$parent->glyph_only}{$parent->text}{/if}</a>
                 {/if}
                 {if !empty($parent->itemdata) &&  $parent->type != 3}
                     {if $config.height && $parent->maxdepth == 1}
@@ -69,8 +69,8 @@
                                 {else}
                                     {$description = ''}
                                 {/if}
-                                {if !$depth}<div class="col_1{if !empty($child->itemdata)} column greybox{/if}">{/if}
-                                    <div class="menuitem{if $config.usedesc && !empty($description)} desc{/if}{if !empty($child->itemdata)} menuheader{/if}"><a {$class}{if $child->url != "#"}href="{$child->url}"{/if}{if $child->new_window} target="_blank"{/if}><h4>{if !empty($child->expFile[0]->id)}{img class=img_left file_id=$child->expFile[0]->id w=24 h=24}{/if}{if $config.usetitle && !empty($child->title)}{$child->title}{else}{$child->text}{/if}</h4>{if $config.usedesc}{$description}{/if}</a></div>
+                                {if !$depth}<div class="col_1{if !empty($child->itemdata) && $depth < $maxdepth} column greybox{/if}">{/if}
+                                    <div class="menuitem{if $config.usedesc && !empty($description)} desc{/if}{if !empty($child->itemdata) && $depth < $maxdepth} menuheader{/if}"><a {$class}{if $child->url != "#"}href="{$child->url}"{/if}{if $child->new_window} target="_blank"{/if}><h4>{if !empty($child->expFile[0]->id)}{img class=img_left file_id=$child->expFile[0]->id w=24 h=24 alt="{$parent->text}"}{/if}{if !$child->glyph_only}{if $config.usetitle && !empty($child->title)}{$child->title}{else}{$child->text}{/if}{/if}</h4>{if $config.usedesc}{$description}{/if}</a></div>
                                     {if !empty($child->itemdata)}
                                     <div class="child">
                                         {if $depth < $maxdepth}{menu_items parent = $child depth=$depth+1}{/if}
@@ -91,7 +91,7 @@
                     {/if}
                     {$dropsize = "dropdown_`$width`column"|plural:$width}
                     <div class="{if $parent->class == 'right'}align_right {/if}{$dropsize} freeform-menu">
-                        {showmodule module='container' view="Default" source="menuitem-"|cat:$parent->id chrome=true}
+                        {showmodule controller=container action=showall source="menuitem-"|cat:$parent->id chrome=true}
                     </div>
                 {/if}
             {/if}

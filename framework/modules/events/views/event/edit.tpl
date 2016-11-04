@@ -1,5 +1,5 @@
 {*
- * Copyright (c) 2004-2014 OIC Group, Inc.
+ * Copyright (c) 2004-2016 OIC Group, Inc.
  *
  * This file is part of Exponent
  *
@@ -86,19 +86,20 @@
                 {/if}
             </div>
         </div>
-	    <div class="loadingdiv">{"Loading Event"|gettext}</div>
+	    {*<div class="loadingdiv">{"Loading Event"|gettext}</div>*}
+        {loading title="Loading Event"|gettext}
         {control type=buttongroup submit="Save Event"|gettext cancel="Cancel"|gettext}
      {/form}
 </div>
 
-{script unique="editform" yui3mods=1}
+{script unique="editform" yui3mods="exptabs"}
 {literal}
     EXPONENT.YUI3_CONFIG.modules.exptabs = {
         fullpath: EXPONENT.JS_RELATIVE+'exp-tabs.js',
         requires: ['history','tabview','event-custom']
     };
 
-	YUI(EXPONENT.YUI3_CONFIG).use('exptabs', function(Y) {
+	YUI(EXPONENT.YUI3_CONFIG).use('*', function(Y) {
         Y.expTabs({srcNode: '#editevent-tabs'});
 		Y.one('#editevent-tabs').removeClass('hide');
 		Y.one('.loadingdiv').remove();

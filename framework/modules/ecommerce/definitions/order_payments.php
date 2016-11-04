@@ -2,7 +2,7 @@
 
 ##################################################
 #
-# Copyright (c) 2004-2014 OIC Group, Inc.
+# Copyright (c) 2004-2016 OIC Group, Inc.
 #
 # This file is part of Exponent
 #
@@ -19,6 +19,7 @@
 /**
  * @subpackage Definitions
  * @package Core
+ * @deprecated not used in 2.x
  */
 return array(
 	'id'=>array(

@@ -1,5 +1,5 @@
 {*
- * Copyright (c) 2004-2014 OIC Group, Inc.
+ * Copyright (c) 2004-2016 OIC Group, Inc.
  *
  * This file is part of Exponent
  *
@@ -39,9 +39,9 @@
                     {if $permissions.edit}
                         {icon class="edit" action=edit module=storeCategory id=$current_category->id title="Edit `$current_category->title`" text="Edit this Store Category"}{br}
                     {/if}
-                    {*{if $permissions.manage}*}
-                        {*{icon class="configure" action=configure module=storeCategory id=$current_category->id title="Configure `$current_category->title`" text="Configure this Store Category"}{br}*}
-                    {*{/if}*}
+                    {if $permissions.manage}
+                        {icon class="configure" action=configure module=storeCategory id=$current_category->id title="Configure `$current_category->title`" text="Configure this Store Category"}{br}
+                    {/if}
                     {*{if $permissions.manage}*}
                         {*{icon class="configure" action=configure module=ecomconfig hash="#tab2" title="Configure Categories Globally" text="Configure Categories Globally"}{br}*}
                     {*{/if}*}
@@ -51,11 +51,11 @@
                 </div>
             {/permissions}
         {/if}
-	<div id="catnav">
+	<div id="catnav" class="catnav">
 		<ul>	
 			{foreach from=$categories item=category}
     			{if $category->is_active==1 || $user->is_acting_admin}
-                    <li class="{if $topcat->id==$category->id}current{/if}{if $category->is_active!=1} inactive{/if}">
+                    <li style="margin-left: {$category->depth * 10}px" class="{if $curcat->id==$category->id}current{/if}{if $category->is_active!=1} inactive{/if}">
                         <a href="{link controller=store action=showall title=$category->sef_url}">{$category->title} <span class="productsincategory">{$category->product_count}</span></a>
                     </li>
 				{/if}

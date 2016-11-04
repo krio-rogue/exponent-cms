@@ -2,7 +2,7 @@
 
 ##################################################
 #
-# Copyright (c) 2004-2014 OIC Group, Inc.
+# Copyright (c) 2004-2016 OIC Group, Inc.
 #
 # This file is part of Exponent
 #
@@ -37,8 +37,8 @@ class companyController extends expController {
         'twitter',
     ); // all options: ('aggregation','categories','comments','ealerts','facebook','files','module_title','pagination','rss','tags','twitter',)
 
-    static function displayname() { return gt("Company Listings"); }
-    static function description() { return gt("Displays company listings"); }
+    static function displayname() { return gt("e-Commerce Manufacturer Listings"); }
+    static function description() { return gt("Displays product manufacturer listings"); }
 	static function hasSources() { return false; }
 	
 	function showall() {
@@ -52,8 +52,8 @@ class companyController extends expController {
             'controller'=>$this->baseclassname,
             'action'=>$this->params['action'],
             'columns'=>array(
-                gt('Title')=>'title',
-                gt('Link')=>'website'
+                gt('Manufacturer')=>'title',
+                gt('Website')=>'website'
             ),
         ));
         
@@ -71,12 +71,12 @@ class companyController extends expController {
         
         expHistory::set('viewable', $this->params);
         
-        $count_sql_start = 'SELECT COUNT(DISTINCT p.id) FROM '.DB_TABLE_PREFIX.'_product p ';             
+        $count_sql_start = 'SELECT COUNT(DISTINCT p.id) as c FROM '.DB_TABLE_PREFIX.'_product p ';             
             
         $sql_start  = 'SELECT DISTINCT p.* FROM '.DB_TABLE_PREFIX.'_product p ';            
         //$sql = 'JOIN '.DB_TABLE_PREFIX.'_product_storeCategories sc ON p.id = sc.product_id ';
         $sql = 'WHERE ';
-        if ( !($user->is_admin || $user->is_acting_admin) ) $sql .= '(p.active_type=0 OR p.active_type=1) AND ' ;
+        if (!$user->isAdmin()) $sql .= '(p.active_type=0 OR p.active_type=1) AND ' ;
         //$sql .= 'sc.storecategories_id IN (';
         //$sql .= 'SELECT id FROM '.DB_TABLE_PREFIX.'_storeCategories WHERE rgt BETWEEN '.$this->category->lft.' AND '.$this->category->rgt.')';         
         $sql .=  'p.companies_id=' . $this->params['id'];
@@ -129,12 +129,12 @@ class companyController extends expController {
         
         expHistory::set('viewable', $this->params);
         
-        $count_sql_start = 'SELECT COUNT(DISTINCT p.id) FROM '.DB_TABLE_PREFIX.'_product p ';             
+        $count_sql_start = 'SELECT COUNT(DISTINCT p.id) as c FROM '.DB_TABLE_PREFIX.'_product p ';             
             
         $sql_start  = 'SELECT DISTINCT p.* FROM '.DB_TABLE_PREFIX.'_product p ';            
         //$sql = 'JOIN '.DB_TABLE_PREFIX.'_product_storeCategories sc ON p.id = sc.product_id ';
         $sql = 'WHERE ';
-        if ( !($user->is_admin || $user->is_acting_admin) ) $sql .= '(p.active_type=0 OR p.active_type=1) AND ' ;
+        if (!$user->isAdmin()) $sql .= '(p.active_type=0 OR p.active_type=1) AND ' ;
         //$sql .= 'sc.storecategories_id IN (';
         //$sql .= 'SELECT id FROM '.DB_TABLE_PREFIX.'_storeCategories WHERE rgt BETWEEN '.$this->category->lft.' AND '.$this->category->rgt.')';         
         $sql .=  'p.companies_id=' . $this->params['id'];

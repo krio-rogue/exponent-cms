@@ -1,5 +1,5 @@
 {*
- * Copyright (c) 2004-2014 OIC Group, Inc.
+ * Copyright (c) 2004-2016 OIC Group, Inc.
  *
  * This file is part of Exponent
  *
@@ -29,7 +29,7 @@
     <script src="{$smarty.const.JQUERY_SCRIPT}"></script>
     <script src="{$smarty.const.PATH_RELATIVE}external/mediaelement/build/mediaelement-and-player.min.js"></script>
 </head>
-<body class=" exp-skin">
+<body class="exp-skin">
 <div id="filemanager">
 	<h1>{'File Manager'|gettext}</h1>
     {messagequeue}
@@ -75,11 +75,11 @@
 </div>
 
 {*FIXME convert to yui3*}
-{script unique="picker" yui3mods="1"}
+{script unique="picker" yui3mods="node,yui2-yahoo-dom-event,yui2-container,yui2-json,yui2-datasource,yui2-connection,yui2-autocomplete,yui2-element,yui2-paginator,yui2-datatable,yui2-calendar"}
 {literal}
 // this.moveTo(1,1);
 // this.resizeTo(screen.width,screen.height);
-YUI(EXPONENT.YUI3_CONFIG).use('node','yui2-yahoo-dom-event','yui2-container','yui2-json','yui2-datasource','yui2-connection','yui2-autocomplete','yui2-element','yui2-paginator','yui2-datatable', 'yui2-calendar', function(Y) {
+YUI(EXPONENT.YUI3_CONFIG).use('*', function(Y) {
     var YAHOO=Y.YUI2;
     EXPONENT.fileManager = function() {
 //        var queryString = '&results=50&output=json'; //autocomplete query
@@ -92,21 +92,18 @@ YUI(EXPONENT.YUI3_CONFIG).use('node','yui2-yahoo-dom-event','yui2-container','yu
 
         var batchIDs = {};
 
+        // Helper function to get parameters from the url
         function getUrlParam(paramName) {
-            if (paramName == 'update' || paramName == 'filter') {
-               // need to parse sef url also
-                var pathArray = window.location.pathname.split( '/' );
-                if (paramName == 'update') {
-                    var parmu = pathArray.indexOf('update');
-                    if (parmu > 0) return pathArray[parmu+1];
-                } else if (paramName == 'filter') {
-                    var parmf = pathArray.indexOf('filter');
-                    if (parmf > 0) return pathArray[parmf+1];
-                }
+            var pathArray = window.location.pathname.split( '/' );
+            if (EXPONENT.SEF_URLS && pathArray.indexOf(paramName) != -1) {
+                var parm = pathArray.indexOf(paramName);
+                if (parm > 0)
+                    return pathArray[parm+1];
+            } else {
+                var reParam = new RegExp('(?:[\?&]|&amp;)' + paramName + '=([^&]+)', 'i') ;
+                var match = window.location.search.match(reParam) ;
+                return (match && match.length > 1) ? match[1] : '' ;
             }
-            var reParam = new RegExp('(?:[\?&]|&amp;)' + paramName + '=([^&]+)', 'i') ;
-            var match = window.location.search.match(reParam) ;
-            return (match && match.length > 1) ? match[1] : '' ;
         }
 
     	routBackToSource = function (fo, fi) {
@@ -625,7 +622,7 @@ YUI(EXPONENT.YUI3_CONFIG).use('node','yui2-yahoo-dom-event','yui2-container','yu
 	            var sUri = EXPONENT.PATH_RELATIVE + "index.php?ajax_action=1" + json + "&yaetime=" + dt;
 	            return sUri;
 	        } else if (!obj.action || (!obj.controller && !obj.module)) {
-	            alert("{/literal}{"If you don\'t pass the ID of a form, you need to specify both a module/controller AND and a corresponding action."|gettext}{literal}");
+	            alert("{/literal}{"If you don\'t pass the ID of a form, you need to specify both a module/controller AND a corresponding action."|gettext}{literal}");
 	        } else {
 	            //slap a date in there so IE doesn't cache
 	            var dt = new Date().valueOf();

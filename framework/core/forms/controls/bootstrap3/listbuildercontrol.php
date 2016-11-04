@@ -137,6 +137,7 @@ class listbuildercontrol extends formcontrol {
                     $('#$name').bootstrapDualListbox({
                         nonSelectedListLabel: 'Non-selected',
                         selectedListLabel: 'Selected',
+                        sortByInputOrder: true,
 //                        preserveSelectionOnMove: 'moved',
 //                        moveOnSelect: false,
                     });
@@ -219,14 +220,14 @@ class listbuildercontrol extends formcontrol {
 		}
 		$form->register("identifier",gt('Identifier/Field'),new textcontrol($object->identifier));
 		$form->register("caption",gt('Caption'), new textcontrol($object->caption));
-
-		$form->register("submit","",new buttongroupcontrol(gt('Save'),'',gt('Cancel'),"",'editable'));
+		if (!expJavascript::inAjaxAction())
+			$form->register("submit","",new buttongroupcontrol(gt('Save'),'',gt('Cancel'),"",'editable'));
 		return $form;
 	}
 
     static function update($values, $object) {
 		if ($values['identifier'] == "") {
-			$post = $_POST;
+			$post = expString::sanitize($_POST);
 			$post['_formError'] = gt('Identifier is required.');
 			expSession::set("last_POST",$post);
 			return null;

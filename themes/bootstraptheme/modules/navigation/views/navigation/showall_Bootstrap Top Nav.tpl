@@ -1,5 +1,5 @@
 {*
- * Copyright (c) 2004-2014 OIC Group, Inc.
+ * Copyright (c) 2004-2016 OIC Group, Inc.
  *
  * This file is part of Exponent
  *
@@ -14,11 +14,7 @@
  *}
 
 {css unique="bootstrap-top-nav"  lesscss="`$smarty.const.PATH_RELATIVE`framework/modules/navigation/assets/less/dropdown-bootstrap.less"}
-{*{if $smarty.const.MENU_LOCATION == 'static-top'}*}
-    {*.navbar-spacer {*}
-        {*height: 0;*}
-    {*}*}
-{*{/if}*}
+
 {/css}
 
 <!-- navigation bar/menu -->
@@ -37,7 +33,7 @@
             <div class="nav-collapse collapse">
                 <ul class="nav{if $smarty.const.MENU_ALIGN == 'right'} pull-right{/if}">
                     {getnav type='hierarchy' assign=hierarchy}
-                    {bootstrap_navbar menu=$hierarchy}
+                    {bootstrap_navbar menu=$hierarchy length=$smarty.const.MENU_LENGTH|default:2}
                 </ul>
             </div>
         </div>
@@ -46,7 +42,7 @@
 <div class="navbar-spacer"></div>
 <div class="navbar-spacer-bottom"></div>
 
-{script unique="navbar-fix" jquery=1}
+{script unique="navbar-fix" bootstrap="dropdown,collapse,transition"}
 {literal}
     $('.dropdown-toggle').click(function(e) {
         e.preventDefault();

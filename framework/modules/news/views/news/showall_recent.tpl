@@ -1,5 +1,5 @@
 {*
- * Copyright (c) 2004-2014 OIC Group, Inc.
+ * Copyright (c) 2004-2016 OIC Group, Inc.
  *
  * This file is part of Exponent
  *
@@ -13,7 +13,7 @@
  *
  *}
 
-<div class="module news showall-recent">
+<div class="module news showall showall-recent">
     {if $moduletitle && !($config.hidemoduletitle xor $smarty.const.INVERT_HIDE_TITLE)}<{$config.heading_level|default:'h1'}>{/if}
     {rss_link}
     {if $moduletitle && !($config.hidemoduletitle xor $smarty.const.INVERT_HIDE_TITLE)}{'Recent'|gettext} {$moduletitle}</{$config.heading_level|default:'h1'}>{/if}
@@ -60,7 +60,7 @@
             </{$config.item_level|default:'h2'}>
             {if !$config.datetag}
                 <span class="date">{$item->publish_date|format_date}</span>
-                {$pp = '&#160;&#160;|&#160;&#160;'}
+                {$pp = '&#160;&#160;|&#160;&#160;'|not_bs}
             {/if}
             {tags_assigned record=$item prepend=$pp}
             {if $item->isRss != true}
@@ -76,6 +76,7 @@
                             {/if}
                         {/if}
                         {icon action=edit record=$item}
+                        {icon action=copy record=$item}
                     {/if}
                     {if $permissions.delete || ($permissions.create && $item->poster == $user->id)}
                         {icon action=delete record=$item}
@@ -90,11 +91,12 @@
                 {if $config.ffloat != "Below"}
                     {filedisplayer view="`$config.filedisplay`" files=$item->expFile record=$item is_listing=1}
                 {/if}
+                {$link = '<a href="'|cat:makeLink([controller=>news, action=>show, title=>$item->sef_url])|cat:'"><em>'|cat:'(read more)'|gettext|cat:'</em></a>'}
                 {if $config.usebody==1}
                     {*<p>{$item->body|summarize:"html":"paralinks"}</p>*}
-                    <p>{$item->body|summarize:"html":"parahtml"}</p>
+                    <p>{$item->body|summarize:"html":"parahtml":$link}</p>
                 {elseif $config.usebody==3}
-                    {$item->body|summarize:"html":"parapaged"}
+                    {$item->body|summarize:"html":"parapaged":$link}
                 {elseif $config.usebody==2}
 				{else}
                     {$item->body}
@@ -102,7 +104,7 @@
                 {if $config.ffloat == "Below"}
                     {filedisplayer view="`$config.filedisplay`" files=$item->expFile record=$item is_listing=1}
                 {/if}
-                <a class="readmore" href="{if $item->isRss}{$item->rss_link}{else}{link action=show title=$item->sef_url}{/if}">{"Read More"|gettext}</a>
+                {*<a class="readmore" href="{if $item->isRss}{$item->rss_link}{else}{link action=show title=$item->sef_url}{/if}">{"Read More"|gettext}</a>*}
             </div>
             {if $config.enable_tweet}
                 <a href="https://twitter.com/share" class="twitter-share-button" data-url="{link action=show title=$item->sef_url}" data-text="{$item->title}"{if $config.layout} data-count="{$config.layout}"{/if}{if $config.size} data-size="{$config.size}"{/if} data-lang="en">{'Tweet'|gettext}</a>

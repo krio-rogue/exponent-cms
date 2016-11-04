@@ -2,7 +2,7 @@
 
 ##################################################
 #
-# Copyright (c) 2004-2014 OIC Group, Inc.
+# Copyright (c) 2004-2016 OIC Group, Inc.
 #
 # This file is part of Exponent
 #
@@ -76,9 +76,9 @@ $warning = array();
         return !preg_match("/[^A-Za-z0-9]/", $str);
     }
 
-    //expSession::set("installer_config",$_POST['sc']);
-    $config = $_POST['sc'];
-    //$config['sef_urls'] = empty($_POST['c']['sef_urls']) ? 0 : 1;
+    //expSession::set("installer_config",$_REQUEST['sc']);
+    $config = $_REQUEST['sc'];
+    //$config['sef_urls'] = empty($_REQUEST['c']['sef_urls']) ? 0 : 1;
 
     if (preg_match('/[^A-Za-z0-9]/', $config['db_table_prefix'])) {
         echoFailure(gt('Invalid table prefix.  The table prefix can only contain alphanumeric characters.'));
@@ -277,7 +277,7 @@ $warning = array();
         if (@$db->tableIsEmpty('user')) {
             $user = new stdClass();
             $user->username = 'admin';
-            $user->password = md5('admin');
+            $user->password = user::encryptPassword('admin');
             $user->is_admin = 1;
             $user->is_acting_admin = 1;
             $user->is_system_user = 1;
@@ -308,8 +308,6 @@ $warning = array();
 
     if ($passed) {
         echoStart(gt('Saving Configuration'));
-
-        $config = $_POST['sc'];
         foreach ($config as $key => $value) {
             expSettings::change($key, addslashes($value));
         }
@@ -318,7 +316,6 @@ $warning = array();
         @$db->delete('version', 1); // clear table of old accumulated entries
         $vo = expVersion::swVersion();
         $vo->created_at = time();
-//    $ins = @$db->insertObject($vo,'version') or die($db->error());
         if (!@$db->insertObject($vo, 'version')) {
             echoFailure(gt("Trying to Add Version to DB") . " (" . $db->error() . ")");
         } else {

@@ -1,5 +1,5 @@
 {*
- * Copyright (c) 2004-2014 OIC Group, Inc.
+ * Copyright (c) 2004-2016 OIC Group, Inc.
  *
  * This file is part of Exponent
  *
@@ -40,7 +40,7 @@
         {/if}
         &#160;|&#160;
         {*<a class="logout" href="{link action=logout}">{'Logout'|gettext}</a>*}
-        {icon button=true action=logout text='Logout'|gettext}
+        {icon action=logout text='Logout'|gettext}
         {if $smarty.const.ECOM && $oicount}
             &#160;|&#160;{icon class=cart controller=cart action=show text="Shopping Cart"|gettext} ({$oicount} {'item'|plural:$oicount})
         {/if}

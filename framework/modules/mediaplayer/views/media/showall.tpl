@@ -1,5 +1,5 @@
 {*
- * Copyright (c) 2004-2014 OIC Group, Inc.
+ * Copyright (c) 2004-2016 OIC Group, Inc.
  *
  * This file is part of Exponent
  *
@@ -15,6 +15,9 @@
 
 {uniqueid prepend="mediaplayer" assign="name"}
 
+{css unique="player" link="`$asset_path`css/player.css"}
+
+{/css}
 {css unique="mediaelement" link="`$smarty.const.PATH_RELATIVE`external/mediaelement/build/mediaelementplayer.css"}
 
 {/css}
@@ -32,12 +35,12 @@
 			{if $permissions.manage}
 				{ddrerank items=$page->records model="media" label="Media Pieces"|gettext}
 			{/if}
-		</div>	
-	{/permissions}   
+		</div>
+	{/permissions}
     {if $config.moduledescription != ""}
    		{$config.moduledescription}
    	{/if}
-    <div id="{$name}list">
+    <div id="{$name}list" class="yui3-g">
         {exp_include file='medialist.tpl'}
     </div>
 </div>
@@ -51,7 +54,7 @@
 {if $config.control_fullscreen}{{$control = "`$control`'fullscreen'"}}{/if}
 {if $control == ''}{$control = "'playpause','progress','current','duration','tracks','volume','fullscreen'"}{/if}
 
-{script unique="mediaelement-src" jquery="1" src="`$smarty.const.PATH_RELATIVE`external/mediaelement/build/mediaelement-and-player.min.js"}
+{script unique="mediaelement-src" jquery="jquery.colorbox" src="`$smarty.const.PATH_RELATIVE`external/mediaelement/build/mediaelement-and-player.min.js"}
 {/script}
 
 {script unique="mediaplayer-`$name`"}
@@ -62,42 +65,87 @@
         },
         features: [{/literal}{$control}{literal}]
     });
+
+    $(document).ready(function(){
+        $('.openColorbox').click(function(e){
+            e.preventDefault();
+            var d = $(this);
+            var $c = d.parent().find('div.video.media');
+            var $t = d.parent().find('.media-title');
+            $.colorbox({
+                width: "auto",
+                inline: true,
+                href: $c,
+                title: $t.html(),
+                opacity: 0.5,
+                open: true,
+                onLoad: function(){
+                    $c.fadeIn()
+                },
+                onCleanup: function(){
+                    $c.hide()
+                },
+                close:'<i class="fa fa-close" aria-label="close modal"></i>',
+                previous:'<i class="fa fa-chevron-left" aria-label="previous photo"></i>',
+                next:'<i class="fa fa-chevron-right" aria-label="next photo"></i>',
+            })
+        });
+
+        //$("#openColorbox").colorbox({
+        //    inline:true,
+        //    width:"auto",
+        //    height:"auto",
+        //    href:$(this).next(),
+        //    onOpen: function() {
+        //        $.colorbox.element().next().show();
+        //    },
+        //    onClosed: function() {
+        //        $.colorbox.element().next().hide();
+        //    }
+        //});
+    });
 {/literal}
 {/script}
 
-{if $config.ajax_paging}
-{script unique="`$name`listajax" yui3mods="1"}
+{if $smarty.const.AJAX_PAGING}
+{if empty($params.page)}
+    {$params.page = 1}
+{/if}
+{script unique="`$name`listajax" yui3mods="node,io,node-event-delegate" jquery="jquery.history"}
 {literal}
-YUI(EXPONENT.YUI3_CONFIG).use('node','io','node-event-delegate', function(Y) {
+YUI(EXPONENT.YUI3_CONFIG).use('*', function(Y) {
     var medialist = Y.one('#{/literal}{$name}{literal}list');
+    var page_parm = '';
+    if (EXPONENT.SEF_URLS) {
+        page_parm = '/page/';
+    } else {
+        page_parm = '&page=';
+    }
+    var History = window.History;
+    History.pushState({name:'{/literal}{$name}{literal}',rel:'{/literal}{$params.page}{literal}'});
+    {/literal}
+        {$orig_params = ['controller' => 'media', 'action' => 'showall', 'src' => $params.src]}
+    {literal}
+    var orig_url = '{/literal}{makeLink($orig_params)}{literal}';
     var cfg = {
     			method: "POST",
     			headers: { 'X-Transaction': 'Load Mediaitems'},
     			arguments : { 'X-Transaction': 'Load Mediaitems'}
     		};
-
-    src = '{/literal}{$__loc->src}{literal}';
-	var sUrl = EXPONENT.PATH_RELATIVE+"index.php?controller=media&action=showall&view=medialist&ajax_action=1&src="+src;
+	var sUrl = EXPONENT.PATH_RELATIVE+"index.php?controller=media&action=showall&view=medialist&ajax_action=1&src={/literal}{$__loc->src}{literal}";
 
 	var handleSuccess = function(ioId, o){
-//		Y.log(o.responseText);
-		Y.log("The success handler was called.  Id: " + ioId + ".", "info", "mediaitems nav");
-
         if(o.responseText){
                 medialist.setContent(o.responseText);
                 medialist.all('script').each(function(n){
                 if(!n.get('src')){
                     eval(n.get('innerHTML'));
                 } else {
-                    var url = n.get('src');
-                    if (url.indexOf("ckeditor")) {
-                        Y.Get.script(url);
-                    };
+                    Y.Get.script(n.get('src'));
                 };
             });
             medialist.all('link').each(function(n){
-                var url = n.get('href');
-                Y.Get.css(url);
+                Y.Get.css(n.get('href'));
             });
         } else {
             medialist.one('.loadingdiv').remove();
@@ -115,10 +163,22 @@ YUI(EXPONENT.YUI3_CONFIG).use('node','io','node-event-delegate', function(Y) {
 
     medialist.delegate('click', function(e){
         e.halt();
+        History.pushState({name:'{/literal}{$name}{literal}',rel:e.currentTarget.get('rel')}, '{/literal}{'Media'|gettext}{literal}', orig_url+page_parm+e.currentTarget.get('rel'));
         cfg.data = "page="+e.currentTarget.get('rel');
         var request = Y.io(sUrl, cfg);
-        medialist.setContent(Y.Node.create('<div class="loadingdiv">{/literal}{"Loading Media"|gettext}{literal}</div>'));
+          medialist.setContent(Y.Node.create('{/literal}{loading title="Loading Media"|gettext}{literal}'));
     }, 'a.pager');
+
+    // Watches the browser history for changes
+    window.addEventListener('popstate', function(e) {
+        state = History.getState()
+        if (state.data.name == '{/literal}{$name}{literal}') {
+            // moving to a new page
+            cfg.data = "page="+state.data.rel;
+            var request = Y.io(sUrl, cfg);
+              medialist.setContent(Y.Node.create('{/literal}{loading title="Loading Media"|gettext}{literal}'));
+        }
+    });
 });
 {/literal}
 {/script}

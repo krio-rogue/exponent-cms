@@ -1,5 +1,5 @@
 {*
- * Copyright (c) 2004-2014 OIC Group, Inc.
+ * Copyright (c) 2004-2016 OIC Group, Inc.
  *
  * This file is part of Exponent
  *
@@ -15,6 +15,19 @@
 
 {uniqueid prepend="text" assign="name"}
 {$inline = false}
+{if $smarty.const.BTN_SIZE == 'large'}
+    {$btn_size = 'btn-lg'}
+    {$icon_size = 'fa-lg'}
+{elseif $smarty.const.BTN_SIZE == 'small'}
+    {$btn_size = 'btn-sm'}
+    {$icon_size = ''}
+{elseif $smarty.const.BTN_SIZE == 'extrasmall'}
+    {$btn_size = 'btn-xs'}
+    {$icon_size = ''}
+{else}
+    {$btn_size = ''}
+    {$icon_size = 'fa-lg'}
+{/if}
 
 <div id="textmodule-{$name}" class="module text showall showall-inline">
     <div id="textcontent-{$name}">
@@ -22,7 +35,7 @@
         {permissions}
             <div class="module-actions">
                 {if $permissions.create}
-                    {icon class=add action=add text="Add more text at bottom"|gettext}
+                    <a class="add-body btn btn-success {$btn_size}" href="{link action=add}" title="{'Add more text at bottom'|gettext}"><i class="fa fa-plus-circle {$icon_size}"></i> {'Add more text at bottom'|gettext}</a>
                 {/if}
                 {if $permissions.manage}
                     {ddrerank items=$items model="text" label="Text Items"|gettext}
@@ -33,21 +46,12 @@
             {$config.moduledescription}
         {/if}
         {$myloc=serialize($__loc)}
-        {if $smarty.const.BTN_SIZE == 'large'}
-            {$btn_size = ''}
-            {$icon_size = 'fa-lg'}
-        {elseif $smarty.const.BTN_SIZE == 'small'}
-            {$btn_size = 'btn-xs'}
-            {$icon_size = ''}
-        {else}
-            {$btn_size = 'btn-sm'}
-            {$icon_size = 'fa-lg'}
+        {if ($permissions.edit || ($permissions.create && $item->poster == $user->id)) && !$preview}
+            {$inline = true}
         {/if}
-
         {foreach from=$items item=item name=items}
             {if ($permissions.edit || ($permissions.create && $item->poster == $user->id)) && !$preview}
                 {$make_edit = ' contenteditable="true" class="editable"'}
-                {$inline = true}
             {else}
                 {$make_edit = ''}
             {/if}
@@ -56,7 +60,9 @@
                 {permissions}
                     <div class="item-actions">
                         {if $permissions.edit || ($permissions.create && $item->poster == $user->id)}
-                            {if $item->revision_id > 1 && $smarty.const.ENABLE_WORKFLOW}<span class="revisionnum approval" title="{'Viewing Revision #'|gettext}{$item->revision_id}">{$item->revision_id}</span>{/if}
+                            {if $smarty.const.ENABLE_WORKFLOW}
+                                <span class="revisionnum approval" title="{'Viewing Revision #'|gettext}{$item->revision_id}">{$item->revision_id}</span>
+                            {/if}
                             {if $myloc != $item->location_data}
                                 {if $permissions.manage}
                                     {icon action=merge id=$item->id title="Merge Aggregated Content"|gettext}
@@ -67,7 +73,7 @@
                             {icon action=edit record=$item}
                         {/if}
                         {if $permissions.delete || ($permissions.create && $item->poster == $user->id)}
-                            {icon class=delete action=deleter text='Delete'|gettext}
+                            <a class="delete-item btn btn-danger {$btn_size}" href="{link action=delete}" title="{'Delete this text item'|gettext}"><i class="fa fa-times-circle {$icon_size}"></i> {'Delete'|gettext}</a>
                         {/if}
                         {if $permissions.edit || ($permissions.create && $item->poster == $user->id)}
                             {if $item->title}
@@ -99,7 +105,7 @@
     {permissions}
         <div class="module-actions">
             {if $permissions.create}
-                {icon class=add action=add text="Add more text here"|gettext}
+                <a class="add-body btn btn-success {$btn_size}" href="{link action=add}" title="{'Add more text here'|gettext}"><i class="fa fa-plus-circle {$icon_size}"></i> {'Add more text here'|gettext}</a>
             {/if}
         </div>
     {/permissions}
@@ -108,278 +114,432 @@
 {if $inline && !$preview}
     {if $smarty.const.SITE_WYSIWYG_EDITOR == "ckeditor"}
         {script unique="ckeditor" src="`$smarty.const.PATH_RELATIVE`external/editors/ckeditor/ckeditor.js"}
+            CKEDITOR.disableAutoInline = true;
         {/script}
+        {$contentCSS = ""}
+        {$css = "themes/`$smarty.const.DISPLAY_THEME`/editors/ckeditor/ckeditor.css"}
+        {if ($smarty.const.THEME_STYLE != "" && is_file("`$smarty.const.BASE`themes/`$smarty.const.DISPLAY_THEME`/editors/ckeditor/ckeditor_`$smarty.const.THEME_STYLE`.css"))}
+            {$css = "themes/`$smarty.const.DISPLAY_THEME`/editors/ckeditor/ckeditor_`$smarty.const.THEME_STYLE`.css"}
+        {/if}
+        {if is_file($smarty.const.BASE|cat:$css)}
+           {$contentCSS = "contentsCss : '`$smarty.const.PATH_RELATIVE|cat:$css`',"}
+        {/if}
+        {if is_file("`$smarty.const.BASE`themes/`$smarty.const.DISPLAY_THEME`/editors/ckeditor/config.js'")}
+            {$configjs = "customConfig : '`$smarty.const.PATH_RELATIVE`themes/' . DISPLAY_THEME . '/editors/ckeditor/config.js',"}
+        {else}
+            {$configjs = ''}
+        {/if}
     {elseif $smarty.const.SITE_WYSIWYG_EDITOR == "tinymce"}
         {script unique="tinymce" src="`$smarty.const.PATH_RELATIVE`external/editors/tinymce/tinymce.min.js"}
         {/script}
     {/if}
 
-{script unique=$name jquery="bootstrap-dialog" bootstrap="modal,transition"}
-{literal}
-    src = '{/literal}{$__loc->src}{literal}';
+    {script unique=$name jquery="bootstrap-dialog" bootstrap="modal,transition"}
+    {literal}
+    $(document).ready(function(){
+        var src = '{/literal}{$__loc->src}{literal}';
+        var workflow = {/literal}{$smarty.const.ENABLE_WORKFLOW}{literal};
 
-    {/literal}{if $smarty.const.SITE_WYSIWYG_EDITOR == "ckeditor"}{literal}
-    CKEDITOR.disableAutoInline = true;
-    var fullToolbar = {/literal}{if empty($editor->data)}''{else}[{stripSlashes($editor->data)}]{/if}{literal};
-    var titleToolbar = [['Cut','Copy','Paste',"PasteText","Undo","Redo"],["Find","Replace","SelectAll","Scayt"],['About']];
-    {/literal}{elseif $smarty.const.SITE_WYSIWYG_EDITOR == "tinymce"}{literal}
-    var fullToolbar = {/literal}{if empty($editor->data)}''{else}[{stripSlashes($editor->data)}]{/if}{literal};
-    var titleToolbar = 'cut copy paste pastetext | undo redo | searchreplace selectall';
-    {/literal}{/if}{literal}
-
-    var setContent = function(item, data) {
         {/literal}{if $smarty.const.SITE_WYSIWYG_EDITOR == "ckeditor"}{literal}
-        CKEDITOR.instances[item].setData(data);
+//        CKEDITOR.disableAutoInline = true;
+        var fullToolbar = {/literal}{if empty($editor->data)}''{else}[{stripSlashes($editor->data)}]{/if}{literal};
+        var titleToolbar = [['Cut','Copy','Paste',"PasteText","Undo","Redo"],["Find","Replace","SelectAll","Scayt"],['About']];
         {/literal}{elseif $smarty.const.SITE_WYSIWYG_EDITOR == "tinymce"}{literal}
-        tinymce.get(item).setContent(data);
+        var fullToolbar = {/literal}{if empty($editor->data)}'formatselect fontselect fontsizeselect forecolor backcolor | alignleft aligncenter alignright alignjustify | bullist numlist outdent indent '+
+            'link unlink image | visualblocks localautosave'{else}[{stripSlashes($editor->data)}]{/if}{literal};
+        var titleToolbar = 'cut copy paste pastetext | undo redo localautosave | searchreplace selectall';
         {/literal}{/if}{literal}
-    };
 
-    var saveEditor = function(item, data) {
-        if(parseInt({/literal}{!$config.fast_save}{literal}) && parseInt({/literal}{$smarty.const.SITE_WYSIWYG_EDITOR == 'ckeditor'}{literal})) {
+        var setContent = function(item, data) {
+            {/literal}{if $smarty.const.SITE_WYSIWYG_EDITOR == "ckeditor"}{literal}
+            CKEDITOR.instances[item].setData(data);
+            {/literal}{elseif $smarty.const.SITE_WYSIWYG_EDITOR == "tinymce"}{literal}
+            tinymce.get(item).setContent(data);
+            {/literal}{/if}{literal}
+        };
+
+        var errorEditor = function() {
             BootstrapDialog.show({
-                title: '{/literal}{'Text Item Updated'|gettext}{literal}',
-                message: '{/literal}{'Save these changes?'|gettext}{literal}',
+                type: BootstrapDialog.TYPE_WARNING,
+                title: '{/literal}{'Inline Text Editor'|gettext}{literal}',
+                message: "{/literal}{'You no longer have permission to Edit'|gettext}{literal}",
                 buttons: [{
-                    label: "{/literal}{'Yes'|gettext}{literal}",
-                    action: function(dialog) {
-                        $.ajax({
-                            type: "POST",
-                            url: EXPONENT.PATH_RELATIVE+"index.php?controller=text&action=saveItem&ajax_action=1&json=1&src="+src,
-                            data: "id="+item[1] + "&type="+item[0] + "&value="+data,
-                        });
-                        $('input:hidden[name=\'rerank[]\'][value=\'' + item[1] + '\']').siblings('span').html(data);
-                        dialog.close();
-                    }
-                }, {
-                    label: "{/literal}{'No, Undo All Changes'|gettext}{literal}",
-                    action: function(dialog) {
-                        $.ajax({
-                            type: "POST",
-                            url: EXPONENT.PATH_RELATIVE+"index.php?controller=text&action=saveItem&ajax_action=1&json=1&src="+src,
-                            data: "id="+item[1] + "&type=revert",
-                            success:function(msg) {
-                                data = $.parseJSON(msg.data);
-                                setContent('body-' + data.id, data.body);
-                                setContent('title-' + data.id, data.title);
-                            }
-                        });
-                        dialog.close();
-                    }
-                }, {
-                    label: "{/literal}{'Cancel'|gettext}{literal}",
-                    action: function(dialog) {
-                        dialog.close();
+                    label: '{/literal}{'Ok'|gettext}{literal}',
+                    action: function(dialogRef){
+                        dialogRef.close();
+                        location.reload(true);
                     }
                 }]
             });
-        } else {
-            $.ajax({
-                type: "POST",
-                url: EXPONENT.PATH_RELATIVE+"index.php?controller=text&action=saveItem&ajax_action=1&json=1&src="+src,
-                data: "id="+item[1] + "&type="+item[0] + "&value="+data,
-            });
-            $('input:hidden[name=\'rerank[]\'][value=\'' + item[1] + '\']').siblings('span').html(data);
-        }
-    };
+        };
 
-    var startEditor = function(node) {
-        if ($(node).attr('id').substr(0,5) == 'title') {
-            mytoolbar = titleToolbar;
-        } else {
-            mytoolbar = fullToolbar;
-        }
-
-        {/literal}{if $smarty.const.SITE_WYSIWYG_EDITOR == "ckeditor"}{literal}
-        CKEDITOR.inline(node, {
-            on: {
-                blur: function( event ) {
-                    if (event.editor.checkDirty()) {
-                        var data = event.editor.getData();
-                        var item = event.editor.name.split('-');
-                        saveEditor(item, data);
-                    }
-                }
-            },
-
-            skin : '{/literal}{$editor->skin}{literal}',
-            toolbar : mytoolbar,
-            scayt_autoStartup : '{/literal}{$editor->scayt_on}{literal}',
-            {/literal}{$editor->paste_word}{literal}
-            pasteFromWordPromptCleanup : true,
-            filebrowserBrowseUrl : '{/literal}{link controller="file" action="picker" ajax_action=1 update="ck"}{literal}',
-            filebrowserImageBrowseUrl : '{/literal}{link controller="file" action="picker" ajax_action=1 update="ck" filter="image"}{literal}',
-            filebrowserFlashBrowseUrl : '{/literal}{link controller="file" action="picker" ajax_action=1 update="ck"}{literal}',
-            {/literal}{if (!$user->globalPerm('prevent_uploads'))}filebrowserUploadUrl : EXPONENT.PATH_RELATIVE + 'framework/modules/file/connector/uploader.php',{/if}{literal}
-            filebrowserWindowWidth : {/literal}{$smarty.const.FM_WIDTH}{literal},
-            filebrowserWindowHeight : {/literal}{$smarty.const.FM_HEIGHT}{literal},
-            filebrowserImageBrowseLinkUrl : EXPONENT.PATH_RELATIVE + 'framework/modules/file/connector/ckeditor_link.php',
-            filebrowserLinkBrowseUrl : EXPONENT.PATH_RELATIVE + 'framework/modules/file/connector/ckeditor_link.php',
-            filebrowserLinkWindowWidth : 320,
-            filebrowserLinkWindowHeight : 600,
-            extraPlugins : 'stylesheetparser,tableresize,sourcedialog,{/literal}{stripSlashes($editor->plugins)}{literal}',  //FIXME we don't check for missing plugins
-            {/literal}{$editor->additionalConfig}{literal}
-            height : 200,
-            autoGrow_minHeight : 200,
-            autoGrow_maxHeight : 400,
-            autoGrow_onStartup : false,
-            toolbarCanCollapse : true,
-            entities_additional : '',
-//            " . $contentCSS . "
-//            stylesSet : " . $stylesset . ",
-//            format_tags : " . $formattags . ",
-//            font_names :
-//                " . $fontnames . ",
-            uiColor : '#aaaaaa',
-            baseHref : EXPONENT.PATH_RELATIVE,
-
-        });
-    {/literal}{elseif $smarty.const.SITE_WYSIWYG_EDITOR == "tinymce"}{literal}
-        tinymce.init({
-            selector : '#'+node.id,
-            plugins : ['image,searchreplace,contextmenu,paste,link'],
-            inline: true,
-            document_base_url : EXPONENT.PATH_RELATIVE,
-            toolbar: mytoolbar,
-            menubar: false,
-            toolbar_items_size: 'small',
-            image_advtab: true,
-            skin : '{/literal}{$editor->skin}{literal}',
-            importcss_append: true,
-            end_container_on_empty_block: true,
-            file_browser_callback: function expBrowser (field_name, url, type, win) {
-                tinymce.activeEditor.windowManager.open({
-                    file: EXPONENT.PATH_RELATIVE+'index.php?controller=file&action=picker&ajax_action=1&update=tiny&filter='+type,
-                    title: 'File Manager',
-                    width: {/literal}{$smarty.const.FM_WIDTH}{literal},
-                    height: {/literal}{$smarty.const.FM_HEIGHT}{literal},
-                    resizable: 'yes'
-                }, {
-                    setUrl: function (url) {
-                        win.document.getElementById(field_name).value = url;
-                    }
+        var saveEditor = function(item, data) {
+            if(parseInt({/literal}{!($config.fast_save || $smarty.const.EDITOR_FAST_SAVE)}{literal})) {
+                BootstrapDialog.show({
+                    title: '{/literal}{'Text Item Updated'|gettext}{literal}',
+                    message: '{/literal}{'Save these changes?'|gettext}{literal}',
+                    buttons: [{
+                        label: "{/literal}{'Yes'|gettext}{literal}",
+                        action: function(dialog) {
+                            $.ajax({
+                                type: "POST",
+                                headers: { 'X-Transaction': 'Saving Text Item'},
+                                url: EXPONENT.PATH_RELATIVE+"index.php?controller=text&action=edit_item&ajax_action=1&json=1&src="+src,
+                                data: "id="+item[1] + "&type="+item[0] + "&value="+encodeURIComponent(data),
+                                success:function(msg) {
+                                    if (msg.replyCode == '200') {
+                                        data = $.parseJSON(msg.data);
+                                        if (workflow) {
+                                            $('#text-' + data.id + ' span.revisionnum.approval').html(data.revision_id);
+                                            if (!data.approved) {
+                                                $('#text-' + data.id).addClass('unapproved');
+                                            }
+                                        }
+                                        var title = data.title;
+                                        if (title == '') {
+                                            title = '{/literal}{'Untitled'|gettext}{literal}';
+                                        }
+                                        $('input:hidden[name=\'rerank[]\'][value=\'' + data.id + '\']').siblings('span').html(title);
+                                    } else {
+                                        errorEditor();
+                                    }
+                                }
+                            });
+                            dialog.close();
+                        }
+                    }, {
+                        label: "{/literal}{'No, Undo All Changes'|gettext}{literal}",
+                        action: function(dialog) {
+                            $.ajax({
+                                type: "POST",
+                                headers: { 'X-Transaction': 'Undoing Text Item'},
+                                url: EXPONENT.PATH_RELATIVE+"index.php?controller=text&action=edit_item&ajax_action=1&json=1&src="+src,
+                                data: "id="+item[1] + "&type=revert",
+                                success:function(msg) {
+                                    if (msg.replyCode == '200') {
+                                        data = $.parseJSON(msg.data);
+                                        setContent('body-' + data.id, data.body);
+                                        setContent('title-' + data.id, data.title);
+                                    } else {
+                                        errorEditor();
+                                    }
+                                }
+                            });
+                            dialog.close();
+                        }
+                    }, {
+                        label: "{/literal}{'Cancel'|gettext}{literal}",
+                        action: function(dialog) {
+                            dialog.close();
+                        }
+                    }]
                 });
-                return false;
-            },
-            setup: function (theEditor) {
-                theEditor.on('blur', function (e) {
-                    if (this.isDirty()) {
-                        var data = this.getContent();
-                        var item = this.id.split('-');
-                        saveEditor(item, data);
+            } else {
+                $.ajax({
+                    type: "POST",
+                    headers: { 'X-Transaction': 'Saving Text Item'},
+                    url: EXPONENT.PATH_RELATIVE+"index.php?controller=text&action=edit_item&ajax_action=1&json=1&src="+src,
+                    data: "id="+item[1] + "&type="+item[0] + "&value="+encodeURIComponent(data),
+                    success:function(msg) {
+                        if (msg.replyCode == '200') {
+                            data = $.parseJSON(msg.data);
+                            if (workflow) {
+                                $('#text-' + data.id + ' span.revisionnum.approval').html(data.revision_id);
+                                if (!data.approved) {
+                                    $('#text-' + data.id).addClass('unapproved');
+                                }
+                            }
+                            var title = data.title;
+                            if (title == '') {
+                                title = '{/literal}{'Untitled'|gettext}{literal}';
+                            }
+                            $('input:hidden[name=\'rerank[]\'][value=\'' + data.id + '\']').siblings('span').html(title);
+                        } else {
+                            errorEditor();
+                        }
                     }
                 });
             }
-        });
-        {/literal}{/if}{literal}
-    };
+        };
 
-    var killEditor = function(node) {
-        {/literal}{if $smarty.const.SITE_WYSIWYG_EDITOR == "ckeditor"}{literal}
-        CKEDITOR.instances[node].destroy();
+        var startEditor = function(node) {
+            if ($(node).attr('id').substr(0,5) == 'title') {
+                mytoolbar = titleToolbar;
+                tinymenu = false;
+                tinyplugins = ['searchreplace,contextmenu,paste,link,localautosave'];
+            } else {
+                mytoolbar = fullToolbar;
+                tinymenu = true;
+                tinyplugins = ['image,imagetools,searchreplace,contextmenu,paste,link,textcolor,visualblocks,code,localautosave'];
+            }
+
+            {/literal}{if $smarty.const.SITE_WYSIWYG_EDITOR == "ckeditor"}{literal}
+//            var editor = CKEDITOR.instances[node.id];
+//            if (editor) { CKEDITOR.remove(editor); }
+            CKEDITOR.inline(node, {
+                on: {
+                    blur: function( event ) {
+                        if (event.editor.checkDirty()) {
+                            var data = event.editor.getData();
+                            var item = event.editor.name.split('-');
+                            saveEditor(item, data);
+                        }
+                    },
+//                    instanceReady: function( event) {
+//                        // Autosave but no more frequent than 5 sec.
+//                        var buffer = CKEDITOR.tools.eventsBuffer( 5000, function() {
+//                            console.log( 'Autosave!' );
+//                            var data = event.editor.getData();
+//                            var item = event.editor.name.split('-');
+//                            saveEditor(item, data);
+//                        } );
+//                        this.on( 'change', buffer.input );
+//                    }
+                },
+
+                skin : '{/literal}{$editor->skin}{literal}',
+                toolbar : mytoolbar,
+                scayt_autoStartup : '{/literal}{$editor->scayt_on}{literal}',
+                {/literal}{$editor->paste_word}{literal}
+                pasteFromWordPromptCleanup : true,
+                filebrowserBrowseUrl : '{/literal}{link controller="file" action="picker" ajax_action=1 update="ck"}{literal}',
+                filebrowserImageBrowseUrl : '{/literal}{link controller="file" action="picker" ajax_action=1 update="ck" filter="image"}{literal}',
+                filebrowserFlashBrowseUrl : '{/literal}{link controller="file" action="picker" ajax_action=1 update="ck"}{literal}',
+                {/literal}{if (!$user->globalPerm('prevent_uploads'))}
+                filebrowserUploadUrl : EXPONENT.PATH_RELATIVE + 'framework/modules/file/connector/uploader.php',
+                uploadUrl : EXPONENT.PATH_RELATIVE + 'framework/modules/file/connector/uploader_paste.php',
+                {/if}{literal}
+                filebrowserWindowWidth : {/literal}{$smarty.const.FM_WIDTH}{literal},
+                filebrowserWindowHeight : {/literal}{$smarty.const.FM_HEIGHT}{literal},
+                filebrowserImageBrowseLinkUrl : EXPONENT.PATH_RELATIVE + 'framework/modules/file/connector/ckeditor_link.php?update=ck',
+                filebrowserLinkBrowseUrl : EXPONENT.PATH_RELATIVE + 'framework/modules/file/connector/ckeditor_link.php?update=ck',
+                filebrowserLinkWindowWidth : 320,
+                filebrowserLinkWindowHeight : 600,
+                extraPlugins : 'autosave,tableresize,sourcedialog,image2,uploadimage,quicktable,showborders,{/literal}{stripSlashes($editor->plugins)}{literal}',
+                removePlugins: 'image,forms,flash',
+                image2_alignClasses: [ 'image-left', 'image-center', 'image-right' ],
+                image2_captionedClass: 'image-captioned',
+                {/literal}{$editor->additionalConfig}{literal}
+                height : 200,
+                autoGrow_minHeight : 200,
+                autoGrow_maxHeight : 400,
+                autoGrow_onStartup : false,
+                toolbarCanCollapse : true,
+                entities_additional : '',
+                {/literal}{$contentCSS}{literal}
+                {/literal}{$configjs}{literal}
+                stylesSet : {/literal}{$editor->stylesset}{literal},
+                format_tags : {/literal}{$editor->formattags}{literal},
+                font_names :
+                    {/literal}{$editor->fontnames}{literal},
+                uiColor : '#aaaaaa',
+                baseHref : EXPONENT.PATH_RELATIVE,
+            });
         {/literal}{elseif $smarty.const.SITE_WYSIWYG_EDITOR == "tinymce"}{literal}
-        tinymce.execCommand('mceRemoveControl', true, '#'+node.id);
-        {/literal}{/if}{literal}
-    };
+            tinymce.init({
+                selector : '#'+node.id,
+                plugins : tinyplugins,
+                inline: true,
+                document_base_url : EXPONENT.PATH_RELATIVE,
+                toolbar: mytoolbar,
+                menubar: tinymenu,
+                toolbar_items_size: 'small',
+                skin : '{/literal}{$editor->skin}{literal}',
+                image_advtab: true,
+                image_title: true,
+                image_caption: true,
+                pagebreak_separator: '<div style=\"page-break-after: always;\"><span style=\"display: none;\">&nbsp;</span></div>',
+                {/literal}{$editor->upload}{literal}
+                browser_spellcheck : {/literal}{$editor->scayt_on}{literal},
+//                importcss_append: true,
+                style_formats: [{/literal}{$editor->stylesset}{literal}],
+                block_formats : {/literal}{$editor->formattags}{literal},
+                font_formats :
+                    {/literal}{$editor->fontnames}{literal},
+                end_container_on_empty_block: true,
+                file_picker_callback: function expBrowser (callback, value, meta) {
+                    tinymce.activeEditor.windowManager.open({
+                        file: EXPONENT.PATH_RELATIVE+'index.php?controller=file&action=picker&ajax_action=1&update=tiny&filter='+meta.filetype,
+                        title: 'File Manager',
+                        width: {/literal}{$smarty.const.FM_WIDTH}{literal},
+                        height: {/literal}{$smarty.const.FM_HEIGHT}{literal},
+                        resizable: 'yes'
+                    }, {
+                        oninsert: function (url, alt, title) {
+                            // Provide file and text for the link dialog
+                            if (meta.filetype == 'file') {
+                                callback(url, {text: alt, title: title});
+                            }
 
-    editableBlocks = $('#textmodule-{/literal}{$name}{literal} div[contenteditable="true"]');
-    for (var i = 0; i < editableBlocks.length; i++) {
-        startEditor(editableBlocks[i]);
-    }
+                            // Provide image and alt text for the image dialog
+                            if (meta.filetype == 'image') {
+                                callback(url, {alt: alt});
+                            }
 
-    $('#textmodule-{/literal}{$name}{literal}').on('click', '.add', function(event) {
-        event.preventDefault();
-        $.ajax({
-            type: "POST",
-            url: EXPONENT.PATH_RELATIVE+"index.php?controller=text&action=saveItem&ajax_action=1&json=1&src="+src,
-            data: "id=0",
-//            success:function(data) {
-            success:function(msg) {
-//                var msg = $.parseJSON(data);
-                newItem = '<div id="text-' + msg.data + '" class="item"><{/literal}{$config.item_level|default:'h2'}{literal}><div id="title-' + msg.data + '" contenteditable="true" class="editable">title placeholder</div></{/literal}{$config.item_level|default:'h2'}{literal}>';
-                newItem += '<div class="item-actions"><a class="edit" title="{/literal}{'Edit this text item'|gettext}{literal}" href="http://localhost/exp2/text/edit/id/' + msg.data + '/src/' + src + '"> {/literal}{'Edit'|gettext}{literal}</a>';
-                newItem += '<a class="delete" title="{/literal}{'Delete'|gettext}{literal}" href="#"> {/literal}{'Delete'|gettext}{literal}</a>';
-                newItem +='<a class="delete-title btn btn-danger {/literal}{$btn_size}{literal}" id="deletetitle-' + msg.data + '" href="#" title="{/literal}{'Delete Title'|gettext}{literal}"><i class="fa fa-times-circle {/literal}{$icon_size}{literal}"></i> {/literal}{'Delete Title'|gettext}{literal}</a></div>';
-                newItem += '<div class="bodycopy"><div id="body-' + msg.data + '" contenteditable="true" class="editable">content placeholder</div></div></div>';
-                $('#textcontent-{/literal}{$name}{literal}').append(newItem);
-                startEditor($('#title-' + msg.data)[0]);
-                startEditor($('#body-' + msg.data)[0]);
-                newDDItem = '<li><input type="hidden" class="form-control" value="' + msg.data + '" name="rerank[]"><div class="fpdrag"></div><span class="label">title placeholder</span></li>';
-                $('#listToOrder' + src.slice(1)).append(newDDItem);
-            }
+                            // Provide alternative source and posted for the media dialog
+                            if (meta.filetype == 'media') {
+                                callback(url, {poster: alt});
+                            }
+                        }
+                    });
+                    return false;
+                },
+                setup: function (theEditor) {
+                    theEditor.on('blur', function (e) {
+                        if (this.isDirty()) {
+                            var data = this.getContent();
+                            var item = this.id.split('-');
+                            saveEditor(item, data);
+                        }
+                    });
+                }
+            });
+            {/literal}{/if}{literal}
+        };
+
+        var killEditor = function(node) {
+            {/literal}{if $smarty.const.SITE_WYSIWYG_EDITOR == "ckeditor"}{literal}
+            CKEDITOR.instances[node].destroy();
+            {/literal}{elseif $smarty.const.SITE_WYSIWYG_EDITOR == "tinymce"}{literal}
+            tinymce.execCommand('mceRemoveControl', true, '#'+node.id);
+            {/literal}{/if}{literal}
+        };
+
+        editableBlocks = $('#textmodule-{/literal}{$name}{literal} div[contenteditable="true"]');
+        for (var i = 0; i < editableBlocks.length; i++) {
+            startEditor(editableBlocks[i]);
+        }
+
+        // Add a text item
+        $('#textmodule-{/literal}{$name}{literal}').on('click', '.add-body', function(event) {
+            event.preventDefault();
+            $.ajax({
+                type: "POST",
+                headers: { 'X-Transaction': 'Adding Text Item'},
+                url: EXPONENT.PATH_RELATIVE+"index.php?controller=text&action=edit_item&ajax_action=1&json=1&src="+src,
+                data: "id=0",
+                success:function(msg) {
+                    if (msg.replyCode == '200') {
+                        data = $.parseJSON(msg.data);
+                        newItem =  '<div id="text-' + data.id + '" class="item';
+                        if (workflow && !data.approved) {
+                            newItem += ' unapproved';
+                        }
+                        newItem += '"><{/literal}{$config.item_level|default:'h2'}{literal}><div id="title-' + data.id + '" contenteditable="true" class="editable">{/literal}{'title placeholder'|gettext}{literal}</div></{/literal}{$config.item_level|default:'h2'}{literal}>';
+                        newItem += '<div class="item-actions">';
+                        if (workflow) {
+                            newItem += '<span class="revisionnum approval" title="Viewing Revision #' + data.revision_id + '">' + data.revision_id + '</span>';
+                        }
+                        newItem += '<a class="btn btn-default {/literal}{$btn_size}{literal}" title="{/literal}{'Edit this text item'|gettext}{literal}" href="' + EXPONENT.PATH_RELATIVE + 'text/edit/id/' + data.id + '/src/' + src + '"><i class="fa fa-edit {/literal}{$icon_size}{literal}"></i> {/literal}{'Edit'|gettext}{literal}</a>';
+                        newItem += '<a class="delete-item btn btn-danger {/literal}{$btn_size}{literal}" title="{/literal}{'Delete'|gettext}{literal}" href="' + EXPONENT.PATH_RELATIVE + 'text/delete/id/' + data.id + '/src/' + src + '"><i class="fa fa-times-circle {/literal}{$icon_size}{literal}"></i> {/literal}{'Delete'|gettext}{literal}</a>';
+                        newItem +='<a class="delete-title btn btn-danger {/literal}{$btn_size}{literal}" id="deletetitle-' + data.id + '" href="#" title="{/literal}{'Delete Title'|gettext}{literal}"><i class="fa fa-times-circle {/literal}{$icon_size}{literal}"></i> {/literal}{'Delete Title'|gettext}{literal}</a></div>';
+                        newItem += '<div class="bodycopy"><div id="body-' + data.id + '" contenteditable="true" class="editable">{/literal}{'content placeholder'|gettext}{literal}</div></div></div>';
+                        $('#textcontent-{/literal}{$name}{literal}').append(newItem);
+                        startEditor($('#title-' + data.id)[0]);
+                        startEditor($('#body-' + data.id)[0]);
+                        newDDItem = '<li><input type="hidden" class="form-control" value="' + data.id + '" name="rerank[]"><div class="fpdrag"></div><span class="title">{/literal}{'title placeholder'|gettext}{literal}</span></li>';
+                        $('#listToOrder' + src.slice(1)).append(newDDItem);
+                    } else {
+                        errorEditor();
+                    }
+                }
+            });
         });
-    });
 
-    $('#textmodule-{/literal}{$name}{literal}').on('click', '.add-title', function(event) {
-        event.preventDefault();
-        ctrl = $(event.target).parent().parent();
-        var item = ctrl.attr('id').split('-');
-        $.ajax({
-            type: "POST",
-            url: EXPONENT.PATH_RELATIVE+"index.php?controller=text&action=saveItem&ajax_action=1&json=1&src="+src,
-            data: "id="+item[1] + "&type=title&value=title+placeholder",
-//            success: function(data) {
-            success: function(msg) {
-//                msg = $.parseJSON(data);
-                newItem = '<{/literal}{$config.item_level|default:'h2'}{literal}><div id="title-' + msg.data + '" contenteditable="true" class="editable">title placeholder</div></{/literal}{$config.item_level|default:'h2'}{literal}>';
-                $('#text-' + msg.data).prepend(newItem);
-                $('input:hidden[name=\'rerank[]\'][value=\'' + msg.data + '\']').siblings('span').html('title placeholder');
-                startEditor($('#title-' + msg.data)[0]);
-                chgItem ='<a class="delete-title btn btn-danger {/literal}{$btn_size}{literal}" id="deletetitle-' + msg.data + '" href="#" title="{/literal}{'Delete Title'|gettext}{literal}"><i class="fa fa-times-circle {/literal}{$icon_size}{literal}"></i> {/literal}{'Delete Title'|gettext}{literal}</a>';
-                addparent = $('#addtitle-' + msg.data).parent();
-                $('#addtitle-' + msg.data).remove();
-                addparent.append(chgItem);
-            }
-        });
-    });
-
-    $('#textmodule-{/literal}{$name}{literal}').on('click', '.delete', function(event) {
-        event.preventDefault();
-        if (confirm('{/literal}{'Are you sure you want to delete this text item?'|gettext}{literal}')) {
+        // Add a title
+        $('#textmodule-{/literal}{$name}{literal}').on('click', '.add-title', function(event) {
+            event.preventDefault();
             ctrl = $(event.target).parent().parent();
             var item = ctrl.attr('id').split('-');
             $.ajax({
                 type: "POST",
-                url: EXPONENT.PATH_RELATIVE+"index.php?controller=text&action=deleteItem&ajax_action=1&json=1&src="+src,
-                data: "id=" + item[1],
-    //            success: function(data) {
+                headers: { 'X-Transaction': 'Adding Text Title'},
+                url: EXPONENT.PATH_RELATIVE+"index.php?controller=text&action=edit_item&ajax_action=1&json=1&src="+src,
+                data: "id="+item[1] + "&type=title&value={/literal}{'title placeholder'|gettext|escape:'url'}{literal}",
                 success: function(msg) {
-    //                msg = $.parseJSON(data);
-                    $('#text-' + msg.data).remove();
-                    $('input:hidden[name=\'rerank[]\'][value=\'' + msg.data + '\']').parent().remove();
-//                    CKEDITOR.instances['title-' + msg.data].destroy();
-                    killEditor('title-' + msg.data);
-//                    CKEDITOR.instances['body-' + msg.data].destroy();
-                    killEditor('body-' + msg.data);
+                    if (msg.replyCode == '200') {
+                        data = $.parseJSON(msg.data);
+                        if (workflow) {
+                            $('#text-' + data.id + ' span.revisionnum.approval').html(data.revision_id);
+                            if (!data.approved) {
+                                $('#text-' + data.id).addClass('unapproved');
+                            }
+                        }
+                        newItem = '<{/literal}{$config.item_level|default:'h2'}{literal}><div id="title-' + data.id + '" contenteditable="true" class="editable">{/literal}{'title placeholder'|gettext}{literal}</div></{/literal}{$config.item_level|default:'h2'}{literal}>';
+                        $('#text-' + data.id).prepend(newItem);
+                        $('input:hidden[name=\'rerank[]\'][value=\'' + data.id + '\']').siblings('span').html('{/literal}{'title placeholder'|gettext}{literal}');
+                        startEditor($('#title-' + data.id)[0]);
+                        chgItem ='<a class="delete-title btn btn-danger {/literal}{$btn_size}{literal}" id="deletetitle-' + data.id + '" href="#" title="{/literal}{'Delete Title'|gettext}{literal}"><i class="fa fa-times-circle {/literal}{$icon_size}{literal}"></i> {/literal}{'Delete Title'|gettext}{literal}</a>';
+                        addparent = $('#addtitle-' + data.id).parent();
+                        $('#addtitle-' + data.id).remove();
+                        addparent.append(chgItem);
+                    } else {
+                        errorEditor();
+                    }
                 }
             });
-        }
-    });
+        });
 
-    $('#textmodule-{/literal}{$name}{literal}').on('click', '.delete-title', function(event) {
-        event.preventDefault();
-        if (confirm('{/literal}{'Are you sure you want to delete this text item title?'|gettext}{literal}')) {
-            ctrl = $(event.target).parent().parent();
-            var item = ctrl.attr('id').split('-');
-            $.ajax({
-                type: "POST",
-                url: EXPONENT.PATH_RELATIVE+"index.php?controller=text&action=saveItem&ajax_action=1&json=1&src="+src,
-                data: "id="+item[1] + "&type=title",
-//                success: function(data) {
-                success: function(msg) {
-//                msg = $.parseJSON(data);
-                    $('#title-' + msg.data).parent().remove();
-                    $('input:hidden[name=\'rerank[]\'][value=\'' + msg.data + '\']').siblings('span').html('{/literal}{'Untitled'|gettext}{literal}');
-                    chgItem ='<a class="add-title btn btn-success {/literal}{$btn_size}{literal}" id="addtitle-' + msg.data + '" href="#" title="{/literal}{'Add Title'|gettext}{literal}"><i class="fa fa-plus-circle {/literal}{$icon_size}{literal}"></i> {/literal}{'Add Title'|gettext}{literal}</a>';
-                    delparent = $('#deletetitle-' + msg.data).parent();
-//                    CKEDITOR.instances['title-' + msg.data].destroy();
-                    killEditor('title-' + msg.data);
-                    $('#deletetitle-' + msg.data).remove();
-                    delparent.append(chgItem);
-                }
-            });
-        }
+        // Delete a text item
+        $('#textmodule-{/literal}{$name}{literal}').on('click', '.delete-item', function(event) {
+            event.preventDefault();
+            if (confirm('{/literal}{'Are you sure you want to delete this text item?'|gettext}{literal}')) {
+                ctrl = $(event.target).parent().parent();
+                var item = ctrl.attr('id').split('-');
+                $.ajax({
+                    type: "POST",
+                    headers: { 'X-Transaction': 'Deleting Text Item'},
+                    url: EXPONENT.PATH_RELATIVE+"index.php?controller=text&action=delete_item&ajax_action=1&json=1&src="+src,
+                    data: "id=" + item[1],
+                    success: function(msg) {
+                        if (msg.replyCode == '200') {
+                            $('#text-' + msg.data).remove();
+                            $('input:hidden[name=\'rerank[]\'][value=\'' + msg.data + '\']').parent().remove();
+                            killEditor('title-' + msg.data);
+                            killEditor('body-' + msg.data);
+                        } else {
+                            errorEditor();
+                        }
+                    }
+                });
+            }
+        });
+
+        // Delete a title
+        $('#textmodule-{/literal}{$name}{literal}').on('click', '.delete-title', function(event) {
+            event.preventDefault();
+            if (confirm('{/literal}{'Are you sure you want to delete this text item title?'|gettext}{literal}')) {
+                ctrl = $(event.target).parent().parent();
+                var item = ctrl.attr('id').split('-');
+                $.ajax({
+                    type: "POST",
+                    headers: { 'X-Transaction': 'Deleting Text Title'},
+                    url: EXPONENT.PATH_RELATIVE+"index.php?controller=text&action=edit_item&ajax_action=1&json=1&src="+src,
+                    data: "id="+item[1] + "&type=title",
+                    success: function(msg) {
+                        if (msg.replyCode == '200') {
+                            data = $.parseJSON(msg.data);
+                            if (workflow) {
+                                $('#text-' + data.id + ' span.revisionnum.approval').html(data.revision_id);
+                                if (!data.approved) {
+                                    $('#text-' + data.id).addClass('unapproved');
+                                }
+                            }
+                            $('#title-' + data.id).parent().remove();
+                            $('input:hidden[name=\'rerank[]\'][value=\'' + data.id + '\']').siblings('span').html('{/literal}{'Untitled'|gettext}{literal}');
+                            chgItem ='<a class="add-title btn btn-success {/literal}{$btn_size}{literal}" id="addtitle-' + data.id + '" href="#" title="{/literal}{'Add Title'|gettext}{literal}"><i class="fa fa-plus-circle {/literal}{$icon_size}{literal}"></i> {/literal}{'Add Title'|gettext}{literal}</a>';
+                            delparent = $('#deletetitle-' + data.id).parent();
+                            killEditor('title-' + data.id);
+                            $('#deletetitle-' + data.id).remove();
+                            delparent.append(chgItem);
+                        } else {
+                            errorEditor();
+                        }
+                    }
+                });
+            }
+        });
     });
-{/literal}
-{/script}
+    {/literal}
+    {/script}
 {/if}

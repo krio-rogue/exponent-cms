@@ -1,5 +1,5 @@
 {*
- * Copyright (c) 2004-2014 OIC Group, Inc.
+ * Copyright (c) 2004-2016 OIC Group, Inc.
  *
  * This file is part of Exponent
  *
@@ -49,21 +49,12 @@
     {control type=dropdown name="upload_folder" label="Select the Quick Add Upload Folder"|gettext items=$folders value=$config.upload_folder}
 {/if}
 
-{script unique="fileviewconfig" yui3mods="1"}
+{script unique="fileviewconfig" yui3mods="node,io"}
 {literal}
-YUI(EXPONENT.YUI3_CONFIG).use('node','io', function(Y) {
-    var cfg = {
-    			method: "POST",
-    			headers: { 'X-Transaction': 'Load File Config'},
-    			arguments : { 'X-Transaction': 'Load File Config'}
-    		};
-    		
-	var sUrl = EXPONENT.PATH_RELATIVE+"index.php?controller=file&action=get_view_config&ajax_action=1";
+YUI(EXPONENT.YUI3_CONFIG).use('*', function(Y) {
+	var sUrl = EXPONENT.PATH_RELATIVE + "index.php?controller=file&action=get_view_config&ajax_action=1";
 
 	var handleSuccess = function(ioId, o){
-		Y.log(o.responseText);
-		Y.log("The success handler was called.  Id: " + ioId + ".", "info", "example");
-        
         if(o.responseText){
             Y.one('#fileViewConfig').setContent(o.responseText);
                 Y.one('#fileViewConfig').all('script').each(function(n){
@@ -71,19 +62,16 @@ YUI(EXPONENT.YUI3_CONFIG).use('node','io', function(Y) {
                     eval(n.get('innerHTML'));
                 } else {
                     var url = n.get('src');
-                    if (url.indexOf("ckeditor")) {
-                        Y.Get.script(url);
-                    };
+                    Y.Get.script(url);
                 };
             });
-                Y.one('#fileViewConfig').all('link').each(function(n){
+            Y.one('#fileViewConfig').all('link').each(function(n){
                 var url = n.get('href');
                 Y.Get.css(url);
             });
-            Y.one('#ff-options').setStyle("display","block");
         } else {
             Y.one('#fileViewConfig .loadingdiv').remove();
-            Y.one('#ff-options').setStyle("display","none");
+            Y.one('#ff-options').setStyle("display", "none");
         }
 	};
 
@@ -92,22 +80,31 @@ YUI(EXPONENT.YUI3_CONFIG).use('node','io', function(Y) {
 		Y.log("The failure handler was called.  Id: " + ioId + ".", "info", "example");
 	};
 
-	//Subscribe our handlers to IO's global custom events:
-	Y.on('io:success', handleSuccess);
-	Y.on('io:failure', handleFailure);
-
     Y.one('#filedisplay').on('change',function(e){
         e.halt();
-        cfg.data = "view="+e.target.get('value');
-        var request = Y.io(sUrl, cfg);
-        Y.one('#fileViewConfig').setContent(Y.Node.create('<div class="loadingdiv" style="width:40%">{/literal}{"Loading Form"|gettext}{literal}</div>'));
         if (e.target.get('value')==""){
-            Y.one('#ff-options').setStyle("display","none");
+            Y.one('#ff-options').setStyle("display", "none");
+            Y.one('#fileViewConfig').setStyle("display", "none");
+        } else {
+            var cfg = {
+                method: "POST",
+                headers: { 'X-Transaction': 'Load File Config'},
+                arguments : { 'X-Transaction': 'Load File Config'},
+                data : "view="+e.target.get('value'),
+                on: {
+                    success: handleSuccess,
+                    failure: handleFailure
+                }
+            };
+            Y.one('#ff-options').setStyle("display", "block");
+            Y.one('#fileViewConfig').setStyle("display", "block");
+            var request = Y.io(sUrl, cfg);
+            Y.one('#fileViewConfig').setContent(Y.Node.create('{/literal}{loading}{literal}'));
         }
     });
     {/literal}
     {if $presaved}
-        Y.one('#ff-options').setStyle("display","block");
+        Y.one('#ff-options').setStyle("display", "block");
     {/if}
     {literal}
 });

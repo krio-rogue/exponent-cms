@@ -2,7 +2,7 @@
 
 ##################################################
 #
-# Copyright (c) 2004-2014 OIC Group, Inc.
+# Copyright (c) 2004-2016 OIC Group, Inc.
 #
 # This file is part of Exponent
 #
@@ -29,10 +29,6 @@ class upscalculator extends shippingcalculator {
 	//overridden methods:
 	public function name() { return gt('UPS'); }
 	public function description() { return gt('Shipping calculator for dynamically calculating shipping rates using the UPS XML Rate API'); }
-	public function hasUserForm() { return true; }
-	public function hasConfig() { return true; }
-	public function addressRequired() { return true; }
-	public function isSelectable() { return true; }
 
     public $shippingmethods = array(
         "01"=>"UPS Next Day Air",
@@ -49,9 +45,7 @@ class upscalculator extends shippingcalculator {
         "65"=>"UPS Saver",
     );
 
-    public function getRates($items) {
-        global $order;
-        
+    public function getRates($order) {
         // Require the main ups class and upsRate
         include_once(BASE.'external/ups-php/classes/class.ups.php');
         include_once(BASE.'external/ups-php/classes/class.upsRate.php');
@@ -91,11 +85,14 @@ class upscalculator extends shippingcalculator {
         
         // loop each product in this shipment and create the packages
         $has_giftcard = false;
-        foreach ($items->orderitem as $item) {
+        foreach ($order->orderitem as $item) {
             for($i=0; $i<$item->quantity; $i++) {
                 if (empty($item->product->no_shipping) && $item->product->requiresShipping == true) {
                     if ($item->product_type != 'giftcard') {
-                        $lbs = empty($item->product->weight) ? $this->configdata['default_max_weight'] : $item->product->weight;
+//                        $lbs = empty($item->product->weight) ? $this->configdata['default_max_weight'] : $item->product->weight;
+                        // calculate option weight
+                        $item_weight = $item->getWeight();
+                        $lbs    = empty($item_weight) ? $this->configdata['default_max_weight'] : $item_weight;
                         $width = empty($item->product->width) ? $this->configdata['default_width'] : $item->product->width;
                         $height = empty($item->product->height) ? $this->configdata['default_height'] : $item->product->height;
                         $length = empty($item->product->length) ? $this->configdata['default_length'] : $item->product->length;
@@ -107,7 +104,7 @@ class upscalculator extends shippingcalculator {
                         $package_items[$count]->h = $height;
                         $package_items[$count]->l = $length;
                         $package_items[$count]->name = $item->product->title;
-                        $count += 1;	    
+                        $count++;
                     } else {
                         $has_giftcard = true;
                     }
@@ -115,7 +112,7 @@ class upscalculator extends shippingcalculator {
             }
         }
         
-        // kludge for the giftcard shipping
+        //FIXME kludge for the giftcard shipping
         if (count($package_items) == 0 && $has_giftcard) {
             $rates = array(
                 "03"=>array("id"=>"03", "title"=>"UPS Ground", "cost"=>5.00),
@@ -200,7 +197,7 @@ class upscalculator extends shippingcalculator {
 
 	    $rateFromUPS = $upsRate->sendRateRequest();
 	    
-	    $handling = empty($has_giftcard) ? 0 : 5;
+	    $handling = empty($has_giftcard) ? 0 : 5;  //FIXME adding a $5 fee if shipping a gift card???
         if (empty($rateFromUPS)) {
 //            return 0;
             return array();
@@ -209,7 +206,7 @@ class upscalculator extends shippingcalculator {
 	        $available_methods = $this->availableMethods();
 	        foreach ($rateFromUPS['RatingServiceSelectionResponse']['RatedShipment'] as $rate) {
 	            if (array_key_exists($rate['Service']['Code']['VALUE'], $available_methods)) {
-	                $rates[$rate['Service']['Code']['VALUE']] = $rate['TotalCharges']['MonetaryValue']['VALUE'];
+//	                $rates[$rate['Service']['Code']['VALUE']] = $rate['TotalCharges']['MonetaryValue']['VALUE'];
 	                $rates[$rate['Service']['Code']['VALUE']] = array(
                         'id' => $rate['Service']['Code']['VALUE'],
                         'title' => $this->shippingmethods[$rate['Service']['Code']['VALUE']],
@@ -224,20 +221,34 @@ class upscalculator extends shippingcalculator {
 	    }
     }	
     
-   	public function configForm() { 
-   	    return BASE.'framework/modules/ecommerce/shippingcalculators/views/upscalculator/configure.tpl';
-   	}
+//   	public function configForm() {
+//   	    return BASE.'framework/modules/ecommerce/shippingcalculators/views/upscalculator/configure.tpl';
+//   	}
 	
 	//process config form
 	function parseConfig($values) {
-	    $config_vars = array('username', 'accessnumber', 'password', 'shipping_methods', 'shipfrom', 'default_width', 'default_length', 'default_height', 'default_max_weight', 'testmode');
+	    $config_vars = array(
+            'username',
+            'accessnumber',
+            'password',
+            'shipping_methods',
+            'shipfrom',
+            'default_width',
+            'default_length',
+            'default_height',
+            'default_max_weight',
+            'testmode'
+        );
+        $config = array();
 	    foreach ($config_vars as $varname) {
 	        $config[$varname] = isset($values[$varname]) ? $values[$varname] : null;
 	        if ($varname == 'shipfrom') {
 	            $config[$varname]['state'] = geoRegion::getAbbrev($values[$varname]['address_region_id']);
 	            $config[$varname]['country'] = geoRegion::getCountryCode($values[$varname]['address_country_id']);
-                unset($config[$varname]['address_region_id']);
-                unset($config[$varname]['address_country_id']);
+                unset(
+                    $config[$varname]['address_region_id'],
+                    $config[$varname]['address_country_id']
+                );
 	        }
 	    }
 	    
@@ -263,16 +274,17 @@ class upscalculator extends shippingcalculator {
 	    $addy['address3'] = isset($params->address3) ? $params->address3 : '';
 	    $addy['city'] = isset($params->city) ? $params->city : '';
 	    $addy['state'] = isset($params->state) ? geoRegion::getAbbrev($params->state) : '';
-	    $addy['countryCode'] = isset($params->state) ? geoRegion::getCountryCode($params->country) : '';
+	    $addy['countryCode'] = isset($params->country) ? geoRegion::getCountryCode($params->country) : '';
 	    $addy['postalCode'] = isset($params->zip) ? $params->zip : '';
 	    $addy['phone'] = isset($params->phone) ? $params->phone : '';
 	    return $addy;
 	}
 	
-	public static function sortByVolume($a, $b) {
-	    eDebug($a);
-	    return ($a->volume > $b->volume ? -1 : 1);
-	}
+//	public static function sortByVolume($a, $b) {
+////	    eDebug($a);
+//	    return ($a->volume > $b->volume ? -1 : 1);
+//	}
+
 }
 
 ?>

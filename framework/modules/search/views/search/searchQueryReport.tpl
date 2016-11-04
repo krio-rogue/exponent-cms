@@ -1,5 +1,5 @@
 {*
- * Copyright (c) 2004-2014 OIC Group, Inc.
+ * Copyright (c) 2004-2016 OIC Group, Inc.
  *
  * This file is part of Exponent
  *
@@ -13,7 +13,7 @@
  *
  *}
 
-{css unique="searchqueryreport" corecss="tables"}
+{css unique="searchqueryreport" corecss="tables,admin-global"}
 
 {/css}
 
@@ -86,17 +86,18 @@
             </div>
 		</div>
 	</div>
-    <div class="loadingdiv">{"Loading"|gettext}</div>
+    {*<div class="loadingdiv">{"Loading"|gettext}</div>*}
+    {loading}
 </div>
 
-{script unique="searchQueryReport" yui3mods="1"}
+{script unique="searchQueryReport" yui3mods="exptabs"}
 {literal}
     EXPONENT.YUI3_CONFIG.modules.exptabs = {
         fullpath: EXPONENT.JS_RELATIVE+'exp-tabs.js',
         requires: ['history','tabview','event-custom']
     };
 
-    YUI(EXPONENT.YUI3_CONFIG).use('exptabs', function(Y) {
+    YUI(EXPONENT.YUI3_CONFIG).use('*', function(Y) {
         Y.expTabs({srcNode: '#searchqueryreport'});
         Y.one('#searchqueryreport').removeClass('hide');
         Y.one('.loadingdiv').remove();
@@ -104,9 +105,9 @@
         var userdropdown = Y.one('#userdropdown');
         userdropdown.on("change",function(e){
             if(e.target.get('value') == -1) {
-                window.location = EXPONENT.PATH_RELATIVE+"search/searchQueryReport/";
+                window.location = EXPONENT.PATH_RELATIVE+"search/searchQueryReport/";  //FIXME requires SEF_URLs
             } else {
-                window.location = EXPONENT.PATH_RELATIVE+"search/searchQueryReport/user_id/"+e.target.get('value');
+                window.location = EXPONENT.PATH_RELATIVE+"search/searchQueryReport/user_id/"+e.target.get('value');  //FIXME requires SEF_URLs
             }
         });
 	});

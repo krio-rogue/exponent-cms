@@ -2,7 +2,7 @@
 
 ##################################################
 #
-# Copyright (c) 2004-2014 OIC Group, Inc.
+# Copyright (c) 2004-2016 OIC Group, Inc.
 #
 # This file is part of Exponent
 #
@@ -46,7 +46,7 @@ function smarty_function_printer_friendly_link($params,&$smarty) {
     if ($print && !PRINTER_FRIENDLY && !EXPORT_AS_PDF) {
         // initialize a couple of variables
 //        if (BTN_SIZE == 'large') {
-//            $btn_size = '';  // actually default size, NOT true boostrap large
+//            $btn_size = '';  // actually default size, NOT true bootstrap large
 //            $icon_size = 'icon-2x';
 //        } elseif (BTN_SIZE == 'small') {
 //            $btn_size = 'btn-mini';
@@ -61,7 +61,7 @@ function smarty_function_printer_friendly_link($params,&$smarty) {
         $text = '<i class="icon-print '.expTheme::iconSize().'"></i> ' . (isset($params['text']) ? $params['text'] : gt('View Printer Friendly'));
 
         // spit out the link
-        echo $prepend.$router->printerFriendlyLink($text, $class, 800, 600, $view);
+        echo $prepend,$router->printerFriendlyLink($text, $class, 800, 600, $view);
     }
 }
 

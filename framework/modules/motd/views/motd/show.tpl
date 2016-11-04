@@ -1,5 +1,5 @@
 {*
- * Copyright (c) 2004-2014 OIC Group, Inc.
+ * Copyright (c) 2004-2016 OIC Group, Inc.
  *
  * This file is part of Exponent
  *
@@ -18,10 +18,18 @@
     {if !($config.hidemoduletitle xor $smarty.const.INVERT_HIDE_TITLE)}<{$config.heading_level|default:'h1'}>{$moduletitle|default:"Message of the Day"|gettext}</{$config.heading_level|default:'h1'}>{/if}
     {$myloc=serialize($__loc)}
     <div class="motd-message">
-        <div class="motd-date">
-            <span class="date-header">{$smarty.now|format_date}</span>
-            {clear}
-        </div>
+        {if $config.datetag}
+            <p class="post-date">
+                <span class="month">{$smarty.now|format_date:"%b"}</span>
+                <span class="day">{$smarty.now|format_date:"%e"}</span>
+                <span class="year">{$smarty.now|format_date:"%Y"}</span>
+            </p>
+        {else}
+            <div class="motd-date">
+                <span class="date-header">{$smarty.now|format_date}</span>
+                {clear}
+            </div>
+        {/if}
         <div class="bodycopy">
             {$message->body}
         </div>

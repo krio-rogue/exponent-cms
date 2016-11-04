@@ -2,7 +2,7 @@
 
 ##################################################
 #
-# Copyright (c) 2004-2014 OIC Group, Inc.
+# Copyright (c) 2004-2016 OIC Group, Inc.
 #
 # This file is part of Exponent
 #
@@ -45,6 +45,9 @@ return array(
     'feed_desc'=>array(
    		DB_FIELD_TYPE=>DB_DEF_STRING,
    		DB_FIELD_LEN=>100000),
+	'feed_artist'=>array(
+		DB_FIELD_TYPE=>DB_DEF_STRING,
+		DB_FIELD_LEN=>200),
 	'enable_rss'=>array(
 		DB_FIELD_TYPE=>DB_DEF_BOOLEAN),
     'advertise'=>array(

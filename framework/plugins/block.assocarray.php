@@ -2,7 +2,7 @@
 
 ##################################################
 #
-# Copyright (c) 2004-2014 OIC Group, Inc.
+# Copyright (c) 2004-2016 OIC Group, Inc.
 #
 # This file is part of Exponent
 #
@@ -27,45 +27,46 @@
  * Smarty {assocarray} block plugin
  * Type:     block<br>
  * Name:     assocarray<br>
- * Purpose:  Set up a associatvie array
+ * Purpose:  Set up a associative array
  * Version:  1.1
  * Author:    boots
+ * @deprecated
  *
  * @param         $params
  * @param         $content
  * @param \Smarty $smarty
  * @param         $repeat
  *
- *           Purpose:  make assignnents from within a template with a simple syntax
+ *           Purpose:  make assignments from within a template with a simple syntax
  *           supporting multiple assignments and allowing for simple
  *           assignments as well as arrays and keyed arrays.
  *           See:      http://www.phpinsider.com/smarty-forum/viewtopic.php?t=64
  *           Example:
- *           {dsrlz}
+ *           {assocarray}
  *              test: "test"
  *              test2: 10
  *              test3: "this is a test"
  *              test4: ["test1", "test2", "test3"]
  *              test5: [
- *                  key1: "value1"
+ *                  key1: $smarty.const.PATH_RELATIVE
  *                  key2: "value2"
  *              ]
  *              test6: [
  *                  key1: "value1"
  *                  key2: [
- *                      subkey1: "subvalue1"
+ *                      subkey1: $config.passed_value  //$config.passed_value is set to 'value'
  *                      subkey2: "subvalue2"
  *                  ]
  *              ]
- *           {/dsrlz}
+ *           {/assocarray}
  *
  *           creates the following smarty assignments:
  *           $test  [= "test"]
  *           $test2  [= 10]
  *           $test3  [= "this is a test"]
  *           $test4  [= array("test1", "test2", "test3")]
- *           $test5  [= array('key1'=>"value1", 'key2'=>"value2")]
- *           $test6  [= array('key1'=>"value1", 'key2'=>array('subkey1'=>"subvalue1", 'subkey2'=>"subvalue2"))]
+ *           $test5  [= array('key1'=>PATH_RELATIVE, 'key2'=>"value2")]
+ *           $test6  [= array('key1'=>"value1", 'key2'=>array('subkey1'=>"value", 'subkey2'=>"subvalue2"))]
  */
 function smarty_block_assocarray($params, $content, &$smarty, &$repeat)
 {
@@ -90,6 +91,7 @@ function smarty_block_assocarray($params, $content, &$smarty, &$repeat)
         foreach ($src as $_token) {
             $token = trim($_token);
             $last_char = substr($token, strlen($token) - 1, 1);
+            $first_char = substr($token, 0, 1);
             $stack[] = $items;
             switch ($last_char) {
                 case '[':
@@ -130,12 +132,20 @@ function smarty_block_assocarray($params, $content, &$smarty, &$repeat)
                     }
                     break;
                 default:
-                    $msg .= $token;
+                    if ($first_char == '$') {
+                        if (strpos($token, '$smarty.const.') !== false) {
+                            $msg .= substr($token, 14);
+                        } else {
+                            $msg .= "'".$smarty->getTemplateVars(substr($token, 1))."'";
+                        }
+                    } else {
+                        $msg .= $token;
+                    }
                     break;
             }
         }
         $msg .= ';';
-        $cnt = preg_match_all('/(\$(\w+)\s*=\s*(.*?;))/', $msg, $list);
+        $cnt = preg_match_all('/(\$(\w+)\s*=\s*(.*?;))/', $msg, $list);  //FIXME we discard this result?
         $cnt = count($list[1]);
         if ($cnt > 0) {
             for ($i = 0; $i < $cnt; $i++) {

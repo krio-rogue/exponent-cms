@@ -1,5 +1,5 @@
 {*
- * Copyright (c) 2004-2014 OIC Group, Inc.
+ * Copyright (c) 2004-2016 OIC Group, Inc.
  *
  * This file is part of Exponent
  *
@@ -226,6 +226,7 @@
                 EXPONENT.resetViews();
                 // var uri = EXPONENT.PATH_RELATIVE+'index.php';
                 $.ajax({
+                    headers: { 'X-Transaction': 'Getting Actions'},
                     url: EXPONENT.PATH_RELATIVE+'index.php?controller=container&action=getaction&ajax_action=1&mod=' + EXPONENT.curMod,
                     success: function(o){
                         var opts = $.parseJSON(o);
@@ -247,6 +248,7 @@
             EXPONENT.writeViews = function() {
                 viewpicker.removeAttr('disabled');
                 $.ajax({
+                    headers: { 'X-Transaction': 'Getting Action Views'},
                     url: EXPONENT.PATH_RELATIVE+'index.php?controller=container&action=getactionviews&ajax_action=1&mod=' + EXPONENT.curMod + '&act=' + actionpicker.val() + '&actname=' + actionpicker.val(),
                     success: function(o){
                         var opts = $.parseJSON(o);

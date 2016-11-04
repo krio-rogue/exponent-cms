@@ -1,5 +1,5 @@
 {*
- * Copyright (c) 2004-2014 OIC Group, Inc.
+ * Copyright (c) 2004-2016 OIC Group, Inc.
  *
  * This file is part of Exponent
  *
@@ -12,11 +12,11 @@
  * GPL: http://www.gnu.org/licenses/gpl.txt
  *
  *}
- 
+
 {css unique="searchform" link="`$asset_path`css/show-form.css"}
-    
+
 {/css}
- 
+
 <div class="module search show-form">
     {if $moduletitle && !($config.hidemoduletitle xor $smarty.const.INVERT_HIDE_TITLE)}<{$config.heading_level|default:'h1'}>{$moduletitle}</{$config.heading_level|default:'h1'}>{/if}
     {if $config.moduledescription != ""}
@@ -31,7 +31,7 @@
             {*<button type="submit" class="btn">{$config.buttontext|default:"Search"|gettext}</button>*}
         {*</div>*}
         <div class="input-append">
-            <input type="search" name="search_string" id="search_string" placeholder="{$config.inputtext|default:"Keywords"|gettext}">
+            <input type="search" name="search_string" id="search_string" aria-label="{'search string'|gettext}" placeholder="{$config.inputtext|default:"Keywords"|gettext}">
             <button type="submit" class="btn"><i class="icon-search"></i></button>
         </div>
     {/form}

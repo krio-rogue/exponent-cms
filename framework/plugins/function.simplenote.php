@@ -2,7 +2,7 @@
 
 ##################################################
 #
-# Copyright (c) 2004-2014 OIC Group, Inc.
+# Copyright (c) 2004-2016 OIC Group, Inc.
 #
 # This file is part of Exponent
 #
@@ -39,7 +39,7 @@ function smarty_function_simplenote($params,&$smarty) {
     if (!empty($params['content_id'])) {
         $hideform = empty($params['hideform']) ? false : true;
         $hidenotes = empty($params['hidenotes']) ? false : true;
-        $title = empty($params['title']) ? 'Notes' : $params['title'];
+        $title = !isset($params['title']) ? 'Notes' : $params['title'];
         $formtitle = empty($params['formtitle']) ? 'Add a Note' : $params['formtitle'];
 
         $tab = empty($params['tab']) ? '' : $params['tab'];

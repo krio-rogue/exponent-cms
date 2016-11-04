@@ -2,7 +2,7 @@
 
 ##################################################
 #
-# Copyright (c) 2004-2014 OIC Group, Inc.
+# Copyright (c) 2004-2016 OIC Group, Inc.
 #
 # This file is part of Exponent
 #
@@ -43,24 +43,17 @@ function smarty_function_export_pdf_link($params,&$smarty) {
     } elseif (isset($params['show'])) {  // force display of link
         $print = isset($params['show']) ? $params['show'] : null;
     }
-    if ($print && !PRINTER_FRIENDLY && !EXPORT_AS_PDF && file_exists(BASE.'external/dompdf/dompdf.php')) {
+    if ($print && !PRINTER_FRIENDLY && expHtmlToPDF::installed()) {
         // initialize a couple of variables
-//        if (BTN_SIZE == 'large') {
-//            $btn_size = 'btn-sm';
-//            $icon_size = 'fa-lg';
-//        } else {
-//            $btn_size = 'btn-xs';
-//            $icon_size = '';
-//        }
         $view = isset($params['view']) ? $params['view'] : null;
         $prepend = isset($params['prepend']) ? $params['prepend'] : '';
         $orientation = isset($params['landscapepdf']) ? $params['landscapepdf'] : false;
         $limit = isset($params['limit']) ? $params['limit'] : '';
         $class = isset($params['class']) ? $params['class'] : expTheme::buttonStyle();
-        $text = '<i class="fa fa-book '.expTheme::iconSize().'"></i> ' . (isset($params['text']) ? $params['text'] : gt('Export as PDF'));
+        $text = '<i class="fa fa-file-pdf-o '.expTheme::iconSize().'"></i> ' . (isset($params['text']) ? $params['text'] : gt('Export as PDF'));
 
         // spit out the link
-        echo $prepend.$router->exportAsPDFLink($text, $class, 800, 600, $view, $orientation, $limit);
+        echo $prepend, $router->exportAsPDFLink($text, $class, 800, 600, $view, $orientation, $limit);
     }
 }
 

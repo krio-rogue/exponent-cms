@@ -2,7 +2,7 @@
 
 ##################################################
 #
-# Copyright (c) 2004-2014 OIC Group, Inc.
+# Copyright (c) 2004-2016 OIC Group, Inc.
 #
 # This file is part of Exponent
 #
@@ -35,16 +35,19 @@ return array(
         DB_FIELD_TYPE=>DB_DEF_BOOLEAN),
 	'firstname'=>array(
 		DB_FIELD_TYPE=>DB_DEF_STRING,
-		DB_FIELD_LEN=>100),
+		DB_FIELD_LEN=>100,
+		DB_FULLTEXT=>true),
 	'middlename'=>array(
 		DB_FIELD_TYPE=>DB_DEF_STRING,
 		DB_FIELD_LEN=>100),
 	'lastname'=>array(
 		DB_FIELD_TYPE=>DB_DEF_STRING,
-		DB_FIELD_LEN=>100),
+		DB_FIELD_LEN=>100,
+		DB_FULLTEXT=>true),
 	'organization'=>array(
 		DB_FIELD_TYPE=>DB_DEF_STRING,
-		DB_FIELD_LEN=>100),
+		DB_FIELD_LEN=>100,
+		DB_FULLTEXT=>true),
 	'address1'=>array(
 		DB_FIELD_TYPE=>DB_DEF_STRING,
 		DB_FIELD_LEN=>150),
@@ -80,7 +83,8 @@ return array(
         DB_FIELD_LEN=>20),
 	'email'=>array(
 		DB_FIELD_TYPE=>DB_DEF_STRING,
-		DB_FIELD_LEN=>150),
+		DB_FIELD_LEN=>150,
+		DB_FULLTEXT=>true),
 );
 
 ?>

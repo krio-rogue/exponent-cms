@@ -2,7 +2,7 @@
 
 ##################################################
 #
-# Copyright (c) 2004-2014 OIC Group, Inc.
+# Copyright (c) 2004-2016 OIC Group, Inc.
 #
 # This file is part of Exponent
 #
@@ -38,7 +38,6 @@ class linksController extends expController {
         'twitter',
     );  // all options: ('aggregation','categories','comments','ealerts','facebook','files','pagination','rss','tags','twitter',)
 
-    static function requiresConfiguration() { return true; }
     static function displayname() { return gt("Link Manager"); }
     static function description() { return gt("Add and manage a list of URLs"); }
     static function author() { return "Phillip Ball - OIC Group, Inc"; }
@@ -47,7 +46,7 @@ class linksController extends expController {
     function showall() {
         expHistory::set('viewable', $this->params);
         $modelname = $this->basemodel_name;
-        $where = $this->hasSources() ? $this->aggregateWhereClause() : null;
+        $where = static::hasSources() ? $this->aggregateWhereClause() : null;
         $limit = isset($this->config['limit']) ? $this->config['limit'] : null;
         $order = isset($this->config['order']) ? $this->config['order'] : "rank";
         $links = $this->$modelname->find('all', $where, $order, $limit);
@@ -65,7 +64,7 @@ class linksController extends expController {
         }
         assign_to_template(array(
             'items'=>$links,
-//            'rank'=>($order==='rank')?1:0
+            'rank'=>($order==='rank')?1:0
         ));
     }
     

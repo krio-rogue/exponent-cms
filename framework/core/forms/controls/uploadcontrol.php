@@ -2,7 +2,7 @@
 
 ##################################################
 #
-# Copyright (c) 2004-2014 OIC Group, Inc.
+# Copyright (c) 2004-2016 OIC Group, Inc.
 #
 # This file is part of Exponent
 #
@@ -36,11 +36,11 @@ class uploadcontrol extends formcontrol {
 			DB_FIELD_TYPE=>DB_DEF_STRING,
 			DB_FIELD_LEN=>250,);
 	}
-	
+
 	function __construct($default = "", $disabled = false) {
 		$this->disabled = $disabled;
 	}
-	
+
 	function onRegister(&$form) {
 		$form->enctype = "multipart/form-data";
 	}
@@ -48,6 +48,7 @@ class uploadcontrol extends formcontrol {
 	function controlToHTML($name,$label) {
         $html = '';
         if (!empty($this->default)) $html .= '<input type="hidden"  name="'.$name.'" value="'.$this->default.'" />';
+        $html .= ($this->horizontal && bs3()) ? '<div class="col-sm-10">' : '';
 		$html .= "<input type=\"file\" name=\"$name\"";
 		if (isset($this->class)) {
             $html .= ' class="form-control ' . $this->class . '"';
@@ -62,6 +63,7 @@ class uploadcontrol extends formcontrol {
 		$html .= "/>";
         if (!empty($this->default)) $html .= ' ('.basename($this->default).')';
         if (!empty($this->description)) $html .= "<div class=\"".(bs3()?"help-block":"control-desc")."\">".$this->description."</div>";
+        $html .= ($this->horizontal && bs3()) ? '</div>' : '';
 		return $html;
 	}
 
@@ -74,7 +76,9 @@ class uploadcontrol extends formcontrol {
      */
     static function templateFormat($db_data, $ctl) {
         $base = str_replace(PATH_RELATIVE, '', BASE);
-        if (file_exists($base . $db_data)) {
+        if (empty($db_data)) {
+            return $db_data;
+        } elseif (file_exists($base . $db_data)) {
             // if the file exists return a link
             $baseurl = str_replace(PATH_RELATIVE, '', URL_BASE);
             return isset($db_data) ? ('<a href="' . $baseurl . $db_data . '">' . basename($db_data) . '</a>') : "";
@@ -99,14 +103,15 @@ class uploadcontrol extends formcontrol {
         $form->register("description",gt('Control Description'), new textcontrol($object->description));
 		$form->register("default",gt('Default'), new textcontrol($object->default));
         $form->register("accept",gt('Accept'), new textcontrol($object->accept));
-		$form->register("submit","",new buttongroupcontrol(gt('Save'),'',gt('Cancel'),"",'editable'));
+        if (!expJavascript::inAjaxAction())
+    		$form->register("submit","",new buttongroupcontrol(gt('Save'),'',gt('Cancel'),"",'editable'));
 		return $form;
 	}
 
     static function update($values, $object) {
         if ($object == null) $object = new uploadcontrol();
         if ($values['identifier'] == "") {
-            $post = $_POST;
+            $post = expString::sanitize($_POST);
             $post['_formError'] = gt('Identifier is required.');
             expSession::set("last_POST",$post);
             return null;

@@ -2,7 +2,7 @@
 
 ##################################################
 #
-# Copyright (c) 2004-2014 OIC Group, Inc.
+# Copyright (c) 2004-2016 OIC Group, Inc.
 #
 # This file is part of Exponent
 #
@@ -77,7 +77,7 @@ function smarty_function_rss_link($params,&$smarty) {
             $link = expCore::makeLink($link_params);
         }
         // spit out the link
-        echo $prepend.'<a class="'.$class.'" href="'.$link.'" title="'.$title.'"><i class="fa fa-rss '.expTheme::iconSize().'"></i> '.$text.'</a>';
+        echo $prepend,'<a class="',$class,'" href="',$link,'" title="',$title,'" aria-label="',gt('RSS Feed'),'"><i class="fa fa-rss ',expTheme::iconSize(),'"></i> ',$text,'</a>';
     }
 }
 

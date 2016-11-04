@@ -2,7 +2,7 @@
 
 ##################################################
 #
-# Copyright (c) 2004-2014 OIC Group, Inc.
+# Copyright (c) 2004-2016 OIC Group, Inc.
 #
 # This file is part of Exponent
 #
@@ -36,10 +36,10 @@
  *
  * @return array
  */
-function smarty_modifier_summarize($string, $strtype, $type) {
-    return expString::summarize($string, $strtype, $type);
+function smarty_modifier_summarize($string, $strtype, $type, $more='...') {
+    return expString::summarize($string, $strtype, $type, $more);
 
-    //FIXME old routine moved to expString subsystem
+    //NOTE old routine below moved to expString subsystem
     $sep = ($strtype == "html" ? array("</p>", "</div>") : array("\r\n", "\n", "\r"));
     $origstring = $string;
 
@@ -87,7 +87,7 @@ function smarty_modifier_summarize($string, $strtype, $type) {
 //                    $noTagLength = strlen(strip_tags($string));
 
                 // Parser loop
-                for ($j = 0; $j < strlen($string); $j++) {
+                for ($j = 0, $jMax = strlen($string); $j < $jMax; $j++) {
 
                     $currentChar = substr($string, $j, 1);
                     $ret .= $currentChar;

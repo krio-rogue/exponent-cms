@@ -1,5 +1,5 @@
 {*
- * Copyright (c) 2004-2014 OIC Group, Inc.
+ * Copyright (c) 2004-2016 OIC Group, Inc.
  *
  * This file is part of Exponent
  *
@@ -36,7 +36,7 @@
                     {/if}
 
                     <li class="{if $section->depth == 0}yuimenubaritem{else}yuimenuitem{/if}{if $section->id==$current->id} current{/if}{if $section->active == 1} {/if}">
-                    <a class="{if $section->depth == 0}yuimenubaritemlabel{else}yuimenuitemlabel{/if}" href="{if $section->active == 1}{$section->link}{else}#{/if}" {if $section->new_window} target="_blank"{/if}>{if !empty($section->expFile[0]->id)}{img file_id=$section->expFile[0]->id w=16 h=16} {/if}{$section->name}</a>
+                    <a class="{if $section->depth == 0}yuimenubaritemlabel{else}yuimenuitemlabel{/if}" href="{if $section->active == 1}{$section->link}{else}#{/if}" {if $section->new_window} target="_blank"{/if}>{if !empty($section->expFile[0]->id)}{img file_id=$section->expFile[0]->id w=16 h=16} {/if}{if !$section->glyph_only}{$section->name}{/if}</a>
                     {if $sections[$nextkey]->depth == $section->depth}</li>{/if}
 
                     {if $sections[$nextkey]->depth < $section->depth}
@@ -64,9 +64,9 @@
 </div>
 
 {*FIXME convert to yui3*}
-{script yui3mods=1 unique=$id}
+{script unique=$id yui3mods="yui2-container,yui2-menu"}
 {literal}
-    YUI(EXPONENT.YUI3_CONFIG).use('yui2-container','yui2-menu', function(Y) {
+    YUI(EXPONENT.YUI3_CONFIG).use('*', function(Y) {
         var YAHOO=Y.YUI2;
 
         var menubar = new YAHOO.widget.MenuBar(

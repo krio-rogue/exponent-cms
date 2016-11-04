@@ -2,7 +2,7 @@
 
 ##################################################
 #
-# Copyright (c) 2004-2014 OIC Group, Inc.
+# Copyright (c) 2004-2016 OIC Group, Inc.
 #
 # This file is part of Exponent
 #
@@ -85,7 +85,7 @@ class upgrade_navigation extends upgradescript {
 //                $db->updateObject($sect,'section');
 //            }
 //        }
-//        $db->sql('ALTER TABLE '.DB_TABLE_PREFIX.'_section DROP sef_name');
+//        $db->sql('ALTER TABLE '.$db->prefix.'section DROP sef_name');
 
 		// convert each navigationmodule to a navigation Controller
 	    $modules_converted = 0;
@@ -106,15 +106,14 @@ class upgrade_navigation extends upgradescript {
                 }
             }
 	        $db->updateObject($cn,'container');
-	        $modules_converted += 1;
+	        $modules_converted++;
 	    }
 
         // correct sectionref module field to full controller classname
         $srs = $db->selectObjects('sectionref','1');
    	    foreach ($srs as $sr) {
             if (expModules::controllerExists($sr->module)) {
-//                $sr->module = expModules::getControllerClassName($sr->module);  //FIXME long controller name
-                $sr->module = expModules::getModuleName($sr->module);  //FIXME long controller name
+                $sr->module = expModules::getModuleName($sr->module);
                 $db->updateObject($sr,'sectionref');
             }
    	    }

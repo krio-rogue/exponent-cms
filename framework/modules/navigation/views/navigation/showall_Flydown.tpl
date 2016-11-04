@@ -1,5 +1,5 @@
 {*
- * Copyright (c) 2004-2014 OIC Group, Inc.
+ * Copyright (c) 2004-2016 OIC Group, Inc.
  *
  * This file is part of Exponent
  *
@@ -79,9 +79,9 @@
     </div>
 </div>
 
-{script yui3mods=1 unique=$id}
+{script unique=$id yui3mods="node-menunav"}
 {literal}
-    YUI(EXPONENT.YUI3_CONFIG).use("node-menunav", function(Y) {
+    YUI(EXPONENT.YUI3_CONFIG).use('*', function(Y) {
         var menu = Y.one("#{/literal}{$id}{literal}").plug(Y.Plugin.NodeMenuNav).one('.yui3-menu-content').setStyle("visibility","visible");
     });
 {/literal}

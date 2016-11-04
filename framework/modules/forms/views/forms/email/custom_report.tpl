@@ -1,5 +1,5 @@
 {*
- * Copyright (c) 2004-2014 OIC Group, Inc.
+ * Copyright (c) 2004-2016 OIC Group, Inc.
  *
  * This file is part of Exponent
  *
@@ -14,7 +14,7 @@
  *}
 
 {if $is_email == 1}
-    <style type="text/css" media="screen">
+    <style type="text/css">
         {$css}
     </style>
 {else}

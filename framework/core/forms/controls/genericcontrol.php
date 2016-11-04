@@ -2,7 +2,7 @@
 
 ##################################################
 #
-# Copyright (c) 2004-2014 OIC Group, Inc.
+# Copyright (c) 2004-2016 OIC Group, Inc.
 #
 # This file is part of Exponent
 #
@@ -27,9 +27,7 @@ if (!defined('EXPONENT')) exit('');
  */
 class genericcontrol extends formcontrol {
 
-    var $flip = false;
-    var $jsHooks = array();
-    var $multiple = false;
+    var $placeholder = "";
 
     static function name() { return "generic"; }
 
@@ -51,15 +49,15 @@ class genericcontrol extends formcontrol {
         $this->placeholder = $placeholder;
         $this->pattern = $pattern;
     }
-    
+
     function toHTML($label,$name) {
         if (!empty($this->id)) {
             $divID  = ' id="'.$this->id.'Control"';
             $for = ' for="'.$this->id.'"';
         } else {
-//            $divID  = '';
             $divID  = ' id="'.$name.'Control"';
-            $for = '';
+//            $for = '';
+            $for = ' for="' . $name . '"';
         }
 //        if ($this->required) $label = "*" . $label;
         $disabled = $this->disabled == true ? "disabled" : "";
@@ -86,25 +84,24 @@ class genericcontrol extends formcontrol {
         }
         return $html;
     }
-    
+
     function controlToHTML($name, $label) {
         $this->size = !empty($this->size) ? $this->size : 20;
         $this->name = empty($this->name) ? $name : $this->name;
-        $inputID  = (!empty($this->id)) ? ' id="'.$this->id.'"' : ' id="'.$this->name.'"';
+        $idname  = (!empty($this->id)) ? ' id="'.$this->id.'"' : ' id="'.$this->name.'"';
         $html = '';
-        $framework = expSession::get('framework');
-        if ($framework == 'bootstrap') {
-            if (!empty($this->prepend)) {
+        if (!empty($this->prepend)) {
+            if (bs2()) {
                 $html .= '<div class="input-prepend">';
                 $html .= '<span class="add-on"><i class="icon-'.$this->prepend.'"></i></span>';
-            }
-        } elseif ($framework == 'bootstrap3') {
-            if (!empty($this->prepend)) {
+            } elseif (bs3()) {
                 $html .= '<div class="input-group">';
                 $html .= '<span class="input-group-addon"><i class="fa fa-'.$this->prepend.'"></i></span>';
+            } else {
+                $html .= '<span class="add-on"><i class="'.$this->prepend.'"></i></span>';
             }
         }
-        $html .= '<input'.$inputID.' type="'.$this->type.'" name="' . $this->name . '" value="'.$this->default.'"';
+        $html .= '<input'.$idname.' type="'.$this->type.'" name="' . $this->name . '" value="'.$this->default.'"';
         if ($this->size) $html .= ' size="' . $this->size . '"';
         if ($this->checked) $html .= ' checked="checked"';
         $html .= ' class="'.$this->type. " form-control " . $this->class . '"';
@@ -137,21 +134,21 @@ class genericcontrol extends formcontrol {
         if (!empty($this->onchange)) $html .= ' onchange="'.$this->onchange.'"';
 
         $html .= ' />';
-        if (($framework == 'bootstrap' || $framework == 'bootstrap3') && !empty($this->prepend)) {
+        if (!empty($this->prepend) && bs()) {
             $html .= '</div>';
         }
         if (!empty($this->description)) $html .= "<div class=\"".(bs3()?"help-block":"control-desc")."\">".$this->description."</div>";
         return $html;
     }
-    
+
     static function parseData($name, $values, $for_db = false) {
         return isset($values[$name])?1:0;
     }
-    
+
     static function templateFormat($db_data, $ctl) {
         return ($db_data==1)?gt("Yes"):gt("No");
     }
-    
+
     static function form($object) {
         $form = new form();
         if (!isset($object->identifier)) {
@@ -160,22 +157,23 @@ class genericcontrol extends formcontrol {
             $object->default = false;
             $object->flip = false;
             $object->required = false;
-        } 
-        
+        }
+
         $form->register("identifier",gt('Identifier/Field'),new textcontrol($object->identifier));
         $form->register("caption",gt('Caption'), new textcontrol($object->caption));
         $form->register("default",gt('Default'), new checkboxcontrol($object->default,false));
         $form->register("flip",gt('Caption on Right'), new checkboxcontrol($object->flip,false));
         $form->register("required", gt('Required'), new checkboxcontrol($object->required,true));
-        $form->register("submit","",new buttongroupcontrol(gt('Save'),'',gt('Cancel'),"",'editable'));
-        
+        if (!expJavascript::inAjaxAction())
+            $form->register("submit","",new buttongroupcontrol(gt('Save'),'',gt('Cancel'),"",'editable'));
+
         return $form;
     }
-    
+
     static function update($values, $object) {
         if ($object == null) $object = new genericcontrol();;
         if ($values['identifier'] == "") {
-            $post = $_POST;
+			$post = expString::sanitize($_POST);
             $post['_formError'] = gt('Identifier is required.');
             expSession::set("last_POST",$post);
             return null;
@@ -191,7 +189,7 @@ class genericcontrol extends formcontrol {
         $object->required = !empty($values['required']);
         return $object;
     }
-    
+
 }
 
 ?>

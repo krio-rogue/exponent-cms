@@ -2,7 +2,7 @@
 
 ##################################################
 #
-# Copyright (c) 2004-2014 OIC Group, Inc.
+# Copyright (c) 2004-2016 OIC Group, Inc.
 #
 # This file is part of Exponent
 #
@@ -87,14 +87,17 @@ if (!function_exists('smarty_function_icon')) {
             if ($params['text'] == "notext") {
                 $params['text'] = '';
                 if (empty($params['img']) && !empty($params['action'])) {
-                    $params['img'] = $params['action'] . '.png';
+                    if (!bs()) {
+                        $params['img'] = $params['action'] . '.png';
+                    } else {
+                        $params['text'] = ' ';
+                    }
                 }
             } else $params['text'] = gt($params['text']);
         }
         if (empty($params['title'])) {
             $params['title'] = (empty($text) ? gt(ucfirst($params['action'])) . ' ' . gt('this') . ' ' . $smarty->getTemplateVars('model_name') . ' ' . gt('item') : $text);
-        }
-        if (!empty($params['title'])) {
+        } else {
             $params['title'] = gt($params['title']);
         }
 
@@ -121,9 +124,9 @@ if (!function_exists('smarty_function_icon')) {
         }
 
         $linktext = $img . $text;
-        
+
         if (BTN_SIZE == 'large' || (!empty($params['size']) && $params['size'] == 'large')) {
-            $btn_size = '';  // actually default size, NOT true boostrap large
+            $btn_size = '';  // actually default size, NOT true bootstrap large
             $icon_size = 'icon-large';
         } elseif (BTN_SIZE == 'small' || (!empty($params['size']) && $params['size'] == 'small')) {
             $btn_size = 'btn-mini';
@@ -142,16 +145,18 @@ if (!function_exists('smarty_function_icon')) {
         }
 
         // we need to unset these vars before we pass the params array off to makeLink
-        unset($params['alt']);
-        unset($params['title']);
-        unset($params['text']);
-        unset($params['img']);
-        unset($params['class']);
-        unset($params['record']);
-        unset($params['style']);
-        unset($params['icon']);
-        unset($params['size']);
-        unset($params['color']);
+        unset(
+            $params['alt'],
+            $params['title'],
+            $params['text'],
+            $params['img'],
+            $params['class'],
+            $params['record'],
+            $params['style'],
+            $params['icon'],
+            $params['size'],
+            $params['color']
+        );
         $onclick = !empty($params['onclick']) ? $params['onclick'] : '';
         unset($params['onclick']);
         $secure = !empty($params['secure']) ? $params['secure'] : false;
@@ -161,14 +166,18 @@ if (!function_exists('smarty_function_icon')) {
         //eDebug($params);
         if (!empty($params['name'])) {
             $name = ' id="'.$params['name'].'"';
+        } elseif (!empty($params['id'])) {
+            $name = ' id="'.$params['id'].'"';
         } else {
             $name = '';
         }
+        if (empty($linktext) || ctype_space($linktext))
+            $linktext = '<span class="sr-only">' . $title . '</span>';
         if(!empty($params['action']) && $params['action'] == 'scriptaction') {
-            echo '<a'.$name.' href="#" title="' . $title . '" class=" btn '.$icon->type.' '.$btn_size.'"';
+            echo '<a',$name,' href="#" title="', $title, '" class=" btn ',$icon->type,' ',$btn_size,'"';
             if (!empty($onclick))
                 echo ' onclick="' . $onclick . '"';
-            echo '><i class="icon-'.$icon->class.' '.$icon_size.'"></i> ' . $linktext . '</a>';
+            echo '><i class="icon-',$icon->class,' ',$icon_size,'"></i> ', $linktext, '</a>';
         } elseif ((!empty($params['action']) && $params['action'] != 'scriptaction') || $button) {
             if ($params['action'] == 'copy') {
                 $params['copy'] = true;
@@ -179,16 +188,16 @@ if (!function_exists('smarty_function_icon')) {
             } else {
                 $link = makeLink($params,$secure);
             }
-            echo '<a'.$name.' href="' . $link . '" title="' . $title . '" class=" btn '.$icon->type.' '.$btn_size.'"';
+            echo '<a',$name,' href="', $link, '" title="', $title, '" class=" btn ',$icon->type,' ',$btn_size,'"';
             if (($params['action'] == "delete" || $params['action'] == "merge" || $class == "delete" || $class == "merge") && empty($onclick))
-                echo ' onclick="return confirm(\'' . gt('Are you sure you want to') . ' ' . $params['action'] . ' ' . gt('this') . ' ' . $smarty->getTemplateVars('model_name') . ' ' . gt('item') . '?\');"';
+                echo ' onclick="return confirm(\'', gt('Are you sure you want to'), ' ', $params['action'], ' ', gt('this'), ' ', $smarty->getTemplateVars('model_name'), ' ', gt('item'), '?\');"';
 //            if ($params['action'] == "merge" && empty($onclick))
 //                echo ' onclick="return confirm(\'' . gt('Are you sure you want to merge this') . ' ' . $smarty->getTemplateVars('model_name') . ' ' . gt('item') . '?\');"';
             if (!empty($onclick))
                 echo ' onclick="' . $onclick . '"';
-            echo '><i class="icon-'.$icon->class.' '.$icon_size.'"></i> ' . $linktext . '</a>';
+            echo '><i class="icon-',$icon->class,' ',$icon_size,'"></i> ', $linktext, '</a>';
         } else {
-            echo '<div'.$name.' class=" btn disabled '.$icon->type.' '.$btn_size.'"><i class="icon-'.$icon->class.' '.$icon_size.'"></i> ' .$linktext.'</div>';
+            echo '<div',$name,' class="btn',(empty($params['live'])?' disabled ':' '),$icon->type,' ',$btn_size,'"><i class="icon-',$icon->class,' ',$icon_size,'"></i> ',$linktext,'</div>';
         }
     }
 }

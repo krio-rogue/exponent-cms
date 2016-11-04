@@ -2,7 +2,7 @@
 
 ##################################################
 #
-# Copyright (c) 2004-2014 OIC Group, Inc.
+# Copyright (c) 2004-2016 OIC Group, Inc.
 #
 # This file is part of Exponent
 #
@@ -24,18 +24,25 @@
 
 class administrationController extends expController {
     public $basemodel_name = 'expRecord';
-    protected $add_permissions = array(
+    protected $manage_permissions = array(
+        'change'=>'Change Settings',
 	    'clear'=>'Clear Caches',  //FIXME this requires a logged in user to perform?
 	    "fix"=>"Fix Database",
 	    "install"=>"Installation",
+        'mass'=>'Mass Mailing',
+        'save'=>'Save Settings',
 	    "theme"=>"Manage Themes",
 	    'test_smtp'=>'Test SMTP Server Settings',
 	    'toggle'=>'Toggle Settings',
-        'mass'=>'Mass Mailing',
+//        'update'=>'Update Settings',
     );
 
     static function displayname() { return gt("Administration Controls"); }
     static function description() { return gt("This is the Administration Module"); }
+
+    static function hasSources() {
+        return false;
+    }
 
 	public function install_tables() {
 		$tables = expDatabase::install_dbtables();
@@ -55,7 +62,7 @@ class administrationController extends expController {
 
     public function manage_unused_tables() {
         global $db;
-        
+
         expHistory::set('manageable', $this->params);
         $unused_tables = array();
         $used_tables = array();
@@ -100,28 +107,28 @@ class administrationController extends expController {
         }
 
         foreach($tables as $table) {
-            $basename = strtolower(str_replace(DB_TABLE_PREFIX.'_', '', $table));
+            $basename = strtolower(str_replace($db->prefix, '', $table));
             if (!in_array($basename, $used_tables) && !stristr($basename, 'forms')) {
                 $unused_tables[$basename] = new stdClass();
                 $unused_tables[$basename]->name = $table;
                 $unused_tables[$basename]->rows = $db->countObjects($basename);
             }
         }
-        
+
         assign_to_template(array(
             'unused_tables'=>$unused_tables
         ));
     }
-    
+
     public function delete_unused_tables() {
         global $db;
 
         $count = 0;
         foreach($this->params['tables'] as $del=>$table) {
-            $basename = str_replace(DB_TABLE_PREFIX.'_', '', $table);
+            $basename = str_replace($db->prefix, '', $table);
             $count += $db->dropTable($basename);
         }
-        
+
         flash('message', gt('Deleted').' '.$count.' '.gt('unused tables').'.');
         expHistory::back();
     }
@@ -140,14 +147,14 @@ class administrationController extends expController {
         ));
 	}
 
-	public function fixsessions() {
-	    global $db;
-
-//		$test = $db->sql('CHECK TABLE '.DB_TABLE_PREFIX.'sessionticket');
-		$fix = $db->sql('REPAIR TABLE '.DB_TABLE_PREFIX.'sessionticket');
-		flash('message', gt('Sessions Table was Repaired'));
-		expHistory::back();
-	}
+//	public function fix_sessions() {
+//	    global $db;
+//
+////		$test = $db->sql('CHECK TABLE '.$db->prefix.'sessionticket');
+//		$fix = $db->sql('REPAIR TABLE '.$db->prefix.'sessionticket');
+//		flash('message', gt('Sessions Table was Repaired'));
+//		expHistory::back();
+//	}
 
 	public function fix_database() {
 	    global $db;
@@ -211,7 +218,6 @@ class administrationController extends expController {
                     $newSecRef->refcount = 1;
 //                    $newSecRef->is_original = 1;
 					$eloc = expUnserialize($container->external);
-//					$section = $db->selectObject('sectionref',"module='containermodule' AND source='".$eloc->src."'");
                     $section = $db->selectObject('sectionref',"module='container' AND source='".$eloc->src."'");
 					if (!empty($section)) {
 						$newSecRef->section = $section->id;
@@ -243,6 +249,8 @@ class administrationController extends expController {
         if (file_exists($eql)) {
             $errors = array();
             expFile::restoreDatabase($eql,$errors);
+        } else {
+            $errors = array(gt('The file does not exist'));
         }
         if (DEVELOPMENT && count($errors)) {
             $msg = gt('Errors were encountered importing the e-Commerce data.').'<ul>';
@@ -277,30 +285,30 @@ class administrationController extends expController {
 		}
 
         // sort the top level menus alphabetically by filename
-		ksort($menu);		
+		ksort($menu);
 		$sorted = array();
 		foreach($menu as $m) $sorted[] = $m;
-        
+
         // slingbar position
         if (isset($_COOKIE['slingbar-top'])){
             $top = $_COOKIE['slingbar-top'];
         } else {
             $top = SLINGBAR_TOP;
         }
-        
+
 		assign_to_template(array(
-            'menu'=>(expSession::get('framework') == 'bootstrap3' || (NEWUI && expSession::get('framework') != 'bootstrap')) ? $sorted : json_encode($sorted),
+            'menu'=>(bs3()) ? $sorted : json_encode($sorted),
             "top"=>$top
         ));
     }
-    
+
 //    public function index() {
 //        redirect_to(array('controller'=>'administration', 'action'=>'toolbar'));
 ////        $this->toolbar();
 //    }
-    
+
     public function update_SetSlingbarPosition() {
-        expSession::set("slingbar_top",$this->params['top']);
+        setcookie('slingbar-top', $this->params['top']);
         expHistory::back();
     }
 
@@ -376,14 +384,14 @@ class administrationController extends expController {
         }
     	expHistory::back();
     }
-    
+
 	public function toggle_dev() {
         if (!expUtil::isReallyWritable(BASE.'framework/conf/config.php')) {  // we can't write to the config.php file
             flash('error',gt('The file /framework/conf/config.php is NOT Writeable. You will be unable to change Error Reporting settings.'));
         } else {
             $newvalue = (DEVELOPMENT == 1) ? 0 : 1;
             expSettings::change('DEVELOPMENT', $newvalue);
-            expTheme::removeCss();
+//            expTheme::removeCss();
             expCSS::updateCoreCss();  // go ahead and rebuild the core .css files
             $message = ($newvalue) ? gt("Exponent is now in 'Development' mode") : gt(
                 "Exponent is no longer in 'Development' mode"
@@ -484,6 +492,7 @@ class administrationController extends expController {
 
 	public function clear_css_cache() {
 		expTheme::removeCss();
+        expSession::set('force_less_compile', 1);
         expCSS::updateCoreCss();  // go ahead and rebuild the core .css files
 		flash('message',gt("CSS/Minify Cache has been cleared"));
 		expHistory::back();
@@ -491,28 +500,35 @@ class administrationController extends expController {
 
 	public function clear_image_cache() {
 		expFile::removeFilesInDirectory(BASE.'tmp/pixidou');
-		if (file_exists(BASE.'tmp/img_cache')) expFile::removeFilesInDirectory(BASE.'tmp/img_cache');
+		if (file_exists(BASE.'tmp/img_cache'))
+            expFile::removeFilesInDirectory(BASE.'tmp/img_cache');
 		flash('message',gt("Image/Pixidou Cache has been cleared"));
 		expHistory::back();
 	}
 
 	public function clear_rss_cache() {
 		expFile::removeFilesInDirectory(BASE.'tmp/rsscache');
-		flash('message',gt("RSS/Podcast Cache has been cleared"));
+		flash('message',gt("RSS/Podcast/Twitter Cache has been cleared"));
 		expHistory::back();
 	}
 
 	public static function clear_all_caches() {
 		expTheme::removeSmartyCache();
         expSession::clearAllUsersSessionCache();  // clear the session cache for true 'clear all'
+        expHistory::flush();  // clear the history
         expSession::un_set('framework');
         expSession::un_set('display_theme');
         expSession::un_set('theme_style');
 		expTheme::removeCss();
+        expSession::set('force_less_compile', 1);
         expCSS::updateCoreCss();  // go ahead and rebuild the core .css files
 		expFile::removeFilesInDirectory(BASE.'tmp/pixidou');
-		if (file_exists(BASE.'tmp/img_cache')) expFile::removeFilesInDirectory(BASE.'tmp/img_cache');
-		if (file_exists(BASE.'tmp/extensionuploads')) expFile::removeFilesInDirectory(BASE.'tmp/extensionuploads');
+		if (file_exists(BASE.'tmp/img_cache'))
+            expFile::removeFilesInDirectory(BASE.'tmp/img_cache');
+        if (file_exists(BASE.'tmp/elfinder'))
+              expFile::removeFilesInDirectory(BASE.'tmp/elfinder');
+		if (file_exists(BASE.'tmp/extensionuploads'))
+            expFile::removeFilesInDirectory(BASE.'tmp/extensionuploads');
 		expFile::removeFilesInDirectory(BASE.'tmp/rsscache');
 		flash('message',gt("All the System Caches have been cleared"));
 		expHistory::back();
@@ -769,21 +785,21 @@ class administrationController extends expController {
         $emaillist = array();
         if (!empty($this->params['allusers'])) {
             foreach (user::getAllUsers() as $u) {
-                $emaillist[] = $u->email;
+                $emaillist[$u->email] = user::getUserAttribution($u->id);
             }
         } else {
             if(!empty($this->params['group_list'])) {
                 foreach (listbuildercontrol::parseData($this->params,'grouplist') as $group_id) {
                    $grpusers = group::getUsersInGroup($group_id);
                    foreach ($grpusers as $u) {
-                       $emaillist[] = $u->email;
+                       $emaillist[$u->email] = user::getUserAttribution($u->id);
                    }
                 }
             }
             if(!empty($this->params['user_list'])) {
                 foreach (listbuildercontrol::parseData($this->params,'user_list') as $user_id) {
                     $u = user::getUserById($user_id);
-                    $emaillist[] = $u->email;
+                    $emaillist[$u->email] = user::getUserAttribution($u->id);
                 }
             }
             if(!empty($this->params['address_list'])) {
@@ -798,17 +814,18 @@ class administrationController extends expController {
         $emaillist = array_map('trim', $emaillist);
 
         if (empty($emaillist)) {
-            $post     = empty($_POST) ? array() : $_POST;
+            $post     = empty($_POST) ? array() : expString::sanitize($_POST);
             expValidator::failAndReturnToForm(gt('No Mailing Recipients Selected!'), $post);
         }
         if (empty($this->params['subject']) && empty($this->params['body']) && empty($_FILES['attach']['size'])) {
-            $post     = empty($_POST) ? array() : $_POST;
+            $post     = empty($_POST) ? array() : expString::sanitize($_POST);
             expValidator::failAndReturnToForm(gt('Nothing to Send!'), $post);
         }
 
-        $emailText = $this->params['body'];
-		$emailText = chop(strip_tags(str_replace(array("<br />","<br>","br/>"),"\n",$emailText)));
+//        $emailText = $this->params['body'];
+//		$emailText = trim(strip_tags(str_replace(array("<br />","<br>","br/>"),"\n",$emailText)));
 		$emailHtml = $this->params['body'];
+        $emailText = expString::html2text($emailHtml);
 
         $from = $user->email;
 		if (empty($from)) {
@@ -822,10 +839,10 @@ class administrationController extends expController {
 		if (empty($subject)) {
             $subject = gt('Email from') . ' ' . trim(ORGANIZATION_NAME);
 		}
-        $headers = array(
-            "MIME-Version" => "1.0",
-            "Content-type" => "text/html; charset=" . LANG_CHARSET
-        );
+//        $headers = array(
+//            "MIME-Version" => "1.0",
+//            "Content-type" => "text/html; charset=" . LANG_CHARSET
+//        );
 
         if (count($emaillist)) {
 			$mail = new expMail();
@@ -845,16 +862,16 @@ class administrationController extends expController {
             }
             if ($this->params['batchsend']) {
                 $mail->quickBatchSend(array(
-                    	'headers'=>$headers,
+//                    	'headers'=>$headers,
                         'html_message'=>$emailHtml,
                         "text_message"=>$emailText,
                         'to'=>$emaillist,
-                        'from'=>array(trim($from)=>$from_name),
+                        'from'=>array(trim($from) => $from_name),
                         'subject'=>$subject,
                 ));
             } else {
                 $mail->quickSend(array(
-                    	'headers'=>$headers,
+//                    	'headers'=>$headers,
                         'html_message'=>$emailHtml,
                         "text_message"=>$emailText,
                         'to'=>$emaillist,
@@ -876,7 +893,7 @@ class administrationController extends expController {
         //display the upgrade scripts
         if (is_readable(BASE.'install/upgrades')) {
             $i = 0;
-            if (is_readable(BASE.'install/include/upgradescript.php')) include_once(BASE.'install/include/upgradescript.php');
+            if (is_readable(BASE.'install/include/upgradescript.php')) include(BASE.'install/include/upgradescript.php');
 
             // first build a list of valid upgrade scripts
             $oldscripts = array(
@@ -939,7 +956,7 @@ class administrationController extends expController {
         $upgrade_dir = BASE.'install/upgrades';
         if (is_readable($upgrade_dir)) {
             $i = 0;
-            if (is_readable(BASE.'install/include/upgradescript.php')) include_once(BASE.'install/include/upgradescript.php');
+            if (is_readable(BASE.'install/include/upgradescript.php')) include(BASE.'install/include/upgradescript.php');
             $dh = opendir($upgrade_dir);
 
             // first build a list of valid upgrade scripts
@@ -1019,7 +1036,7 @@ class administrationController extends expController {
                         $t->style_variations = array_merge(array('Default'=>'Default'),$t->style_variations);
                     }
 
-    				$t->preview = is_readable(BASE."themes/$file/preview.jpg") ? "themes/$file/preview.jpg" : "themes/" . DISPLAY_THEME . "/noprev.jpg";
+    				$t->preview = is_readable(BASE."themes/$file/preview.jpg") ? PATH_RELATIVE . "themes/$file/preview.jpg" : YUI2_RELATIVE . "yui2-skin-sam-editor/assets/skins/sam/blankimage.png";
 				    $t->mobile = is_readable(BASE."themes/$file/mobile/index.php") ? true : false;
     				$themes[$file] = $t;
     			}
@@ -1030,7 +1047,7 @@ class administrationController extends expController {
             'themes'=>$themes
         ));
     }
-    
+
     public function theme_switch() {
         if (!expUtil::isReallyWritable(BASE.'framework/conf/config.php')) {  // we can't write to the config.php file
             flash('error',gt('The file /framework/conf/config.php is NOT Writeable. You will be unable to change the theme.'));
@@ -1052,13 +1069,13 @@ class administrationController extends expController {
 		    $message .= ' '.gt('with').' '.$this->params['sv'].' '.gt('style variation');
 	    }
 	    flash('message',$message);
-        expSession::un_set('framework');
+//        expSession::un_set('framework');
         expSession::set('force_less_compile', 1);
 //        expTheme::removeSmartyCache();
         expSession::clearAllUsersSessionCache();
     	expHistory::returnTo('manageable');
-    }	
-    
+    }
+
 	public function theme_preview() {
 		expSession::set('display_theme',$this->params['theme']);
 		$sv = isset($this->params['sv'])?$this->params['sv']:'';
@@ -1073,7 +1090,7 @@ class administrationController extends expController {
 		if ($this->params['theme'] != DISPLAY_THEME_REAL || $this->params['sv'] != THEME_STYLE_REAL) {
 			flash('notice',$message);
 		}
-        expSession::un_set('framework');
+//        expSession::un_set('framework');
         expSession::set('force_less_compile', 1);
 //		expTheme::removeSmartyCache();
         expSession::clearAllUsersSessionCache();
@@ -1084,7 +1101,7 @@ class administrationController extends expController {
 		if (is_readable(BASE."themes/".$this->params['theme']."/class.php")) {
 			include_once(BASE."themes/".$this->params['theme']."/class.php");
             $themeclass = $this->params['theme'];
-			$theme = new $themeclass();
+			$theme = new $themeclass($this->params);
 			$theme->configureTheme();
 		}
 	}
@@ -1162,16 +1179,13 @@ class administrationController extends expController {
             '0'=>'-- '.gt('Please Select an Anti-Spam Control').' --',
             "recaptcha"=>'reCAPTCHA'
         );
-        
+
         //THEMES FOR RECAPTCHA
         $as_themes = array(
-            "red"=>gt('DEFAULT RED'),
-        	"white"=>gt('White'),
-        	"blackglass"=>gt('Black Glass'),
-        	"clean"=>gt('Clean (very generic)'),
-        	//"custom"=>'Custom' --> THIS MAY BE COOL TO ADD LATER...
+            "light"=>gt('Light (Default)'),
+        	"dark"=>gt('Dark'),
         );
-        
+
         // Available Themes
         $themes = array();
         if (is_readable(BASE.'themes')) {
@@ -1192,42 +1206,66 @@ class administrationController extends expController {
         	}
         }
         uasort($themes,'strnatcmp');
-        
+
+        // Available elFinder Themes
+        $elf_themes = array(''=>gt('Default/OSX'));
+        if (is_readable(BASE.'external/elFinder/themes')) {
+        	$theme_dh = opendir(BASE.'external/elFinder/themes');
+        	while (($theme_file = readdir($theme_dh)) !== false) {
+        		if ($theme_file != '..' && is_readable(BASE.'external/elFinder/themes/'.$theme_file.'/css/theme.css')) {
+                    $elf_themes['/themes/' . $theme_file] = ucwords($theme_file);
+        		}
+        	}
+        }
+        uasort($elf_themes,'strnatcmp');
+
         // Available Languages
 	    $langs = expLang::langList();
 //        ksort($langs);
 
         // smtp protocol
-        $protocol = array('ssl'=>'SSL','tls'=>'TLS');
+        $protocol = array(
+            'ssl'=>'SSL',
+            'tls'=>'TLS'
+        );
 
         // Currency Format
         $currency = expSettings::dropdownData('currency');
 
         // attribution
-        $attribution = array('firstlast'=>'John Doe','lastfirst'=>'Doe, John','first'=>'John','username'=>'jdoe');
-        
+//        $attribution = array(
+//            'firstlast'=>'John Doe',
+//            'lastfirst'=>'Doe, John',
+//            'first'=>'John',
+//            'last'=>'Doe',
+//            'username'=>'jdoe'
+//        );
+        $attribution = expSettings::dropdownData('attribution');
+
         // These funcs need to be moved up in to new subsystems
-        
+
         // Date/Time Format
         $datetime_format = expSettings::dropdownData('datetime_format');
 
         // Date Format
         $date_format = expSettings::dropdownData('date_format');
-        
+
         // Time Format
         $time_format = expSettings::dropdownData('time_format');
-        
+
         // Start of Week
-        $start_of_week = glist(expSettings::dropdownData('start_of_week'));
+//        $start_of_week = glist(expSettings::dropdownData('start_of_week'));
+        $daysofweek = event::dayNames();
+        $start_of_week = $daysofweek['long'];
 
         // File Permissions
         $file_permisions = glist(expSettings::dropdownData('file_permissions'));
-        
+
         // File Permissions
         $dir_permissions = glist(expSettings::dropdownData('dir_permissions'));
 
         // Homepage Dropdown
-        $section_dropdown = navigationController::levelDropdownControlArray(0, 0, array(), false, 'view', true);
+        $section_dropdown = section::levelDropdownControlArray(0, 0, array(), false, 'view', true);
 
         // Timezone Dropdown
         $list = DateTimeZone::listAbbreviations();
@@ -1275,6 +1313,7 @@ class administrationController extends expController {
             'as_types'=>$as_types,
             'as_themes'=>$as_themes,
             'themes'=>$themes,
+            'elf_themes'=>$elf_themes,
             'langs'=>$langs,
             'protocol'=>$protocol,
             'currency'=>$currency,
@@ -1312,6 +1351,7 @@ class administrationController extends expController {
         if (!expUtil::isReallyWritable(BASE.'framework/conf/config.php')) {  // we can't write to the config.php file
             flash('error',gt('The file /framework/conf/config.php is NOT Writeable. You will be unable to change Site Configuration settings.'));
         } else {
+            $this->params['sc']['MAINTENANCE_RETURN_TIME'] = yuicalendarcontrol::parseData('MAINTENANCE_RETURN_TIME', $this->params['sc']);
             foreach ($this->params['sc'] as $key => $value) {
 //            expSettings::change($key, addslashes($value));
                 expSettings::change($key, $value);
@@ -1319,6 +1359,7 @@ class administrationController extends expController {
 
             flash('message', gt("Your Website Configuration has been updated"));
         }
+        setcookie('slingbar-top', $this->params['sc']['SLINGBAR_TOP']);
 //        expHistory::back();
 	    expHistory::returnTo('viewable');
     }
@@ -1327,20 +1368,21 @@ class administrationController extends expController {
         if (empty($this->params['profile'])) return;
         expSession::un_set('display_theme');
         expSession::un_set('theme_style');
-        expSession::un_set('framework');
+//        expSession::un_set('framework');
         expSession::set('force_less_compile', 1);
-        expSettings::activateProfile($this->params['profile']);
         expTheme::removeSmartyCache();
         expSession::clearAllUsersSessionCache();
-        flash('message', gt("New Configuration Profile Loaded"));
+        expSettings::activateProfile($this->params['profile']);
+        flash('message', gt("New Configuration Profile Loaded") . ' (' . $this->params['profile'] . ')');
         redirect_to(array('controller'=>'administration', 'action'=>'configure_site'));
     }
 
     public function save_profile() {
         if (empty($this->params['profile'])) return;
-        expSettings::createProfile($this->params['profile']);
-        flash('message', gt("Configuration Profile Saved"));
-        redirect_to(array('controller'=>'administration', 'action'=>'configure_site'));
+        $profile = expSettings::createProfile($this->params['profile']);
+        flash('message', gt("Configuration Profile Saved") . ' (' . $this->params['profile'] . ')');
+//        redirect_to(array('controller'=>'administration', 'action'=>'configure_site'));
+        redirect_to(array('controller'=>'administration', 'action'=>'change_profile', 'profile'=>$profile));
     }
 
     /**
@@ -1356,8 +1398,12 @@ class administrationController extends expController {
 //        if (@file_exists(BASE.'framework/conf/config.php')) {
 //            $page = "?page=upgrade-1";
 //        }
-   		header('Location: '.URL_FULL.'install/index.php');
-   		exit('Redirecting to the Exponent Install Wizard');
+        if (@file_exists(BASE.'install/index.php')) {
+            header('Location: ' . URL_FULL . 'install/index.php');
+            exit('Redirecting to the Exponent Install Wizard');
+        } else {
+            flash('error', gt("Installation files were not found"));
+        }
    	}
 
 }
@@ -1365,7 +1411,7 @@ class administrationController extends expController {
 /**
  * This is the base theme class
  *
- * @subpackage Core-Controllers
+ * @subpackage Controllers
  * @package Modules
  */
 class theme {
@@ -1376,32 +1422,39 @@ class theme {
 	function author() { return ""; }
 	function description() { return gt("The theme shell"); }
 
+    /**
+     * @param array $params
+     */
+    function __construct($params = array()) {
+        $this->params = $params;
+    }
+
 	/**
 	 * Method to Configure theme settings
 	 * This generic routine parses the theme's config.php file
 	 * and presents the values as text boxes.
 	 */
 	function configureTheme () {
-		if (isset($this->params['sv']) && $_GET['sv'] != '') {
-			if (strtolower($_GET['sv'])=='default') {
-                $_GET['sv']='';
+		if (isset($this->params['sv']) && $this->params['sv'] != '') {
+			if (strtolower($this->params['sv'])=='default') {
+                $this->params['sv']='';
 			}
-			$settings = expSettings::parseFile(BASE."themes/".$_GET['theme']."/config_".$_GET['sv'].".php");
+			$settings = expSettings::parseFile(BASE."themes/".$this->params['theme']."/config_".$this->params['sv'].".php");
 		} else {
-			$settings = expSettings::parseFile(BASE."themes/".$_GET['theme']."/config.php");
+			$settings = expSettings::parseFile(BASE."themes/".$this->params['theme']."/config.php");
 		}
 		$form = new form();
 		$form->meta('controller','administration');
 		$form->meta('action','update_theme');
-		$form->meta('theme',$_GET['theme']);
-		$form->meta('sv',isset($_GET['sv'])?$_GET['sv']:'');
+		$form->meta('theme',$this->params['theme']);
+		$form->meta('sv',isset($this->params['sv'])?$this->params['sv']:'');
 		foreach ($settings as $setting=>$key) {
 			$form->register($setting,$setting.': ',new textcontrol($key,20));
 		}
 		$form->register(null,'',new htmlcontrol('<br>'));
 		$form->register('submit','',new buttongroupcontrol(gt('Save'),'',gt('Cancel')));
 		assign_to_template(array(
-            'name'=>$this->name().(!empty($_GET['sv'])?' '.$_GET['sv']:''),
+            'name'=>$this->name().(!empty($this->params['sv'])?' '.$this->params['sv']:''),
             'form_html'=>$form->toHTML()
         ));
 	}
@@ -1421,19 +1474,21 @@ class theme {
 		if (strtolower($sv)=='default') {
 		   $sv='';
 		}
-		unset ($params['sv']);
-		unset ($params['controller']);
-		unset ($params['action']);
-        unset ($params['cid']);
-        unset ($params['scayt_verLang']);
-        unset ($params['slingbar-top']);
-        unset ($params['XDEBUG_SESSION']);
+		unset (
+            $params['sv'],
+            $params['controller'],
+            $params['action'],
+            $params['cid'],
+            $params['scayt_verLang'],
+            $params['slingbar-top'],
+            $params['XDEBUG_SESSION']
+        );
 		foreach ($params as $key=>$value) {
 			if ($key[0] == '_') {
 				unset ($params[$key]);
 			}
 		}
-		if ($sv != '') {
+		if (!empty($sv)) {
 			expSettings::saveValues($params, BASE."themes/".$theme."/config_".$sv.".php");
 		} else {
 			expSettings::saveValues($params, BASE."themes/".$theme."/config.php");

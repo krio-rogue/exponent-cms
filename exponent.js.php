@@ -1,7 +1,7 @@
 <?php
 ##################################################
 #
-# Copyright (c) 2004-2014 OIC Group, Inc.
+# Copyright (c) 2004-2016 OIC Group, Inc.
 #
 # This file is part of Exponent
 #
@@ -26,6 +26,7 @@ EXPONENT.BASE = "<?php echo BASE; ?>";
 EXPONENT.THEME_RELATIVE = "<?php echo THEME_RELATIVE; ?>";
 EXPONENT.ICON_RELATIVE = "<?php echo ICON_RELATIVE; ?>";
 EXPONENT.MIMEICON_RELATIVE = "<?php echo MIMEICON_RELATIVE; ?>";
+EXPONENT.SEF_URLS = "<?php echo SEF_URLS; ?>";
 EXPONENT.JS_RELATIVE = "<?php echo JS_RELATIVE; ?>";
 EXPONENT.JS_URL = "<?php echo JS_URL; ?>";
 EXPONENT.JQUERY_RELATIVE = "<?php echo JQUERY_RELATIVE; ?>";
@@ -51,6 +52,8 @@ EXPONENT.YUI3_CONFIG = {
         'searchExp': "&([2-3])",
         'replaceStr': ",$1"
     },
+    comboSep: ',',
+    root: EXPONENT.YUI3_VERSION + '/build/',
     modules: {},
     groups: {
         yui2: {

@@ -1,5 +1,5 @@
 {*
- * Copyright (c) 2004-2014 OIC Group, Inc.
+ * Copyright (c) 2004-2016 OIC Group, Inc.
  *
  * This file is part of Exponent
  *
@@ -14,10 +14,10 @@
  *}
 
 <div class="scaffold show-random">
-    {if $smarty.const.DEVLEOPMENT}
+    {if $smarty.const.DEVELOPMENT}
         <h4>{'This is the scaffold view'|gettext}</h4>
     {/if}
-	<h1>{$moduletitle|default:"Listings for"|gettext|cat:" `$model_name`"}</h1>
+	<h1>{$moduletitle|default:"Random Listing for"|gettext|cat:" `$model_name`"}</h1>
 	{permissions}
         <div class="module-actions">
         	{if $permissions.create}

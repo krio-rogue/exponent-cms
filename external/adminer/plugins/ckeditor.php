@@ -1,7 +1,7 @@
 <?php
 ##################################################
 #
-# Copyright (c) 2004-2014 OIC Group, Inc.
+# Copyright (c) 2004-2016 OIC Group, Inc.
 #
 # This file is part of Exponent
 #
@@ -30,8 +30,8 @@ class AdminerCKeditor {
 	* @param array
 	* @param string in format "skin: 'custom', preInit: function () { }"
 	*/
-	function AdminerCKeditor($scripts = array(null), $options = "") {
-		$this->scripts = array(PATH_RELATIVE."external/editors/ckeditor/ckeditor.js");
+	function __construct($scripts = array(null), $options = "") {
+		$this->scripts = $scripts;
 		$this->options = $options;
 	}
 	
@@ -43,7 +43,6 @@ class AdminerCKeditor {
 	
 	function selectVal(&$val, $link, $field) {
 		// copied from tinymce.php
-//		if (ereg("_html", $field["field"]) && $val != '&nbsp;') {
         if (preg_match("~body~", $field["field"]) && $val != '&nbsp;') {
 			$shortened = (substr($val, -10) == "<i>...</i>");
 			if ($shortened) {
@@ -65,7 +64,6 @@ class AdminerCKeditor {
 	
 	function editInput($table, $field, $attrs, $value) {
 		static $lang = "";
-//		if (!$lang && ereg("text", $field["type"]) && ereg("_html", $field["field"])) {
 		if (!$lang && preg_match("~text~", $field["type"]) && preg_match("~body~", $field["field"])) {
 			$lang = "en";
 			if (function_exists('get_lang')) { // since Adminer 3.2.0
@@ -80,6 +78,19 @@ CKEDITOR.replace('fields-" . js_escape($field["field"]) . "',{
         scayt_autoStartup : true,
         removePlugins : 'elementspath',
         resize_enabled : false,
+		filebrowserBrowseUrl : '" . makelink(array("controller"=> "file", "action"=> "picker", "ajax_action"=> 1, "update"=> "ck")) . "',
+		filebrowserImageBrowseUrl : '" . makelink(array("controller"=> "file", "action"=> "picker", "ajax_action"=> 1, "update"=> "ck", "filter"=> 'image')) . "',
+		filebrowserFlashBrowseUrl : '" . makelink(array("controller"=> "file", "action"=> "picker", "ajax_action"=> 1, "update"=> "ck")) . "',
+        filebrowserUploadUrl : '" . PATH_RELATIVE . "framework/modules/file/connector/uploader.php',
+        uploadUrl : '" . PATH_RELATIVE . "framework/modules/file/connector/uploader_paste.php',
+		filebrowserWindowWidth : " . FM_WIDTH . ",
+		filebrowserWindowHeight : " . FM_HEIGHT . ",
+		filebrowserImageBrowseLinkUrl : '" . PATH_RELATIVE . "framework/modules/file/connector/ckeditor_link.php?update=ck',
+		filebrowserLinkBrowseUrl : '" . PATH_RELATIVE . "framework/modules/file/connector/ckeditor_link.php?update=ck',
+		filebrowserLinkWindowWidth : 320,
+		filebrowserLinkWindowHeight : 600,
+		extraPlugins : 'autosave,tableresize,image2,uploadimage,quicktable,showborders',
+		removePlugins: 'image,forms,flash',
     });
 </script>";
 		}

@@ -1,5 +1,5 @@
 {*
- * Copyright (c) 2004-2014 OIC Group, Inc.
+ * Copyright (c) 2004-2016 OIC Group, Inc.
  *
  * This file is part of Exponent
  *
@@ -48,20 +48,21 @@
                    <h2>{"Payment Information"|gettext}</h2>
                    <h3>{"Available Payment Methods"|gettext}</h3>
                    <div id="{$id}" class="">
-                       <ul class="nav nav-tabs">
+                       <ul class="nav nav-tabs" role="tablist">
                            {foreach from=$billing->calculator_views item=cviews name=tabs}
-                               <li{if $smarty.foreach.tabs.first} class="active"{/if}><a href="#tab{$smarty.foreach.tabs.iteration}" data-toggle="tab">{$billing->selectable_calculators[$cviews.id]}</a></li>
+                               <li role="presentation"{if $smarty.foreach.tabs.first} class="active"{/if}><a href="#tab{$smarty.foreach.tabs.iteration}" role="tab" data-toggle="tab">{$billing->selectable_calculators[$cviews.id]}</a></li>
                            {/foreach}
                        </ul>
                        <div class="tab-content">
                            {foreach from=$billing->calculator_views item=cviews name=items}
-                               <div id="tab{$smarty.foreach.items.iteration}" class="tab-pane fade{if $smarty.foreach.items.first} in active{/if}">
+                               <div id="tab{$smarty.foreach.items.iteration}" role="tabpanel" class="tab-pane fade{if $smarty.foreach.items.first} in active{/if}">
                                    {include file=$cviews.view calcid=$cviews.id}
                                </div>
                            {/foreach}
                        </div>
                    </div>
-                   <div class="loadingdiv">{'Loading'|gettext}</div>
+                   {*<div class="loadingdiv">{'Loading'|gettext}</div>*}
+                    {loading}
                </div>
             </div>
         {/if} {** END IF $product->requiredBilling **}
@@ -75,30 +76,16 @@
             <p>{'You\'ve got'|gettext} <strong>{$order->orderitem|@count}</strong> item{if $order->orderitem|@count > 1}s{/if} {'in your cart.'|gettext} {br}
             <a id="expandcart" href="#" class="fox-link">{'Show them?'|gettext}<span></span></a></p>
             <div id="shoppingcartwrapper">
-                {chain controller=cart action=show view=show_quickpay_donation_cart}
+                {*{chain controller=cart action=quickpay_donation_cart}*}
+                {showmodule controller=cart action=quickpay_donation_cart}
             </div>
         </div>
         {control type="buttongroup" submit="Submit"|gettext cancel="Cancel"|gettext}
     {/form}
 </div>
-{script unique="shoppingcartcheckout" yuimodules="animation,container,json" src="`$smarty.const.JS_RELATIVE`exp-ecomcheckout.js"}
+{script unique="shoppingcartcheckout" yui3mods=1 src="`$smarty.const.JS_RELATIVE`exp-ecomcheckout.js"}
 
 {/script}
-
-{*{script unique="`$id`" yui3mods="1"}*}
-{*{literal}*}
-    {*EXPONENT.YUI3_CONFIG.modules.exptabs = {*}
-        {*fullpath: EXPONENT.JS_RELATIVE+'exp-tabs.js',*}
-        {*requires: ['history','tabview','event-custom']*}
-    {*};*}
-
-	{*YUI(EXPONENT.YUI3_CONFIG).use('exptabs', function(Y) {*}
-        {*Y.expTabs({srcNode: '#{/literal}{$id}{literal}'});*}
-		{*Y.one('#{/literal}{$id}{literal}').removeClass('hide');*}
-		{*Y.one('.loadingdiv').remove();*}
-	{*});*}
-{*{/literal}*}
-{*{/script}*}
 
 {script unique="tabload" jquery=1 bootstrap="tab,transition"}
 {literal}

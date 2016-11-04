@@ -2,7 +2,7 @@
 
 ##################################################
 #
-# Copyright (c) 2004-2014 OIC Group, Inc.
+# Copyright (c) 2004-2016 OIC Group, Inc.
 #
 # This file is part of Exponent
 #
@@ -42,7 +42,7 @@ if (is_readable(BASE . 'themes')) {
                     -4,
                     4
                 ) == '.eql' && $file != 'sample.eql' && $file != 'ecommerce.eql'
-            ) { //FIXME we should add to ecommerce.eql for a full sample store
+            ) {
                 $filename = substr($file, 0, strlen($file) - 4);
                 echo '    <option value="' . $filename . '">' . ucwords($filename) . ' ' . gt('Site') . '</option>';
             }
@@ -67,7 +67,7 @@ if (is_readable(BASE . 'themes')) {
             echo '<div class="theme clearfix">';
             echo is_readable(
                 BASE . "themes/$file/preview.jpg"
-            ) ? "<img src=\"" . PATH_RELATIVE . "thumb.php?src=themes/$file/preview.jpg&amp;w=100&amp;q=75\" class=\"themepreview\">" : "";
+            ) ? "<img class=\"themepreview\" src=\"" . PATH_RELATIVE . "thumb.php?&amp;src=" . PATH_RELATIVE . "themes/$file/preview.jpg&amp;w=100&amp;q=75\">" : "<img src=\"" . PATH_RELATIVE . "thumb.php?src=" . YUI2_RELATIVE . "yui2-skin-sam-editor/assets/skins/sam/blankimage.png&amp;w=100&amp;q=75\" class=\"themepreview\">";
             echo "<h2>" . $theme->name() . "</h2>";
             echo "<em>" . $theme->author() . "</em>";
             echo "<p>" . $theme->description() . '</p>

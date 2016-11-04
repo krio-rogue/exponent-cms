@@ -9,7 +9,7 @@
     padding          : 0;
     margin           : 0;
     border-left      : 1px solid #A2ADBC;
-    font             : normal 12px/20px "Trebuchet MS", Verdana, Arial, Helvetica, sans-serif;
+    font             : normal 12px/14px "Trebuchet MS", Verdana, Arial, Helvetica, sans-serif;
     color            : #616B76;
     text-align       : center;
     background-color : #fff;
@@ -128,7 +128,13 @@
     border-radius         : 5px;
 }
 
-.events.default .calevent .icalpopevent {
+.events.default .calevent.item-actions {
+    margin-top: -4px;
+}
+
+.events.default .calevent a,
+.events.default a.calevent.calpopevent,
+.events.default a.calevent.icalpopevent {
     cursor: pointer;
 }
 
@@ -311,4 +317,32 @@ a.cats {
     -ms-filter : "progid:DXImageTransform.Microsoft.Alpha(Opacity=25)";
     /* IE7 */
     filter     : alpha(opacity = 25);
+}
+
+.events .module-actions {
+	display: inline;
+}
+
+.events .image {
+    padding-top: 3px;
+}
+
+.events.upcoming .image.photo {
+    margin-right: 6px;
+    margin-bottom: 6px;
+    float:left;
+    overflow: hidden;
+}
+
+/* some bootstrap 3 responsiveness */
+@media (max-width: 767px) {
+    .hidden-xs {
+        display: none !important;
+    }
+}
+
+@media (min-width: 767px) {
+    .visible-xs-inline {
+        display: none !important;
+    }
 }

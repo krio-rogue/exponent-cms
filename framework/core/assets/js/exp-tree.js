@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2004-2014 OIC Group, Inc.
+ * Copyright (c) 2004-2016 OIC Group, Inc.
  *
  * This file is part of Exponent
  *
@@ -13,7 +13,7 @@
  *
  */
 
-//FIXME convert to yui3
+//FIXME convert to yui3/jquery
 YUI.add('exp-tree', function(Y) {
 var YAHOO = Y.YUI2;
 
@@ -31,9 +31,9 @@ var refreshDD = function () {
         //Y.log(dds[i].id);
         new EXPONENT.DragDropTree(dds[i].id.replace("dragtable",""));
     }
-}
+};
 
-var buildContextMenu = function(div) {
+var buildContextMenu = function(div, addable) {
 
     function addSubNode (){
         window.location = eXp.PATH_RELATIVE+"index.php?controller="+applicationModule+"&action=adsubnode&id="+currentMenuNode.data.id;
@@ -102,15 +102,25 @@ var buildContextMenu = function(div) {
         }
     }
 
-    var navoptions = [
-            { classname:"addsubpage", text: "Add A Sub-Category", onclick: { fn: addSubNode } },
-            { classname:"editpage", text: "Edit This Category", onclick: { fn: editNode } },
-            { classname:"deletepage", text: "Delete This Category", onclick: { fn: deleteNode } },
-            { classname:"configurepage", text: "Configure This Category", onclick: { fn: configNode } }
+    if (addable) {
+        var navoptions = [
+            {classname: "addsubpage" , text: "Add A Sub-Category" , onclick: {fn: addSubNode}} ,
+            {classname: "editpage" , text: "Edit This Category" , onclick: {fn: editNode}} ,
+            {classname: "configurepage" , text: "Configure This Category" , onclick: {fn: configNode}},
+            {classname: "deletepage" , text: "Delete This Category" , onclick: {fn: deleteNode}} ,
             // { classname:"userperms", text: "Manage User Permissions", onclick: { fn: editUserPerms } },
             // { classname:"groupperms", text: "Manage Group Permissions", onclick: { fn: editGroupPerms } }
-        ];                                                                  
-
+        ];
+    } else {
+        var navoptions = [
+            //{classname: "addsubpage" , text: "Add A Sub-Category" , onclick: {fn: addSubNode}} ,
+            {classname: "editpage" , text: "Edit This Category" , onclick: {fn: editNode}} ,
+            //{classname: "deletepage" , text: "Delete This Category" , onclick: {fn: deleteNode}} ,
+            {classname: "configurepage" , text: "Configure This Category" , onclick: {fn: configNode}}
+            // { classname:"userperms", text: "Manage User Permissions", onclick: { fn: editUserPerms } },
+            // { classname:"groupperms", text: "Manage Group Permissions", onclick: { fn: editGroupPerms } }
+        ];
+    }
 
     var oContextMenu = new YAHOO.widget.ContextMenu("treecontext", {
                                                     trigger: div,
@@ -144,7 +154,7 @@ YAHOO.extend(EXPONENT.DragDropTree, YAHOO.util.DDProxy, {
         nodebeingdragged.collapse();
         
         var draglabel = YAHOO.util.Dom.get(real.id.replace("dragtable","ygtvlabelel")).innerHTML;
-        this.ddclassindicator = "nodrop"
+        this.ddclassindicator = "nodrop";
         proxy.innerHTML = "<div id=\"dropindicator\" class=\""+this.ddclassindicator+"\">&#160;</div><span id=\"draglable\">"+draglabel+"</span>";
         this.setDelta(-10,-10);
     
@@ -165,7 +175,7 @@ YAHOO.extend(EXPONENT.DragDropTree, YAHOO.util.DDProxy, {
             if (tree._nodes[n].children.length != 0) {
                 // Y.log("dragtable"+tree._nodes[n].children[0].index);
                 // Y.log("dragtable"+tree._nodes[n].children[tree._nodes[n].children.length-1].index);
-                YAHOO.util.Dom.addClass("dragtable"+tree._nodes[n].children[0].index, 'topoflist')
+                YAHOO.util.Dom.addClass("dragtable"+tree._nodes[n].children[0].index, 'topoflist');
                 YAHOO.util.Dom.addClass("dragtable"+tree._nodes[n].children[tree._nodes[n].children.length-1].index, 'bottomoflist')
             };
         }
@@ -227,7 +237,7 @@ YAHOO.extend(EXPONENT.DragDropTree, YAHOO.util.DDProxy, {
         // this.destTop = [0,0];
         // this.destMiddle = [0,0];
         // this.destBottom = [0,0];
-        this.ddclassindicator = "nodrop"
+        this.ddclassindicator = "nodrop";
         var oldclass = YAHOO.util.Dom.get('dropindicator').getAttribute("class");
         YAHOO.util.Dom.replaceClass('dropindicator',oldclass,this.ddclassindicator);
         YAHOO.util.Dom.setStyle(destEl, 'background', 'none');
@@ -275,7 +285,7 @@ YAHOO.extend(EXPONENT.DragDropTree, YAHOO.util.DDProxy, {
             }, 
             0.2, 
             YAHOO.util.Easing.easeOut 
-        )
+        );
 
         var proxyid = proxy.id;
         var thisid = this.id;
@@ -333,6 +343,8 @@ YAHOO.widget.TaskNode = function(oData, oParent, expanded, checked, obj) {
     if (oData) { 
         this.init(oData, oParent, expanded);
         this.setUpLabel(oData);
+        this.href = obj.href;
+        //this.image = obj.expFiles_id;
         this.checked = checked;
         this.draggable = obj.draggable;
         this.checkable = obj.checkable;
@@ -511,7 +523,7 @@ YAHOO.extend(YAHOO.widget.TaskNode, YAHOO.widget.TextNode, {
      /**
       * Updates the state.  The checked property is true if the state is 1 or 2
       * 
-      * @param the new check state
+      * @param state the new check state
       */
      setCheckState: function(state) { 
          this.checkState = state;
@@ -615,7 +627,7 @@ YAHOO.extend(YAHOO.widget.TaskNode, YAHOO.widget.TextNode, {
          sb[sb.length] = ' class="' + this.labelStyle + ' context"';
          sb[sb.length] = ' href="' + this.href + '"';
          sb[sb.length] = ' target="' + this.target + '"';
-         sb[sb.length] = ' onclick="return ' + getNode + '.onLabelClick(' + getNode +')"';
+//         sb[sb.length] = ' onclick="return ' + getNode + '.onLabelClick(' + getNode +')"';
          if (this.hasChildren(true)) {
              sb[sb.length] = ' onmouseover="document.getElementById(\'';
              sb[sb.length] = this.getToggleElId() + '\').className=';
@@ -628,6 +640,7 @@ YAHOO.extend(YAHOO.widget.TaskNode, YAHOO.widget.TextNode, {
          }
          sb[sb.length] = (this.nowrap) ? ' nowrap="nowrap" ' : '';
          sb[sb.length] = ' >';
+         //if (this.image != 0) sb[sb.length] = '<img class="filepic" src="'+EXPONENT.PATH_RELATIVE+'thumb.php?id='+this.image+'&amp;w=18&amp;h=18&amp;zc=1">&#160;';
          sb[sb.length] = this.label;
               
          //sb[sb.length] = this.lft+' | '+this.label+'-'+this.id+' | '+this.rgt;
@@ -641,7 +654,7 @@ YAHOO.extend(YAHOO.widget.TaskNode, YAHOO.widget.TextNode, {
 
 });
 
-EXPONENT.DragDropTree.init = function(div,obj,mod,menu,expandonstart) {
+EXPONENT.DragDropTree.init = function(div,obj,mod,menu,expandonstart,addable) {
     applicationModule = mod;
     tree = new YAHOO.widget.TreeView(div);
     var root = tree.getRoot();
@@ -675,7 +688,7 @@ EXPONENT.DragDropTree.init = function(div,obj,mod,menu,expandonstart) {
     tree.subscribe("collapseComplete",refreshDD);
     tree.subscribe("nodemoved",refreshDD);
     if (menu) {
-        buildContextMenu(div);
+        buildContextMenu(div,addable);
     };
 };
 

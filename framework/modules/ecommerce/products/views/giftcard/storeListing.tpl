@@ -1,5 +1,5 @@
 {*
- * Copyright (c) 2004-2014 OIC Group, Inc.
+ * Copyright (c) 2004-2016 OIC Group, Inc.
  *
  * This file is part of Exponent
  *
@@ -34,7 +34,7 @@
             </h2>
             <span class="description">{$listing->body|truncate:50:"..."}</span>
             <span class="price">{$listing->base_price|currency}</span>
-			<a href="{link controller=cart action=addItem product_id=$listing->id product_type=$listing->product_type}" class="fox-link addtocart" rel="nofollow"><em>{'Add to cart'|gettext}</em><span></span></a>
+			<a href="{link controller=cart action=addItem product_id=$listing->id product_type=$listing->product_type}" class="fox-link addtocart {button_style size=large color=blue}" rel="nofollow"><em>{'Add to cart'|gettext}</em><span></span></a>
             
             {permissions}
             <div class="item-actions">

@@ -2,7 +2,7 @@
 
 ##################################################
 #
-# Copyright (c) 2004-2014 OIC Group, Inc.
+# Copyright (c) 2004-2016 OIC Group, Inc.
 #
 # This file is part of Exponent
 #
@@ -36,17 +36,16 @@
  */
 if (!function_exists('smarty_block_form')) {
     function smarty_block_form($params,$content,&$smarty, &$repeat) {
-        $framework = expSession::get('framework');
         if(empty($content)){
             $name = isset($params['name']) ? $params['name'] : 'form';
             $id = empty($params['id']) ? $name : $params['id'];
             $module = isset($params['module']) ? $params['module'] : $smarty->getTemplateVars('__loc')->mod;
-            $controller = isset($params['controller']) ? $params['controller'] : $smarty->getTemplateVars('__loc')->mod;  //FIXME there is no 'con' property
+            $controller = isset($params['controller']) ? $params['controller'] : $smarty->getTemplateVars('__loc')->mod;
             $method = isset($params['method']) ? $params['method'] : "POST";
             $enctype = isset($params['enctype']) ? $params['enctype'] : 'multipart/form-data';
 
             echo "<!-- Form Object 'form' -->\r\n";
-            echo '<script type="text/javascript" src="'.PATH_RELATIVE.'framework/core/forms/js/inputfilters.js.php"></script>'."\r\n";
+            echo '<script type="text/javascript" src="',PATH_RELATIVE,'framework/core/forms/js/inputfilters.js.php"></script>',"\r\n";
             // echo '<script type="text/javascript" src="'.PATH_RELATIVE.'framework/core/forms/controls/listbuildercontrol.js"></script>'."\r\n";
             // echo '<script type="text/javascript" src="'.PATH_RELATIVE.'framework/core/forms/js/required.js"></script>'."\r\n";
             // echo '<script type="text/javascript" src="'.PATH_RELATIVE.'js/PopupDateTimeControl.js"></script>'."\r\n";
@@ -63,7 +62,7 @@ if (!function_exists('smarty_block_form')) {
 //                    ));
 //                    $btn_class = 'btn btn-default';
 //                    if (BTN_SIZE == 'large') {
-//                        $btn_size = '';  // actually default size, NOT true boostrap large
+//                        $btn_size = '';  // actually default size, NOT true bootstrap large
 //                    } elseif (BTN_SIZE == 'small') {
 //                        $btn_size = 'btn-mini';
 //                    } else { // medium
@@ -72,30 +71,32 @@ if (!function_exists('smarty_block_form')) {
 //                    $btn_class .= ' ' . $btn_size;
 //                }
 //            }
-            if ($framework == 'bootstrap') {
+            if (bs2()) {
                 expCSS::pushToHead(array(
                     "corecss"=>"forms-bootstrap"
                 ));
                 $btn_class = 'btn btn-default';
                 if (BTN_SIZE == 'large') {
-                    $btn_size = '';  // actually default size, NOT true boostrap large
+                    $btn_size = '';  // actually default size, NOT true bootstrap large
                 } elseif (BTN_SIZE == 'small') {
                     $btn_size = 'btn-mini';
                 } else { // medium
                     $btn_size = 'btn-small';
                 }
                 $btn_class .= ' ' . $btn_size;
-            } elseif (NEWUI || $framework == 'bootstrap3') {
+            } elseif (bs3()) {
                 expCSS::pushToHead(array(
                     "corecss"=>"forms-bootstrap3"
                 ));
                 $btn_class = 'btn btn-default';
                 if (BTN_SIZE == 'large') {
-                    $btn_size = '';  // actually default size, NOT true boostrap large
+                    $btn_size = 'btn-lg';
                 } elseif (BTN_SIZE == 'small') {
+                    $btn_size = 'btn-sm';
+                } elseif (BTN_SIZE == 'extrasmall') {
                     $btn_size = 'btn-xs';
                 } else { // medium
-                    $btn_size = 'btn-sm';
+                    $btn_size = '';
                 }
                 $btn_class .= ' ' . $btn_size;
             } else {
@@ -105,23 +106,17 @@ if (!function_exists('smarty_block_form')) {
                 $btn_class = 'awesome ".BTN_SIZE." ".BTN_COLOR."';
             }
 //        }
-             expJavascript::pushToFoot(array(
-                 "unique"  => 'html5forms-1mod',
-                 "src"=> PATH_RELATIVE . 'external/html5forms/modernizr-262.js',
-             ));
-             expJavascript::pushToFoot(array(
-                 "unique"  => 'html5forms-2eh',
-                 "src"=> PATH_RELATIVE . 'external/html5forms/EventHelpers.js',
-             ));
-             expJavascript::pushToFoot(array(
-                 "unique"  => 'html5forms-3wf',
-                 "src"=> PATH_RELATIVE . 'external/html5forms/webforms2/webforms2_src.js',
-             ));
-             expJavascript::pushToFoot(array(
-                 "unique"  => 'html5forms-4fb',
-                 "jquery"=> 'jqueryui,jquery.placeholder,spectrum',
-                 "src"=> PATH_RELATIVE . 'external/html5forms/html5forms.fallback.js',
-             ));
+            if (expJavascript::inAjaxAction()) {
+                $ws_load = "webshim.setOptions({loadStyles:false,canvas:{type:'excanvas'}});webshim.polyfill('canvas forms forms-ext');";
+            } else {
+                $ws_load = "webshim.setOptions({canvas:{type:'excanvas'}});webshim.polyfill('canvas forms forms-ext');";
+            }
+            expJavascript::pushToFoot(array(
+                "unique"  => 'html5forms',
+                "jquery"  => 1,
+                "src"     => PATH_RELATIVE . 'external/webshim-1.15.10/js-webshim/dev/polyfiller.js',
+                "content" => $ws_load,
+            ));
             if (!empty($params['paged'])) {
                 if (empty($params['name']) && empty($params['id'])) die("<strong style='color:red'>".gt("The 'name' or 'id parameter is required for the paged {form} plugin.")."</strong>");
                 $content = "
@@ -134,15 +129,28 @@ if (!function_exists('smarty_block_form')) {
                         btnClass: '" . $btn_class . "',
                         titleClick: true,
                         validateOptions: {
+                            rules: {
+                                'hiddenRecaptcha': {
+                                    required: function() {
+                                        if(grecaptcha.getResponse() == '') {
+                                            return true;
+                                        } else {
+                                            return false;
+                                        }
+                                    }
+                                }
+                            },
                             highlight: function(element) {
+//                                $('.stepy-header .stepy-active').addClass('stepy-error');
                                 $(element).closest('.control').removeClass('has-success').addClass('has-error');
         //                        var id_attr = '#' + $( element ).attr('id') + '1';
-        //                        $(id_attr).removeClass('glyphicon-ok').addClass('glyphicon-remove');
+        //                        $(id_attr).removeClass('glyphicon-ok').addClass('glyphicon-remove');  // requires a feedback <span> and has-feedback class to control
                             },
                             unhighlight: function(element) {
+//                                $('.stepy-header .stepy-error').removeClass('stepy-error');
                                 $(element).closest('.control').removeClass('has-error').addClass('has-success');
         //                        var id_attr = '#' + $( element ).attr('id') + '1';
-        //                        $(id_attr).removeClass('glyphicon-remove').addClass('glyphicon-ok');
+        //                        $(id_attr).removeClass('glyphicon-remove').addClass('glyphicon-ok');  // requires a feedback <span> and has-feedback class to control
                             },
                             errorElement: 'span',
                             errorClass: '".(bs3()?"help-block":"control-desc")."',
@@ -166,18 +174,29 @@ if (!function_exists('smarty_block_form')) {
             } else {
                 $content = "
                     $('#" . $id . "').validate({
+						rules: {
+							'hiddenRecaptcha': {
+								required: function() {
+									if(grecaptcha.getResponse() == '') {
+										return true;
+									} else {
+										return false;
+									}
+								}
+							}
+						},
                         highlight: function(element) {
                             $(element).closest('.control').removeClass('has-success').addClass('has-error');
     //                        var id_attr = '#' + $( element ).attr('id') + '1';
-    //                        $(id_attr).removeClass('glyphicon-ok').addClass('glyphicon-remove');
+    //                        $(id_attr).removeClass('glyphicon-ok').addClass('glyphicon-remove');  // requires a feedback <span> and has-feedback class to control
                         },
                         unhighlight: function(element) {
                             $(element).closest('.control').removeClass('has-error').addClass('has-success');
     //                        var id_attr = '#' + $( element ).attr('id') + '1';
-    //                        $(id_attr).removeClass('glyphicon-remove').addClass('glyphicon-ok');
+    //                        $(id_attr).removeClass('glyphicon-remove').addClass('glyphicon-ok');  // requires a feedback <span> and has-feedback class to control
                         },
                         errorElement: 'span',
-                        errorClass: 'help-block',
+                        errorClass: '".(bs3()?"help-block":"control-desc")."',
                         errorPlacement: function(error, element) {
                             if (element.prop('type') === 'checkbox' || element.prop('type') === 'radio') {
                                 error.appendTo(element.parent().parent());
@@ -199,15 +218,15 @@ if (!function_exists('smarty_block_form')) {
             }
 
             echo '<div class="exp-skin">';
-            echo '<form role="form" id="'.$id.'" name="'.$name.'" class="'.$params['class'] . ($params['horizontal']?' form-horizontal':'') .'" method="'.$method.'" action="'.PATH_RELATIVE.'index.php" enctype="'.$enctype.'">'."\r\n";
+            echo '<form role="form" id="',$id,'" name="',$name,'" class="',$params['class'], ($params['horizontal']?' form-horizontal':''),'" method="',$method,'" action="',PATH_RELATIVE,'index.php" enctype="',$enctype,'">',"\r\n";
             if (!empty($controller)) {
-                echo '<input type="hidden" name="controller" id="controller" value="'.$controller.'" />'."\r\n";
+                echo '<input type="hidden" name="controller" id="controller" value="',$controller,'" />',"\r\n";
             } else {
-                echo '<input type="hidden" name="module" id="module" value="'.$module.'" />'."\r\n";
+                echo '<input type="hidden" name="module" id="module" value="',$module,'" />',"\r\n";
             }
-            echo '<input type="hidden" name="src" id="src" value="'.$smarty->getTemplateVars('__loc')->src.'" />'."\r\n";
-            echo '<input type="hidden" name="int" id="int" value="'.$smarty->getTemplateVars('__loc')->int.'" />'."\r\n";
-            if (isset($params['action']))  echo '<input type="hidden" name="action" id="action" value="'.$params['action'].'" />'."\r\n";
+            echo '<input type="hidden" name="src" id="src" value="',$smarty->getTemplateVars('__loc')->src,'" />',"\r\n";
+            echo '<input type="hidden" name="int" id="int" value="',$smarty->getTemplateVars('__loc')->int,'" />',"\r\n";
+            if (isset($params['action']))  echo '<input type="hidden" name="action" id="action" value="',$params['action'],'" />'."\r\n";
 
             //echo the innards
         } else {

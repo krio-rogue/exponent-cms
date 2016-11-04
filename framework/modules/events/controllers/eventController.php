@@ -2,7 +2,7 @@
 
 ##################################################
 #
-# Copyright (c) 2004-2014 OIC Group, Inc.
+# Copyright (c) 2004-2016 OIC Group, Inc.
 #
 # This file is part of Exponent
 #
@@ -26,8 +26,9 @@ class eventController extends expController {
     public $useractions = array(
         'showall' => 'Show Calendar',
     );
-//    public $codequality = 'beta';
-
+//    protected $manage_permissions = array(
+//        'import' => 'Import Calendar',
+//    );
     public $remove_configs = array(
         'comments',
         'ealerts',
@@ -62,13 +63,24 @@ class eventController extends expController {
         return gt('Event');
     }
 
+    /**
+     * can this module import data?
+     *
+     * @return bool
+     */
+    public static function canImportData() {
+        return true;
+    }
+
     function showall() {
         global $user;
 
+        expHistory::set('viewable', $this->params);
         $locsql = $this->aggregateWhereClause();
-        $time = (isset($this->params['time']) ? $this->params['time'] : time());
+        $time = (isset($this->params['time']) ? intval($this->params['time']) : time());
         assign_to_template(array(
             'time' => $time,
+            'daynames' => event::dayNames(),
         ));
 
         $regcolor = !empty($this->config['registrations_color']) ? $this->config['registrations_color'] : null;
@@ -118,7 +130,7 @@ class eventController extends expController {
                 $view_params = explode('_',$view);
                 if (!empty($view_params[1])) $viewtype = $view_params[1];
                 if (!empty($view_params[2])) $viewrange = $view_params[2];
-        }
+        }  // end switch $view
 
         switch ($viewtype) {
             case "minical":
@@ -150,8 +162,8 @@ class eventController extends expController {
                     "thismonth"   => $timefirst,
                     "nextmonth"   => $nextmonth,
                 ));
-                break;
-            case "byday":
+                break;  // end switch $viewtype minicalendar
+            case "byday":  //note aggregates events by groups of days
                 // Remember this is the code for weekly view and monthly listview
                 // Test your fixes on both views
                 //   		$startperiod = 0;
@@ -162,6 +174,7 @@ class eventController extends expController {
                         $totaldays = 1;
                         $next = expDateTime::endOfDayTimestamp($startperiod);
                         if (!empty($this->config['starttype'])) $startperiod = $time;
+                        $this->params['time'] = $time;
                         assign_to_template(array(
                             "prev_timestamp3" => strtotime('-3 days', $startperiod),
                             "prev_timestamp2" => strtotime('-2 days', $startperiod),
@@ -169,6 +182,7 @@ class eventController extends expController {
                             "next_timestamp"  => strtotime('+1 days', $startperiod),
                             "next_timestamp2" => strtotime('+2 days', $startperiod),
                             "next_timestamp3" => strtotime('+3 days', $startperiod),
+                            'params'      => $this->params
                         ));
                         break;
                     case "week":
@@ -177,6 +191,7 @@ class eventController extends expController {
                         $next = strtotime('+7 days', $startperiod);
 //                        $next = expDateTime::endOfWeekTimestamp($startperiod);
                         if (!empty($this->config['starttype'])) $startperiod = $time;
+                        $this->params['time'] = $time;
                         assign_to_template(array(
                             "prev_timestamp3" => strtotime('-21 days', $startperiod),
                             "prev_timestamp2" => strtotime('-14 days', $startperiod),
@@ -184,6 +199,7 @@ class eventController extends expController {
                             "next_timestamp"  => $next,
                             "next_timestamp2" => strtotime('+14 days', $startperiod),
                             "next_timestamp3" => strtotime('+21 days', $startperiod),
+                            'params'      => $this->params
                         ));
                         break;
                     case "twoweek":
@@ -206,22 +222,25 @@ class eventController extends expController {
                         $totaldays = date('t', $time);
                         $next = strtotime('+1 months', $startperiod);
 //                        $next = expDateTime::endOfMonthTimestamp($startperiod);
+                        $this->params['time'] = $time;
                         assign_to_template(array(
                             "prev_timestamp3" => strtotime('-3 months', $startperiod),
                             "prev_timestamp2" => strtotime('-2 months', $startperiod),
                             "prev_timestamp"  => strtotime('-1 months', $startperiod),
                             "next_timestamp"  => $next,
                             "next_timestamp2" => strtotime('+2 months', $startperiod),
-                            "next_timestamp3" => strtotime('+3 months', $startperiod)
+                            "next_timestamp3" => strtotime('+3 months', $startperiod),
+                            'params'      => $this->params
                         ));
                         break;
-                }
+                }  // end switch $viewrange
 
                 //                $days = array();
                 // added per Ignacio
                 //			$endofmonth = date('t', $time);
-                $extitems = $this->getExternalEvents($this->loc, $startperiod, $next);
-                if (!empty($this->config['aggregate_registrations'])) $regitems = eventregistrationController::getRegEventsForDates($startperiod, $next, $regcolor);
+                $extitems = $this->getExternalEvents($startperiod, $next);
+                if (!empty($this->config['aggregate_registrations']))
+                    $regitems = eventregistrationController::getRegEventsForDates($startperiod, $next, $regcolor);
                 for ($i = 1; $i <= $totaldays; $i++) {
                     //                    $info = getdate($time);
                     //                    switch ($viewrange) {
@@ -237,7 +256,8 @@ class eventController extends expController {
                     //                    }
                     $start = expDateTime::startOfDayTimestamp($startperiod + ($i * 86400) - 86400);
                     $edates = $ed->find("all", $locsql . " AND date >= " . expDateTime::startOfDayTimestamp($start) . " AND date <= " . expDateTime::endOfDayTimestamp($start));
-                    $days[$start] = $this->getEventsForDates($edates, true, isset($this->config['only_featured']) ? true : false);
+//                    $days[$start] = $this->getEventsForDates($edates, true, isset($this->config['only_featured']) ? true : false);
+                    $days[$start] = $this->event->getEventsForDates($edates, true, isset($this->config['only_featured']) ? true : false);
                     //                    for ($j = 0; $j < count($days[$start]); $j++) {
                     //                        $thisloc = expCore::makeLocation($this->loc->mod,$this->loc->src,$days[$start][$j]->id);
                     //                        $days[$start][$j]->permissions = array(
@@ -246,8 +266,10 @@ class eventController extends expController {
                     //                            "delete"=>(expPermissions::check("delete",$thisloc) || expPermissions::check("delete",$this->loc))
                     //                        );
                     //                    }
-                    if (!empty($extitems[$start])) $days[$start] = array_merge($extitems[$start], $days[$start]);
-                    if (!empty($regitems[$start])) $days[$start] = array_merge($regitems[$start], $days[$start]);
+                    if (!empty($extitems[$start]))
+                        $days[$start] = array_merge($extitems[$start], $days[$start]);
+                    if (!empty($regitems[$start]))
+                        $days[$start] = array_merge($regitems[$start], $days[$start]);
                     $days[$start] = expSorter::sort(array('array' => $days[$start], 'sortby' => 'eventstart', 'order' => 'ASC'));
                 }
                 assign_to_template(array(
@@ -255,8 +277,9 @@ class eventController extends expController {
                     'days' => $days,
                     "now"  => $startperiod,
                 ));
-                break;
-            case "monthly":  // build a month array of weeks with an array of days
+                break;  // end switch $viewtype byday
+            case "monthly":  //note this is a simply array of events for the requested month
+                // build a month array of weeks with an array of days
                 //                $monthly = array();
                 //                $counts = array();
                 $info = getdate($time);
@@ -266,7 +289,7 @@ class eventController extends expController {
 //                $week = 0;
                 $currentweek = -1;
                 $timefirst = mktime(0, 0, 0, $info['mon'], 1, $info['year']);
-                $week = intval(date('W',$timefirst));
+                $week = (int)date('W',$timefirst);
                 if ($week >= 52 && $info['mon'] == 1) $week = 1;
                 $infofirst = getdate($timefirst);
                 $monthly[$week] = array(); // initialize for non days
@@ -286,15 +309,19 @@ class eventController extends expController {
                 }
                 // Grab day counts
                 $endofmonth = date('t', $time);
-                $extitems = $this->getExternalEvents($this->loc, $timefirst, expDateTime::endOfMonthTimestamp($timefirst));
-                if (!empty($this->config['aggregate_registrations'])) $regitems = eventregistrationController::getRegEventsForDates($timefirst, expDateTime::endOfMonthTimestamp($timefirst), $regcolor);
+                $extitems = $this->getExternalEvents($timefirst, expDateTime::endOfMonthTimestamp($timefirst));
+                if (!empty($this->config['aggregate_registrations']))
+                    $regitems = eventregistrationController::getRegEventsForDates($timefirst, expDateTime::endOfMonthTimestamp($timefirst), $regcolor);
                 for ($i = 1; $i <= $endofmonth; $i++) {
                     $start = mktime(0, 0, 0, $info['mon'], $i, $info['year']);
                     if ($i == $nowinfo['mday']) $currentweek = $week;
                     $dates = $ed->find("all", $locsql . " AND (date >= " . expDateTime::startOfDayTimestamp($start) . " AND date <= " . expDateTime::endOfDayTimestamp($start) . ")");
-                    $monthly[$week][$i] = $this->getEventsForDates($dates, true, isset($this->config['only_featured']) ? true : false);
-                    if (!empty($extitems[$start])) $monthly[$week][$i] = array_merge($extitems[$start], $monthly[$week][$i]);
-                    if (!empty($regitems[$start])) $monthly[$week][$i] = array_merge($regitems[$start], $monthly[$week][$i]);
+//                    $monthly[$week][$i] = $this->getEventsForDates($dates, true, isset($this->config['only_featured']) ? true : false);
+                    $monthly[$week][$i] = $this->event->getEventsForDates($dates, true, isset($this->config['only_featured']) ? true : false);
+                    if (!empty($extitems[$start]))
+                        $monthly[$week][$i] = array_merge($extitems[$start], $monthly[$week][$i]);
+                    if (!empty($regitems[$start]))
+                        $monthly[$week][$i] = array_merge($regitems[$start], $monthly[$week][$i]);
                     $monthly[$week][$i] = expSorter::sort(array('array' => $monthly[$week][$i], 'sortby' => 'eventstart', 'order' => 'ASC'));
                     $counts[$week][$i] = count($monthly[$week][$i]);
                     if ($weekday >= (6 + DISPLAY_START_OF_WEEK)) {
@@ -309,6 +336,7 @@ class eventController extends expController {
                     $monthly[$week][$i + $endofmonth] = array();
                     $counts[$week][$i + $endofmonth] = -1;
                 }
+                $this->params['time'] = $time;
                 assign_to_template(array(
                     "currentweek" => $currentweek,
                     "monthly"     => $monthly,
@@ -320,10 +348,11 @@ class eventController extends expController {
                     "nextmonth2"  => strtotime('+2 months', $timefirst),
                     "nextmonth3"  => strtotime('+3 months', $timefirst),
                     "now"         => $timefirst,
-                    "today"       => expDateTime::startOfDayTimestamp(time())
+                    "today"       => expDateTime::startOfDayTimestamp(time()),
+                    'params'      => $this->params
                 ));
-                break;
-            case "administration":
+                break;  // end switch $viewtype monthly
+            case "administration":  //note a simple list of all upcoming events, except no external nor registration events
                 // Check perms and return if cant view
                 if (!$user) return;
                 $continue = (expPermissions::check("manage", $this->loc) ||
@@ -332,7 +361,8 @@ class eventController extends expController {
                     expPermissions::check("delete", $this->loc)
                 ) ? 1 : 0;
                 $dates = $ed->find("all", $locsql . " AND date >= " . expDateTime::startOfDayTimestamp(time()));
-                $items = $this->getEventsForDates($dates);
+//                $items = $this->getEventsForDates($dates);
+                $items = $this->event->getEventsForDates($dates);
                 //                if (!$continue) {
                 //                    foreach ($items as $i) {
                 //                        $iloc = expCore::makeLocation($this->loc->mod,$this->loc->src,$i->id);
@@ -358,8 +388,8 @@ class eventController extends expController {
                 assign_to_template(array(
                     'items' => $items,
                 ));
-                break;
-            case "default":
+                break;  // end switch $viewtype administration
+            case "default":  //note a simple list of events based on $viewrange
             default;
                 //                $items = null;
                 //                $dates = null;
@@ -367,8 +397,8 @@ class eventController extends expController {
                 $sort_asc = true; // For the getEventsForDates call
                 //                $moreevents = false;
                 switch ($viewrange) {
-                    case "upcoming":
-                        if (!empty($this->config['rss_limit']) && $this->config['rss_limit'] > 0) {
+                    case "upcoming":  // events in the future
+                        if (!empty($this->config['enable_ical']) && !empty($this->config['rss_limit']) && $this->config['rss_limit'] > 0) {
                             $eventlimit = " AND date <= " . ($day + ($this->config['rss_limit'] * 86400));
                         } else {
                             $eventlimit = "";
@@ -378,55 +408,60 @@ class eventController extends expController {
                         $end = null;
                         //					$moreevents = count($dates) < $db->countObjects("eventdate",$locsql." AND date >= $day");
                         break;
-                    case "past":
+                    case "past":  // events in the past
                         $dates = $ed->find("all", $locsql . " AND date < $day ORDER BY date DESC ");
                         //					$moreevents = count($dates) < $db->countObjects("eventdate",$locsql." AND date < $day");
                         $sort_asc = false;
                         $begin = null;
                         $end = $day;
                         break;
-                    case "today":
+                    case "today":  // events occuring today
                         $dates = $ed->find("all", $locsql . " AND (date >= " . expDateTime::startOfDayTimestamp($day) . " AND date <= " . expDateTime::endOfDayTimestamp($day) . ")");
                         $begin = $day;
                         $end = expDateTime::endOfDayTimestamp($day);
                         break;
-                    case "day":
+                    case "day":  // events for a specific day (same as byday day?)
                         $dates = $ed->find("all", $locsql . " AND (date >= " . expDateTime::startOfDayTimestamp($time) . " AND date <= " . expDateTime::endOfDayTimestamp($time) . ")");
                         $begin = expDateTime::startOfDayTimestamp($time);
                         $end = expDateTime::endOfDayTimestamp($time);
                         break;
-                    case "next":
+                    case "next":  // future events
                         $dates = array($ed->find("all", $locsql . " AND date >= $time"));
                         $begin = expDateTime::startOfDayTimestamp($time);
                         $end = null;
                         break;
-                    case "month":
+                    case "month": // events for a specific month (same as monthly?)
 //                        $dates = $ed->find("all", $locsql . " AND (date >= " . expDateTime::startOfMonthTimestamp(time()) . " AND date <= " . expDateTime::endOfMonthTimestamp(time()) . ")");
                         $dates = $ed->find("all", $locsql . " AND (date >= " . expDateTime::startOfMonthTimestamp($time) . " AND date <= " . expDateTime::endOfMonthTimestamp($time) . ")");
                         $begin = expDateTime::startOfMonthTimestamp($time);
                         $end = expDateTime::endOfMonthTimestamp($time);
                         break;
-                    case "all":
+                    case "all":  // all events
                     default;
                         $dates = $ed->find("all", $locsql);
                         $begin = null;
                         $end = null;
                 }
-                $items = $this->getEventsForDates($dates, $sort_asc, isset($this->config['only_featured']) ? true : false, true);
+//                $items = $this->getEventsForDates($dates, $sort_asc, isset($this->config['only_featured']) ? true : false, true);
+                $items = $this->event->getEventsForDates($dates, $sort_asc, isset($this->config['only_featured']) ? true : false, true);
                 if ($viewrange != 'past') {
-                    $extitems = $this->getExternalEvents($this->loc, $begin, $end);
-                    // we need to crunch these down
+                    $extitems = $this->getExternalEvents($begin, $end);
+                    // we need to flatten these down to simple array of events
                     $extitem = array();
                     foreach ($extitems as $days) {
                         foreach ($days as $event) {
-                            if (empty($event->eventdate->date) || ($viewrange == 'upcoming' && $event->eventdate->date < time())) break;
-                            if (empty($event->eventstart)) $event->eventstart = $event->eventdate->date;
+                            if (empty($event->eventdate->date) || ($viewrange == 'upcoming' && $event->eventdate->date < time()))
+                                break;
+                            if (empty($event->eventstart))
+                                $event->eventstart = $event->eventdate->date;
                             $extitem[] = $event;
                         }
                     }
                     $items = array_merge($items, $extitem);
-                    if (!empty($this->config['aggregate_registrations'])) $regitems = eventregistrationController::getRegEventsForDates($begin, $end, $regcolor);
-                    // we need to crunch these down
+
+                    if (!empty($this->config['aggregate_registrations']))
+                        $regitems = eventregistrationController::getRegEventsForDates($begin, $end, $regcolor);
+                    // we need to flatten these down to simple array of events
                     $regitem = array();
                     if (!empty($regitems)) foreach ($regitems as $days) {
                         foreach ($days as $value) {
@@ -434,6 +469,18 @@ class eventController extends expController {
                         }
                     }
                     $items = array_merge($items, $regitem);
+
+                    // remove today's events that have already ended
+                    if ($viewtype == 'default' && $viewrange == 'upcoming') {
+                        foreach ($items as $key=>$item) {
+                            if (!$item->is_allday && $item->eventend < time()) {
+                                //fixme we've left events ending earlier in the day, but already cancelled out tomorrow's event
+                                unset($items[$key]);
+                            } else {
+                                break;  // they are chronological so we can end
+                            }
+                        }
+                    }
                 }
                 $items = expSorter::sort(array('array' => $items, 'sortby' => 'eventstart', 'order' => 'ASC'));
                 // Upcoming events can be configured to show a specific number of events.
@@ -475,6 +522,9 @@ class eventController extends expController {
             $event = new event($this->params['id']);
             $eventdate = new eventdate($event->eventdate[0]->id);
         }
+        if (empty($eventdate->id))
+            redirect_to(array('controller'=>'notfound','action'=>'page_not_found','title'=>'event'));
+
         if (!empty($eventdate->event->feedback_form) && $eventdate->event->feedback_form != 'Disallow Feedback') {
             assign_to_template(array(
                 'feedback_form' => $eventdate->event->feedback_form,
@@ -512,6 +562,7 @@ class eventController extends expController {
     function delete_recurring() {
         $item = $this->event->find('first', 'id=' . $this->params['id']);
         if ($item->is_recurring == 1) { // need to give user options
+            expHistory::set('editable', $this->params);
             assign_to_template(array(
                 'checked_date' => $this->params['date_id'],
                 'event'        => $item,
@@ -542,7 +593,6 @@ class eventController extends expController {
             }
             expHistory::back();
         } else {
-//            echo SITE_404_HTML;
             notfoundController::handle_not_found();
         }
     }
@@ -565,14 +615,14 @@ class eventController extends expController {
        global $router;
 
         $action = $router->params['action'];
-        $metainfo = array('title' => '', 'keywords' => '', 'description' => '', 'canonical'=> '', 'noindex' => '', 'nofollow' => '');
+        $metainfo = array('title' => '', 'keywords' => '', 'description' => '', 'canonical'=> '', 'noindex' => false, 'nofollow' => false);
         // look for event date_id which expController::metainfo won't detect
 //        if (!empty($router->params['action']) && $router->params['action'] == 'show' && !isset($router->params['id']) && isset($router->params['date_id'])) {
         switch ($action) {
             case 'show':
                 if (!isset($router->params['id']) && isset($router->params['date_id'])) {
                     // look up the record.
-                    $object = new eventdate(intval($router->params['date_id']));
+                    $object = new eventdate((int)$router->params['date_id']);
                     // set the meta info
                     if (!empty($object)) {
                         if (!empty($object->event->body)) {
@@ -592,7 +642,7 @@ class eventController extends expController {
                         $metainfo['title'] = empty($object->event->meta_title) ? $object->event->title : $object->event->meta_title;
                         $metainfo['keywords'] = empty($object->event->meta_keywords) ? $keyw : $object->event->meta_keywords;
                         $metainfo['description'] = empty($object->event->meta_description) ? $desc : $object->event->meta_description;
-                        $metainfo['canonical'] = empty($object->event->canonical) ? '' : $object->event->canonical;
+                        $metainfo['canonical'] = empty($object->event->canonical) ? $router->plainPath() : $object->event->canonical;
                         $metainfo['noindex'] = empty($object->event->meta_noindex) ? false : $object->event->meta_noindex;
                         $metainfo['nofollow'] = empty($object->event->meta_nofollow) ? false : $object->event->meta_nofollow;
                         return $metainfo;
@@ -604,13 +654,28 @@ class eventController extends expController {
         }
     }
 
+    /**
+     * function to build a string to pull in all events within requested date range
+     */
+    function build_daterange_sql($timestamp, $endtimestamp=null, $field='date', $multiday=false) {
+        if (empty($endtimestamp)) {
+            $date_sql = "((".$field." >= " . expDateTime::startOfDayTimestamp($timestamp) . " AND ".$field." <= " . expDateTime::endOfDayTimestamp($timestamp) . ")";
+        } else {
+            $date_sql = "((".$field." >= " . expDateTime::startOfDayTimestamp($timestamp) . " AND ".$field." <= " . expDateTime::endOfDayTimestamp($endtimestamp) . ")";
+        }
+        if ($multiday)
+            $date_sql .= " OR (" . expDateTime::startOfDayTimestamp($timestamp) . " BETWEEN ".$field." AND dateFinished)";
+        $date_sql .= ")";
+        return $date_sql;
+    }
+
     function send_feedback() {
         $success = false;
         if (isset($this->params['id'])) {
             $ed = new eventdate($this->params['id']);
 //            $email_addrs = array();
             if ($ed->event->feedback_email != '') {
-                $msgtemplate = expTemplate::get_template_for_action($this, 'email/_' . $this->params['formname'], $this->loc);
+                $msgtemplate = expTemplate::get_template_for_action($this, 'email/_' . expString::escape($this->params['formname']), $this->loc);
                 $msgtemplate->assign('params', $this->params);
                 $msgtemplate->assign('event', $ed);
                 $email_addrs = explode(',', $ed->event->feedback_email);
@@ -628,11 +693,10 @@ class eventController extends expController {
         }
 
         if ($success) {
-            flash('message', gt('Your feedback was successfully sent.'));
+            flashAndFlow('message', gt('Your feedback was successfully sent.'));
         } else {
-            flash('error', gt('We could not send your feedback.  Please contact your administrator.'));
+            flashAndFlow('error', gt('We could not send your feedback.  Please contact your administrator.'));
         }
-        expHistory::back();
     }
 
     function ical() {
@@ -665,14 +729,14 @@ class eventController extends expController {
                     $locsql = $this->aggregateWhereClause();
 
                     $day = expDateTime::startOfDayTimestamp(time());
-                    if (isset($this->config['rss_limit']) && ($this->config['rss_limit'] > 0)) {
+                    if (!empty($this->config['enable_ical']) && isset($this->config['rss_limit']) && ($this->config['rss_limit'] > 0)) {
                         $rsslimit = " AND date <= " . ($day + ($this->config['rss_limit'] * 86400));
                     } else {
                         $rsslimit = "";
                     }
 
                     if (isset($this->params['time'])) {
-                        $time = $this->params['time']; // get current month's events
+                        $time = intval($this->params['time']); // get current month's events
 //                        $dates = $db->selectObjects("eventdate",$locsql." AND (date >= ".expDateTime::startOfMonthTimestamp($time)." AND date <= ".expDateTime::endOfMonthTimestamp($time).")");
                         $dates = $ed->find('all', $locsql . " AND (date >= " . expDateTime::startOfMonthTimestamp($time) . " AND date <= " . expDateTime::endOfMonthTimestamp($time) . ")");
                     } else {
@@ -702,7 +766,7 @@ class eventController extends expController {
                         $addtl_chars = 0;
 
                         // iterate lines
-                        for ($j = 0; $j < count($lines); $j++) {
+                        for ($j = 0, $jMax = count($lines); $j < $jMax; $j++) {
                             $line = $lines[$j];
                             $linlen = strlen($line);
 
@@ -785,9 +849,10 @@ class eventController extends expController {
                 }
                 $msg .= "X-WR-CALNAME:$Filename\n";
 
-                $items = $this->getEventsForDates($dates);
+//                $items = $this->getEventsForDates($dates);
+                $items = $this->event->getEventsForDates($dates);
 
-                for ($i = 0; $i < count($items); $i++) {
+                for ($i = 0, $iMax = count($items); $i < $iMax; $i++) {
 
                     // Convert events stored in local time to GMT
                     $eventstart = new DateTime(date('r', $items[$i]->eventstart), new DateTimeZone($tz));
@@ -806,7 +871,7 @@ class eventController extends expController {
                         }
                     }
 
-                    $body = chop(strip_tags(str_replace(array("<br />", "<br>", "br/>", "</p>"), "\n", $items[$i]->body)));
+                    $body = trim(strip_tags(str_replace(array("<br />", "<br>", "br/>", "</p>"), "\n", $items[$i]->body)));
                     if ($items[$i]->is_cancelled) $body = gt('This Event Has Been Cancelled') . ' - ' . $body;
                     $body = str_replace(array("\r"), "", $body);
                     $body = str_replace(array("&#160;"), " ", $body);
@@ -825,7 +890,7 @@ class eventController extends expController {
 
                     $msg .= "BEGIN:VEVENT\n";
                     $msg .= $dtstart . $dtend;
-                    $msg .= "UID:" . $items[$i]->id . "\n";
+                    $msg .= "UID:" . $items[$i]->date_id . "\n";
                     $msg .= "DTSTAMP:" . date("Ymd\THis", time()) . "Z\n";
                     if ($title) {
                         $msg .= "SUMMARY:$title\n";
@@ -850,10 +915,10 @@ class eventController extends expController {
 
                 //	$mime_type = (EXPONENT_USER_BROWSER == 'IE' || EXPONENT_USER_BROWSER == 'OPERA') ? 'application/octet-stream;' : "text/x-vCalendar";
                 //	$mime_type = "text/x-vCalendar";
-                $mime_type = "text/Calendar";
+                $mime_type = 'text/Calendar';
                 header('Content-Type: ' . $mime_type);
                 header('Expires: ' . gmdate('D, d M Y H:i:s') . ' GMT');
-                header("Content-length: " . strlen($msg));
+                header('Content-length: ' . strlen($msg));
                 header('Content-Transfer-Encoding: binary');
                 header('Content-Encoding:');
                 //	header("Content-Disposition: inline; filename=".$Filename.".ics");
@@ -869,11 +934,9 @@ class eventController extends expController {
                 echo $msg;
                 exit();
             } else {
-//                echo SITE_404_HTML;
                 notfoundController::handle_not_found();
             }
         } else {
-//            echo SITE_404_HTML;
             notfoundController::handle_not_found();
         }
     }
@@ -898,12 +961,10 @@ class eventController extends expController {
             }
 
             if (empty($this->config['reminder_active'])) {
-//                echo SITE_404_HTML;
                 notfoundController::handle_not_found();
                 return;
             }
             if (!empty($this->config['reminder_code']) && (empty($this->params['code']) || ($this->params['code'] != $this->config['reminder_code']))) {
-//                echo SITE_403_HTML;
                 notfoundController::handle_not_authorized();
                 return;
             }
@@ -916,13 +977,14 @@ class eventController extends expController {
                 $view = "send_reminders"; // default reminder view
             }
 
-            $template = expTemplate::get_template_for_action($this, $view, $this->loc);
+//            $template = expTemplate::get_template_for_action($this, $view, $this->loc);
+            global $template;
 
             $title = $this->config['feed_title'];
             $template->assign('moduletitle', $title);
 
-            $time = (isset($this->params['time']) ? $this->params['time'] : time());
-            $time = intval($time);
+            $time = (isset($this->params['time']) ? intval($this->params['time']) : time());
+            $time = (int)$time;
 
             $template->assign("time", $time);
 
@@ -940,8 +1002,9 @@ class eventController extends expController {
                 $ed = new eventdate();
                 $edates = $ed->find('all', $locsql . " AND (date >= " . expDateTime::startOfDayTimestamp($start) . " AND date <= " . expDateTime::endOfDayTimestamp($start) . ")");
                 $days[$start] = array();
-                $days[$start] = self::getEventsForDates($edates);
-                for ($j = 0; $j < count($days[$start]); $j++) {
+//                $days[$start] = $this->getEventsForDates($edates);
+                $days[$start] = $this->event->getEventsForDates($edates);
+                for ($j = 0, $jMax = count($days[$start]); $j < $jMax; $j++) {
                     $thisloc = expCore::makeLocation($loc->mod, $loc->src, $days[$start][$j]->id);
                     $days[$start][$j]->permissions = array(
                         "manage" => (expPermissions::check("manage", $thisloc) || expPermissions::check("manage", $loc)),
@@ -964,7 +1027,15 @@ class eventController extends expController {
                 return;
             }
 
+            if (bs3())
+                $css = file_get_contents(BASE . "external/bootstrap3/css/bootstrap.css");
+            elseif (bs2())
+                $css = file_get_contents(BASE . "external/bootstrap/css/bootstrap.css");
+            else
+                $css = file_get_contents(BASE . "framework/modules/events/assets/css/calendar.css");
+            $template->assign("css", $css);
             $template->assign("config", $this->config);
+            $template->assign("src", $loc->src);
 
             // format and send email
             $subject = $this->config['email_title_reminder'] . " - $title";
@@ -979,18 +1050,19 @@ class eventController extends expController {
             $htmlmsg = $template->render();
 
             // now the same thing for the text message
-            $msg = chop(strip_tags(str_replace(array("<br />", "<br>", "br/>"), "\n", $htmlmsg)));
+//            $msg = preg_replace('/(<script[^>]*>.+?<\/script>|<style[^>]*>.+?<\/style>)/s', '', $htmlmsg); // remove any script or style blocks
+//            $msg = trim(strip_tags(str_replace(array("<br />", "<br>", "br/>"), "\n", $msg)));
 
             // Saved.  do notifs
             $emails = array();
             if (!empty($this->config['user_list'])) foreach ($this->config['user_list'] as $c) {
                 $u = user::getUserById($c);
-                $emails[] = $u->email;
+                $emails[$u->email] = trim(user::getUserAttribution($u->id));
             }
             if (!empty($this->config['group_list'])) foreach ($this->config['group_list'] as $c) {
                 $grpusers = group::getUsersInGroup($c);
                 foreach ($grpusers as $u) {
-                    $emails[] = $u->email;
+                    $emails[$u->email] = trim(user::getUserAttribution($u->id));
                 }
             }
             if (!empty($this->config['address_list'])) foreach ($this->config['address_list'] as $c) {
@@ -1004,15 +1076,16 @@ class eventController extends expController {
 
             $emails = array_flip(array_flip($emails));
             $emails = array_map('trim', $emails);
-            $headers = array(
-                "MIME-Version" => "1.0",
-                "Content-type" => "text/html; charset=" . LANG_CHARSET
-            );
+//            $headers = array(
+//                "MIME-Version" => "1.0",
+//                "Content-type" => "text/html; charset=" . LANG_CHARSET
+//            );
             $mail = new expMail();
             $mail->quickSend(array(
-                'headers'      => $headers,
+//                'headers'      => $headers,
                 'html_message' => $htmlmsg,
-                "text_message" => $msg,
+//                "text_message" => $msg,
+                "text_message" => expString::html2text($htmlmsg),
                 'to'           => $emails,
                 'from'         => array(trim($this->config['email_address_reminder']) => $this->config['email_from_reminder']),
                 'subject'      => $subject,
@@ -1020,13 +1093,20 @@ class eventController extends expController {
 
             flash('message',gt('The following reminder was sent via email'));
             echo show_msg_queue();
-            echo($htmlmsg);
+//            echo($htmlmsg);
         } else {
             flash('error',gt('No Calendar Selected!'));
             echo show_msg_queue('error');
         }
     }
 
+    /** @deprecated moved to event model
+     * @param $edates
+     * @param bool $sort_asc
+     * @param bool $featuredonly
+     * @param bool $condense
+     * @return array
+     */
     function getEventsForDates($edates, $sort_asc = true, $featuredonly = false, $condense = false) {
         global $eventid;
 
@@ -1066,24 +1146,105 @@ class eventController extends expController {
         return $events;
     }
 
-    function getExternalEvents($loc, $startdate, $enddate) {
+    function getExternalEvents($startdate, $enddate, $multiday = false) {
+        global $db;
+
         $extevents = array();
-        $dy = 0;
-        $url = 0;
+        $dy = 0;  // index of events array
         if (!empty($this->config['pull_gcal'])) foreach ($this->config['pull_gcal'] as $key=>$extgcalurl) {
-            $url++;
-            if (!empty($startdate)) $begin = date("Y-m-d\Th:i:sP", expDateTime::startOfDayTimestamp($startdate));
-            if (!empty($enddate)) $end = date("Y-m-d\Th:i:sP", expDateTime::endOfDayTimestamp($enddate));
-                else $end = date("Y-m-d\Th:i:sP", (expDateTime::endOfDayTimestamp($startdate + ((3600*24)*30))));
-
-            if (substr($extgcalurl, -5) == 'basic') {
-                $extgcalurl = substr($extgcalurl, 0, strlen($extgcalurl) - 5) . 'full';
+//            $dy = count($extevents);  // index of events array
+            $cache_hit = false;
+            $gcal_cname = str_replace(array("/",":","&","?"),"_",$extgcalurl);
+            $cache_fname = BASE.'tmp/cache/'.$gcal_cname.".cache";
+            if (file_exists($cache_fname)) {
+                $cache = unserialize(file_get_contents($cache_fname));
+                if ($startdate >= $cache['start_date'] || $startdate >= $cache['first_date']) {
+                    $events = $db->selectObjects('event_cache','feed="'.$extgcalurl.'" AND ' . self::build_daterange_sql($startdate,$enddate,'eventdate',true));
+                    foreach ($events as $event) {
+                        if ($multiday) {
+                            $extevents[$event->eventdate][$dy] = $event;
+                            $extevents[$event->eventdate][$dy]->feedkey = $key;
+                            $extevents[$event->eventdate][$dy]->location_data = 'gcalevent' . $key;
+                            $extevents[$event->eventdate][$dy]->color = !empty($this->config['pull_gcal_color'][$key]) ? $this->config['pull_gcal_color'][$key] : null;
+                            if ($event->is_allday) {
+                                $extevents[$event->eventdate][$dy]->eventstart = $event->eventdate;
+                            }
+                            $dy++;
+                        } else {
+                            $endit = !empty($event->dateFinished) ? $event->dateFinished : $event->eventdate;
+//                            for ($i = $startdate; $i < $enddate; $i += 86400) {
+                            for ($i = $event->eventdate; $i <= $endit; $i += 86400) {
+                                if ((!empty($event->dateFinished) && $i > $event->dateFinished) || (empty($event->dateFinished) && $i > $event->eventdate)) {
+                                    break;
+                                } else {
+                                    $extevents[$i][$dy] = clone($event);
+                                    $extevents[$i][$dy]->eventdate = (int)$i;
+                                    $extevents[$i][$dy]->eventstart = ($event->eventstart - $event->eventdate);
+                                    $extevents[$i][$dy]->eventend = ($event->eventend - (!empty($event->dateFinished)?$event->dateFinished:$event->eventdate));
+                                    $extevents[$i][$dy]->eventstart = ($extevents[$i][$dy]->eventstart) + $i;
+                                    $extevents[$i][$dy]->eventend = ($extevents[$i][$dy]->eventend) + $i;
+                                    $extevents[$i][$dy]->feedkey = $key;
+                                    $extevents[$i][$dy]->location_data = 'gcalevent' . $key;
+                                    $extevents[$i][$dy]->color = !empty($this->config['pull_gcal_color'][$key]) ? $this->config['pull_gcal_color'][$key] : null;
+                                    $dy++;
+                                }
+                            }
+                        }
+                    }
+                    $cache_hit = true;
+                }
             }
-            $feed = $extgcalurl . "?orderby=starttime&singleevents=true";
-            if (!empty($startdate)) $feed .= "&start-min=" . $begin;
-            if (!empty($enddate)) $feed .= "&start-max=" . $end;
+            if (!$cache_hit) { // pull in the external events
+                foreach ($this->get_gcal_events($extgcalurl, $startdate, $enddate, $dy, $key, $multiday) as $date=>$events) {
+                    foreach ($events as $event) {
+                        $extevents[$date][] = $event;
+                    }
+                }
+            }
+        }
+        if (!empty($this->config['pull_ical'])) foreach ($this->config['pull_ical'] as $key=>$exticalurl) {
+//            $dy = count($extevents);  // index of events array
+            $cache_hit = false;
+            $ical_cname = str_replace(array("/",":","&","?"),"_",$exticalurl);
+            $cache_fname = BASE.'tmp/cache/'.$ical_cname.".cache";
+            if (file_exists($cache_fname)) {
+                $cache = unserialize(file_get_contents($cache_fname));
+                if ($startdate >= $cache['start_date'] || $startdate >= $cache['first_date']) {
+                    $events = $db->selectObjects('event_cache','feed="'.$exticalurl.'" AND ' . self::build_daterange_sql($startdate,$enddate,'eventdate',true));
+                    foreach ($events as $event) {
+                        $extevents[$event->eventdate][$dy] = $event;
+                        $extevents[$event->eventdate][$dy]->location_data = 'icalevent' . $key;
+                        $extevents[$event->eventdate][$dy]->color = !empty($this->config['pull_ical_color'][$key]) ? $this->config['pull_ical_color'][$key] : null;
+                        $dy++;
+                    }
+                    $cache_hit = true;
+                }
+            }
+            if (!$cache_hit) {  // pull in the external events
+                foreach ($this->get_ical_events($exticalurl, $startdate, $enddate, $dy, $key, $multiday) as $date=>$events) {
+                    foreach ($events as $event) {
+                        $extevents[$date][] = $event;
+                    }
+                }
+            }
+        }
+        return $extevents;
+    }
 
-            // XML method
+    public function get_gcal_events($extgcalurl, $startdate, $enddate=null, &$dy=0, $key=0, $multiday=false) {
+        $extevents = array();
+        if (!empty($startdate)) $begin = date("Y-m-d\Th:i:sP", expDateTime::startOfDayTimestamp($startdate));
+        if (!empty($enddate)) $end = date("Y-m-d\Th:i:sP", expDateTime::endOfDayTimestamp($enddate));
+            else $end = date("Y-m-d\Th:i:sP", (expDateTime::endOfDayTimestamp($startdate + ((3600*24)*30))));
+
+        if (substr($extgcalurl, -5) == 'basic') {
+            $extgcalurl = substr($extgcalurl, 0, - 5) . 'full';
+        }
+        $feed = $extgcalurl . "?orderby=starttime&singleevents=true";
+        if (!empty($startdate)) $feed .= "&start-min=" . $begin;
+        if (!empty($enddate)) $feed .= "&start-max=" . $end;
+
+        // XML method
 //            $s = simplexml_load_file($feed);
 //            foreach ($s->entry as $item) {
 //                $gd = $item->children('http://schemas.google.com/g/2005');
@@ -1096,8 +1257,8 @@ class eventController extends expController {
 //                }
 //                //FIXME must convert $dtstart timezone
 //                $eventdate = expDateTime::startOfDayTimestamp(strtotime($dtstart));
-//                $ourtzoffsets = intval(date('O',$eventdate)) * 36;
-//                $theirtzoffset = -(intval(substr($dtstart,-5,2)) * 3600);
+//                $ourtzoffsets = (int)(date('O',$eventdate)) * 36;
+//                $theirtzoffset = -((int)(substr($dtstart,-5,2)) * 3600);
 //                $tzoffset = $ourtzoffsets - $theirtzoffset;
 //                $extevents[$eventdate][$dy] = new stdClass();
 //                $extevents[$eventdate][$dy]->eventdate = $eventdate;
@@ -1112,143 +1273,152 @@ class eventController extends expController {
 //                // dtstart required, one occurrence, (orig. start date)
 //                $extevents[$eventdate][$dy]->title = $item->title;
 //                $extevents[$eventdate][$dy]->body = $item->content;
-            // End XML method
+        // End XML method
 
-            // DOM method
-            $doc = new DOMDocument();
-            $doc->load($feed);
-            $entries = $doc->getElementsByTagName("entry");
-            foreach ($entries as $item) {
-                $times = $item->getElementsByTagName("when");
-                $dtstart = $times->item(0)->getAttributeNode("startTime")->value;
-                $eventdate = expDateTime::startOfDayTimestamp(strtotime($dtstart));
-                $extevents[$eventdate][$dy] = new stdClass();
-                $extevents[$eventdate][$dy]->eventdate = $eventdate;
-                $dtend = @$times->item(0)->getAttributeNode("endTime")->value;
-                $ourtzoffsets = intval(date('O',$eventdate)) * 36;
-                $theirtzoffset = -(intval(substr($dtstart,-5,2)) * 3600);
-                $tzoffset = $ourtzoffsets - $theirtzoffset;
-                if (strlen($dtstart) > 10) {
-                    $extevents[$eventdate][$dy]->eventstart = (intval(substr($dtstart, 11, 2)) * 3600) + (intval(substr($dtstart, 14, 2)) * 60) + $tzoffset;
+        // DOM method
+        $doc = new DOMDocument();
+        $doc->load($feed);
+        $entries = $doc->getElementsByTagName("entry");
+        foreach ($entries as $item) {
+            $times = $item->getElementsByTagName("when");
+            $dtstart = $times->item(0)->getAttributeNode("startTime")->value;
+            $eventdate = expDateTime::startOfDayTimestamp(strtotime($dtstart));
+            $extevents[$eventdate][$dy] = new stdClass();
+            $extevents[$eventdate][$dy]->eventdate = $eventdate;
+            $dtend = @$times->item(0)->getAttributeNode("endTime")->value;
+            $ourtzoffsets = (int)date('O',$eventdate) * 36;
+            $theirtzoffset = -((int)substr($dtstart,-5,2) * 3600);
+            $tzoffset = $ourtzoffsets - $theirtzoffset;
+            if (strlen($dtstart) > 10) {
+                $extevents[$eventdate][$dy]->eventstart = ((int)substr($dtstart, 11, 2) * 3600) + ((int)substr($dtstart, 14, 2) * 60) + $tzoffset;
 //                    if (date("I", $eventdate)) $extevents[$eventdate][$dy]->eventstart += 3600;
-                    $extevents[$eventdate][$dy]->eventend = (intval(substr($dtend, 11, 2)) * 3600) + (intval(substr($dtend, 14, 2)) * 60) + $tzoffset;
+                $extevents[$eventdate][$dy]->eventend = ((int)substr($dtend, 11, 2) * 3600) + ((int)substr($dtend, 14, 2) * 60) + $tzoffset;
 //                    if (date("I", $eventdate)) $extevents[$eventdate][$dy]->eventend += 3600;
-                } else {
-                    $extevents[$eventdate][$dy]->eventstart = null;
-                    $extevents[$eventdate][$dy]->is_allday = 1;
-                }
-                $extevents[$eventdate][$dy]->eventstart += $eventdate;
-                $extevents[$eventdate][$dy]->eventend += $eventdate;
-                if (empty($dtend)) $extevents[$eventdate][$dy]->eventend = $extevents[$eventdate][$dy]->eventstart;
+            } else {
+                $extevents[$eventdate][$dy]->eventstart = null;
+                $extevents[$eventdate][$dy]->is_allday = 1;
+            }
+            $extevents[$eventdate][$dy]->eventstart += $eventdate;
+            $extevents[$eventdate][$dy]->eventend += $eventdate;
+            if (empty($dtend)) $extevents[$eventdate][$dy]->eventend = $extevents[$eventdate][$dy]->eventstart;
 
-                $titles = $item->getElementsByTagName("title");
-                $extevents[$eventdate][$dy]->title = $titles->item(0)->nodeValue;
-                $contents = $item->getElementsByTagName("content");
-                $extevents[$eventdate][$dy]->body = $contents->item(0)->nodeValue;
-                // End DOM method
+            $titles = $item->getElementsByTagName("title");
+            $extevents[$eventdate][$dy]->title = $titles->item(0)->nodeValue;
+            $contents = $item->getElementsByTagName("content");
+            $extevents[$eventdate][$dy]->body = $contents->item(0)->nodeValue;
+            // End DOM method
 
 //                    $extevents[$eventdate][$dy]->location_data = serialize(expCore::makeLocation('extevent',$extcal->id));
-                $extevents[$eventdate][$dy]->location_data = 'gcalevent' . $url;
-                $extevents[$eventdate][$dy]->color = !empty($this->config['pull_gcal_color'][$key]) ? $this->config['pull_gcal_color'][$key] : null;
-                $dy++;
-            }
+            $extevents[$eventdate][$dy]->location_data = 'gcalevent' . $key;
+            $extevents[$eventdate][$dy]->color = !empty($this->config['pull_gcal_color'][$key]) ? $this->config['pull_gcal_color'][$key] : null;
+            $dy++;
         }
-        if (!empty($this->config['pull_ical'])) foreach ($this->config['pull_ical'] as $key=>$exticalurl) {
-            $url++;
-            require_once BASE . 'external/iCalcreator.class.php';
-            $v = new vcalendar(); // initiate new CALENDAR
+        return $extevents;
+    }
+
+    public function get_ical_events($exticalurl, $startdate=null, $enddate=null, &$dy=0, $key=0, $multiday=false) {
+        $extevents = array();
+//            require_once BASE . 'external/iCalcreator.class.php';
+        require_once BASE . 'external/iCalcreator-2.22/iCalcreator.php';
+        $v = new vcalendar(); // initiate new CALENDAR
+        if (stripos($exticalurl, 'http') === 0) {
             $v->setConfig('url', $exticalurl);
-            $v->parse();
-            if ($startdate == null) {
-                $startYear = false;
-                $startMonth = false;
-                $startDay = false;
-            } else {
-                $startYear = date('Y', $startdate);
-                $startMonth = date('n', $startdate);
-                $startDay = date('j', $startdate);
-            }
-            if ($enddate == null) {
-                $endYear = $startYear+1;
-                $endMonth = $startMonth;
-                $endDay = $startDay;
-            } else {
-                $endYear = date('Y', $enddate);
-                $endMonth = date('n', $enddate);
-                $endDay = date('j', $enddate);
-            }
-            // get all events within period split out recurring events as single events per each day
-            $eventArray = $v->selectComponents($startYear, $startMonth, $startDay, $endYear, $endMonth, $endDay, 'vevent');
-            // Set the timezone to GMT
-            @date_default_timezone_set('GMT');
-            $tzarray = getTimezonesAsDateArrays($v);
-            // Set the default timezone
-            @date_default_timezone_set(DISPLAY_DEFAULT_TIMEZONE);
-            $url = 0;
-            if (!empty($eventArray)) foreach ($eventArray as $year => $yearArray) {
-                if (!empty($yearArray)) foreach ($yearArray as $month => $monthArray) {
-                    if (!empty($monthArray)) foreach ($monthArray as $day => $dailyEventsArray) {
-                        if (!empty($dailyEventsArray)) foreach ($dailyEventsArray as $vevent) {
-                            // process each event
-                            $yesterday = false;
-                            $currdate = $vevent->getProperty('x-current-dtstart');
-                            $thisday = explode('-', $currdate[1]);
-                            $thisday2 = substr($thisday[2], 0, 2);
-                            // if member of a recurrence set,
-                            // returns array( 'x-current-dtstart', <DATE>)
-                            // <DATE> = (string) date("Y-m-d [H:i:s][timezone/UTC offset]")
-                            $dtstart = $vevent->getProperty('dtstart', false, true);
-                            $dtend = $vevent->getProperty('dtend', false, true);
+        } else {
+            $v->setConfig('directory', dirname($exticalurl));
+            $v->setConfig('filename', basename($exticalurl));
+        }
+        $v->parse();
+        if ($startdate === null) {
+            $startYear = false;
+            $startMonth = false;
+            $startDay = false;
+        } else {
+            $startYear = date('Y', $startdate);
+            $startMonth = date('n', $startdate);
+            $startDay = date('j', $startdate);
+        }
+        if ($enddate === null) {
+            $endYear = $startYear+1;
+            $endMonth = $startMonth;
+            $endDay = $startDay;
+        } else {
+            $endYear = date('Y', $enddate);
+            $endMonth = date('n', $enddate);
+            $endDay = date('j', $enddate);
+        }
+        // get all events within period split out recurring events as single events per each day
+        $eventArray = $v->selectComponents($startYear, $startMonth, $startDay, $endYear, $endMonth, $endDay, 'vevent');
+        // Set the timezone to GMT
+        @date_default_timezone_set('GMT');
+        $tzarray = getTimezonesAsDateArrays($v);
+        // Set the default timezone
+        @date_default_timezone_set(DISPLAY_DEFAULT_TIMEZONE);
+        if (!empty($eventArray)) foreach ($eventArray as $year => $yearArray) {
+            if (!empty($yearArray)) foreach ($yearArray as $month => $monthArray) {
+                if (!empty($monthArray)) foreach ($monthArray as $day => $dailyEventsArray) {
+                    if (!empty($dailyEventsArray)) foreach ($dailyEventsArray as $vevent) {
+                        // process each event
+                        $yesterday = false;
+                        $currdate = $vevent->getProperty('x-current-dtstart');
+                        $thisday = explode('-', $currdate[1]);
+                        $thisday2 = substr($thisday[2], 0, 2);
+                        // if member of a recurrence set,
+                        // returns array( 'x-current-dtstart', <DATE>)
+                        // <DATE> = (string) date("Y-m-d [H:i:s][timezone/UTC offset]")
+                        $dtstart = $vevent->getProperty('dtstart', false, true);
+                        $dtend = $vevent->getProperty('dtend', false, true);
+                        if (empty($dtend))
+                            $dtend = $dtstart;
 
-                            // calculate the cumulative timezone offset in seconds to convert to local/system time
-                            $tzoffsets = array();
-                            $date_tzoffset = 0;
-                            if (!empty($tzarray)) {
+                        // calculate the cumulative timezone offset in seconds to convert to local/system time
+                        $tzoffsets = array();
+                        $date_tzoffset = 0;
+                        if (!empty($tzarray)) {
 //                                $ourtzoffsets = -(iCalUtilityFunctions::_tz2offset(date('O',time())));
-                                $ourtzoffsets = -(iCalUtilityFunctions::_tz2offset(date('O',iCalUtilityFunctions::_date2timestamp($dtstart['value']))));
-                                // Set the timezone to GMT
-                                @date_default_timezone_set('GMT');
-                                if (!empty($dtstart['params']['TZID'])) $tzoffsets = getTzOffsetForDate($tzarray, $dtstart['params']['TZID'], $dtstart['value']);
-                                // Set the default timezone
-                                @date_default_timezone_set(DISPLAY_DEFAULT_TIMEZONE);
-                                if (isset($tzoffsets['offsetSec'])) $date_tzoffset = $ourtzoffsets + $tzoffsets['offsetSec'];
-                            }
-                            if (empty($tzoffsets)) {
-                                $date_tzoffset = -(iCalUtilityFunctions::_tz2offset(date('O',iCalUtilityFunctions::_date2timestamp($dtstart['value']))));
-                            }
-                            //FIXME we must have the real timezone offset for the date by this point
+                            $ourtzoffsets = -(iCalUtilityFunctions::_tz2offset(date('O',self::_date2timestamp($dtstart['value']))));
+                            // Set the timezone to GMT
+                            @date_default_timezone_set('GMT');
+                            if (!empty($dtstart['params']['TZID'])) $tzoffsets = getTzOffsetForDate($tzarray, $dtstart['params']['TZID'], $dtstart['value']);
+                            // Set the default timezone
+                            @date_default_timezone_set(DISPLAY_DEFAULT_TIMEZONE);
+                            if (isset($tzoffsets['offsetSec'])) $date_tzoffset = $ourtzoffsets + $tzoffsets['offsetSec'];
+                        }
+                        if (empty($tzoffsets)) {
+                            $date_tzoffset = -(iCalUtilityFunctions::_tz2offset(date('O',self::_date2timestamp($dtstart['value']))));
+                        }
+                        //FIXME we must have the real timezone offset for the date by this point
 
-                            //FIXME this is for the google ical feed which is bad!
-                            if ($dtstart['value']['day'] != intval($thisday2) && (isset($dtstart['value']['day']) && isset($dtend['value']['hour']))&&
-                                !(intval($dtstart['value']['hour']) == 0 && intval($dtstart['value']['min']) == 0  && intval($dtstart['value']['sec']) == 0
-                                    && intval($dtend['value']['hour']) == 0 && intval($dtend['value']['min']) == 0  && intval($dtend['value']['sec']) == 0
-                                    && (((intval($dtstart['value']['day']) - intval($dtend['value']['day'])) == -1) || ((intval($dtstart['value']['month']) - intval($dtend['value']['month'])) == -1) || ((intval($dtstart['value']['month']) - intval($dtend['value']['month'])) == -11)))) {
-                                $dtst = strtotime($currdate[1]);
-                                $dtst1 = iCalUtilityFunctions::_timestamp2date($dtst);
-                                $dtstart['value']['year'] = $dtst1['year'];
-                                $dtstart['value']['month'] = $dtst1['month'];
-                                $dtstart['value']['day'] = $dtst1['day'];
-                                $currenddate = $vevent->getProperty('x-current-dtend');
-                                $dtet = strtotime($currenddate[1]);
-                                $dtet1 = iCalUtilityFunctions::_timestamp2date($dtet);
-                                $dtend['value']['year'] = $dtet1['year'];
-                                $dtend['value']['month'] = $dtet1['month'];
-                                $dtend['value']['day'] = $dtet1['day'];
+                        //FIXME this is for the google ical feed which is bad!
+                        if ($dtstart['value']['day'] != (int)$thisday2 && (isset($dtstart['value']['day']) && isset($dtend['value']['hour']))&&
+                            !((int)$dtstart['value']['hour'] == 0 && (int)$dtstart['value']['min'] == 0  && (int)$dtstart['value']['sec'] == 0
+                                && (int)$dtend['value']['hour'] == 0 && (int)$dtend['value']['min'] == 0  && (int)$dtend['value']['sec'] == 0
+                                && ((((int)$dtstart['value']['day'] - (int)$dtend['value']['day']) == -1) || (((int)$dtstart['value']['month'] - (int)$dtend['value']['month']) == -1) || (((int)$dtstart['value']['month'] - (int)$dtend['value']['month']) == -11)))) {
+                            $dtst = strtotime($currdate[1]);
+                            $dtst1 = iCalUtilityFunctions::_timestamp2date($dtst);
+                            $dtstart['value']['year'] = $dtst1['year'];
+                            $dtstart['value']['month'] = $dtst1['month'];
+                            $dtstart['value']['day'] = $dtst1['day'];
+                            $currenddate = $vevent->getProperty('x-current-dtend');
+                            $dtet = strtotime($currenddate[1]);
+                            $dtet1 = iCalUtilityFunctions::_timestamp2date($dtet);
+                            $dtend['value']['year'] = $dtet1['year'];
+                            $dtend['value']['month'] = $dtet1['month'];
+                            $dtend['value']['day'] = $dtet1['day'];
 //                                $date_tzoffset = 0;
-                            }
+                        }
 
-                            if (!empty($dtstart['value']['hour']) && !(intval($dtstart['value']['hour']) == 0 && intval($dtstart['value']['min']) == 0  && intval($dtstart['value']['sec']) == 0
-                                                                && intval($dtend['value']['hour']) == 0 && intval($dtend['value']['min']) == 0  && intval($dtend['value']['sec']) == 0
-                                                                && (((intval($dtstart['value']['day']) - intval($dtend['value']['day'])) == -1) || ((intval($dtstart['value']['month']) - intval($dtend['value']['month'])) == -1) || ((intval($dtstart['value']['month']) - intval($dtend['value']['month'])) == -11)))) {
-                                $eventdate = expDateTime::startOfDayTimestamp(iCalUtilityFunctions::_date2timestamp($dtstart['value']) - $date_tzoffset);
-                                $eventend = expDateTime::startOfDayTimestamp(iCalUtilityFunctions::_date2timestamp($dtend['value']) - $date_tzoffset);
-                                $extevents[$eventdate][$dy] = new stdClass();
-                                $extevents[$eventdate][$dy]->eventdate = new stdClass();
-                                $extevents[$eventdate][$dy]->eventdate->date = $eventdate;
-//                                if (intval($dtstart['value']['hour']) == 0 && intval($dtstart['value']['min']) == 0  && intval($dtstart['value']['sec']) == 0
-//                                    && intval($dtend['value']['hour']) == 0 && intval($dtend['value']['min']) == 0  && intval($dtend['value']['sec']) == 0
-//                                    && (((intval($dtstart['value']['day']) - intval($dtend['value']['day'])) == -1) || ((intval($dtstart['value']['month']) - intval($dtend['value']['month'])) == -1) || ((intval($dtstart['value']['month']) - intval($dtend['value']['month'])) == -11))) {
-////                                    if ($dtstart['value']['day'] != intval($thisday2)) {
+                        if (!empty($dtstart['value']['hour']) && !((int)$dtstart['value']['hour'] == 0 && (int)$dtstart['value']['min'] == 0  && (int)$dtstart['value']['sec'] == 0
+                                                            && (int)$dtend['value']['hour'] == 0 && (int)$dtend['value']['min'] == 0  && (int)$dtend['value']['sec'] == 0
+                                                            && ((((int)$dtstart['value']['day'] - (int)$dtend['value']['day']) == -1) || (((int)$dtstart['value']['month'] - (int)$dtend['value']['month']) == -1) || (((int)$dtstart['value']['month'] - (int)$dtend['value']['month']) == -11)))) {
+                            $eventdate = expDateTime::startOfDayTimestamp(self::_date2timestamp($dtstart['value']) - $date_tzoffset);
+//                                $eventend = expDateTime::startOfDayTimestamp(self::_date2timestamp($dtend['value']) - $date_tzoffset);
+                            $extevents[$eventdate][$dy] = new stdClass();
+                            $extevents[$eventdate][$dy]->eventdate = new stdClass();
+                            $extevents[$eventdate][$dy]->eventdate->date = $eventdate;
+//                                if ((int)($dtstart['value']['hour']) == 0 && (int)($dtstart['value']['min']) == 0  && (int)($dtstart['value']['sec']) == 0
+//                                    && (int)($dtend['value']['hour']) == 0 && (int)($dtend['value']['min']) == 0  && (int)($dtend['value']['sec']) == 0
+//                                    && ((((int)($dtstart['value']['day']) - (int)($dtend['value']['day'])) == -1) || (((int)($dtstart['value']['month']) - (int)($dtend['value']['month'])) == -1) || (((int)($dtstart['value']['month']) - (int)($dtend['value']['month'])) == -11))) {
+////                                    if ($dtstart['value']['day'] != (int)($thisday2)) {
 //                                    if (date('d',$eventdate) != $thisday2) {
 ////                                    if (date('d',$eventdate) != date('d',$eventend)) {
 //                                        $yesterday = true;
@@ -1257,61 +1427,62 @@ class eventController extends expController {
 //                                        $extevents[$eventdate][$dy]->is_allday = 1;
 //                                    }
 //                                } else {
-                                    if (date('d',$eventdate) != $thisday2) {
-//                                    if (date('d',$eventdate) != date('d',$eventend)) {
-                                        $yesterday = true;
-                                    } else {
-                                        $extevents[$eventdate][$dy]->eventstart = ($dtstart['value']['hour'] * 3600) + ($dtstart['value']['min'] * 60) - $date_tzoffset;
-//                                        if (date("I", $eventdate)) $extevents[$eventdate][$dy]->eventstart += 3600; // adjust for daylight savings time
-                                    }
-//                                }
-                            } else {
-                                // this is an all day event
-                                $eventdate = expDateTime::startOfDayTimestamp(iCalUtilityFunctions::_date2timestamp($dtstart['value']));
-                                $eventend = expDateTime::startOfDayTimestamp(iCalUtilityFunctions::_date2timestamp($dtend['value']));
-                                $extevents[$eventdate][$dy] = new stdClass();
-                                $extevents[$eventdate][$dy]->eventdate = new stdClass();
-                                $extevents[$eventdate][$dy]->eventdate->date = $eventdate;
-//                                if ($dtstart['value']['day'] != intval($thisday2)) {
                                 if (date('d',$eventdate) != $thisday2) {
-//                                if (date('d',$eventdate) != date('d',$eventend)) {
+//                                    if (date('d',$eventdate) != date('d',$eventend)) {
                                     $yesterday = true;
                                 } else {
-                                    $extevents[$eventdate][$dy]->eventstart = null;
-                                    $extevents[$eventdate][$dy]->is_allday = 1;
+                                    $extevents[$eventdate][$dy]->eventstart = ($dtstart['value']['hour'] * 3600) + ($dtstart['value']['min'] * 60) - $date_tzoffset;
+//                                        if (date("I", $eventdate)) $extevents[$eventdate][$dy]->eventstart += 3600; // adjust for daylight savings time
                                 }
+//                                }
+                        } else {
+                            // this is an all day event
+                            $eventdate = expDateTime::startOfDayTimestamp(self::_date2timestamp($dtstart['value']));
+//                                $eventend = expDateTime::startOfDayTimestamp(self::_date2timestamp($dtend['value']));
+                            $extevents[$eventdate][$dy] = new stdClass();
+                            $extevents[$eventdate][$dy]->eventdate = new stdClass();
+                            $extevents[$eventdate][$dy]->eventdate->date = $eventdate;
+//                                if ($dtstart['value']['day'] != (int)($thisday2)) {
+                            if (date('d',$eventdate) != $thisday2) {
+//                                if (date('d',$eventdate) != date('d',$eventend)) {
+                                $yesterday = true;
+                            } else {
+                                $extevents[$eventdate][$dy]->eventstart = null;
+                                $extevents[$eventdate][$dy]->is_allday = 1;
                             }
+                        }
 
-                            // set the end time if needed
-                            if (!$yesterday && isset($dtend['value']['hour']) && empty($extevents[$eventdate][$dy]->is_allday)) {
-//                                if ($dtend['value']['day'] != intval($thisday2)) {
+                        // set the end time if needed
+                        if (!$yesterday && isset($dtend['value']['hour']) && empty($extevents[$eventdate][$dy]->is_allday)) {
+//                                if ($dtend['value']['day'] != (int)($thisday2)) {
 //                                if ((date('d',$eventend) != $thisday2)) {
 //                                    $yesterday = true;
 //                                } else {
-                                $extevents[$eventdate][$dy]->eventend = ($dtend['value']['hour'] * 3600) + ($dtend['value']['min'] * 60) - $date_tzoffset;
+                            $extevents[$eventdate][$dy]->eventend = ($dtend['value']['hour'] * 3600) + ($dtend['value']['min'] * 60) - $date_tzoffset;
 //                                if (date("I", $eventdate)) $extevents[$eventdate][$dy]->eventend += 3600; // adjust for daylight savings time
 //                                }
-                            }
+                        }
 
-                            // convert the start and end times to a full date
-                            if (isset($extevents[$eventdate][$dy]->eventstart) && $extevents[$eventdate][$dy]->eventstart != null) $extevents[$eventdate][$dy]->eventstart += $eventdate;
-                            if (isset($extevents[$eventdate][$dy]->eventend)) $extevents[$eventdate][$dy]->eventend += $eventdate;
+                        // convert the start and end times to a full date
+                        if (isset($extevents[$eventdate][$dy]->eventstart) && $extevents[$eventdate][$dy]->eventstart != null)
+                            $extevents[$eventdate][$dy]->eventstart += $eventdate;
+                        if (isset($extevents[$eventdate][$dy]->eventend))
+                            $extevents[$eventdate][$dy]->eventend += $eventdate;
 
-                            // dtstart required, one occurrence, (orig. start date)
-                            $extevents[$eventdate][$dy]->title = $vevent->getProperty('summary');
-                            $body = $vevent->getProperty('description');
-                            // convert end of lines
-                            $body = nl2br(str_replace("\\n"," <br>\n",$body));
-                            $body = str_replace("\n"," <br>\n",$body);
-                            $body = str_replace(array('==0A','=0A')," <br>\n",$body);
-                            $extevents[$eventdate][$dy]->body = $body;
-                            $extevents[$eventdate][$dy]->location_data = 'icalevent' . $url;
-                            $extevents[$eventdate][$dy]->color = !empty($this->config['pull_ical_color'][$key]) ? $this->config['pull_ical_color'][$key] : null;
-                            if (!$yesterday) {
-                                $dy++;
-                            } else {
-                                unset($extevents[$eventdate][$dy]);
-                            }
+                        // dtstart required, one occurrence, (orig. start date)
+                        $extevents[$eventdate][$dy]->title = $vevent->getProperty('summary');
+                        $body = $vevent->getProperty('description');
+                        // convert end of lines
+                        $body = nl2br(str_replace("\\n"," <br>\n",$body));
+                        $body = str_replace("\n"," <br>\n",$body);
+                        $body = str_replace(array('==0A','=0A','=C2=A0')," <br>\n",$body);
+                        $extevents[$eventdate][$dy]->body = $body;
+                        $extevents[$eventdate][$dy]->location_data = 'icalevent' . $key;
+                        $extevents[$eventdate][$dy]->color = !empty($this->config['pull_ical_color'][$key]) ? $this->config['pull_ical_color'][$key] : null;
+                        if (!$yesterday && $eventdate >= $startdate) {
+                            $dy++;
+                        } else {
+                            unset($extevents[$eventdate][$dy]);
                         }
                     }
                 }
@@ -1320,9 +1491,258 @@ class eventController extends expController {
         return $extevents;
     }
 
+    public static function _date2timestamp( $datetime, $wtz=null ) {
+      if( !isset( $datetime['hour'] )) $datetime['hour'] = 0;
+      if( !isset( $datetime['min'] ))  $datetime['min']  = 0;
+      if( !isset( $datetime['sec'] ))  $datetime['sec']  = 0;
+      if( empty( $wtz ) && ( !isset( $datetime['tz'] ) || empty(  $datetime['tz'] )))
+        return mktime( $datetime['hour'], $datetime['min'], $datetime['sec'], $datetime['month'], $datetime['day'], $datetime['year'] );
+      $output = $offset = 0;
+      if( empty( $wtz )) {
+        if( iCalUtilityFunctions::_isOffset( $datetime['tz'] )) {
+          $offset = iCalUtilityFunctions::_tz2offset( $datetime['tz'] ) * -1;
+          $wtz    = 'UTC';
+        }
+        else
+          $wtz    = $datetime['tz'];
+      }
+      if(( 'Z' == $wtz ) || ( 'GMT' == strtoupper( $wtz )))
+        $wtz      = 'UTC';
+      try {
+        $strdate  = sprintf( '%04d-%02d-%02d %02d:%02d:%02d', $datetime['year'], $datetime['month'], $datetime['day'], $datetime['hour'], $datetime['min'], $datetime['sec'] );
+        $d        = new DateTime( $strdate, new DateTimeZone( $wtz ));
+        if( 0    != $offset )  // adjust for offset
+          $d->modify( $offset.' seconds' );
+        $output   = $d->format( 'U' );
+        unset( $d );
+      }
+      catch( Exception $e ) {
+        $output = mktime( $datetime['hour'], $datetime['min'], $datetime['sec'], $datetime['month'], $datetime['day'], $datetime['year'] );
+      }
+      return $output;
+    }
+
     /**
+     * build/update the external event cache
+     *
+     */
+    public function build_cache() {
+        global $db;
+
+        // get our requested config
+        $cfg = new expConfig();
+        $configs = $cfg->find('all', "location_data LIKE '%event%'"); // get all event module configs
+        foreach ($configs as $config) {
+            $loc = expUnserialize($config->location_data);
+            if (!empty($this->params['title'])) {
+                if ($this->params['title'] == $config->config['feed_sef_url']) {
+                    $this->config = $config->config;
+                    break;
+                }
+            } elseif (!empty($this->params['src'])) {
+                if ($this->params['src'] == $loc->src) {
+                    $this->config = $config->config;
+                    break;
+                }
+            }
+        }
+
+        // next loop through our config pull urls
+
+        // google xml pull
+        if (!empty($this->config['pull_gcal'])) foreach ($this->config['pull_gcal'] as $key=>$extgcalurl) {
+            $start = expDateTime::startOfMonthTimestamp(time());
+            $gcal_cname = str_replace(array("/",":","&","?"),"_",$extgcalurl);
+            $cache_fname = BASE.'tmp/cache/'.$gcal_cname.".cache";
+            $db->delete('event_cache', "feed='" . $extgcalurl . "' AND eventdate > " . $start);  // replace future events
+            // loop through 12 months, 1 month at a time
+            for ($i=1; $i < 13; $i++) {
+                $end = expDateTime::endOfMonthTimestamp($start);
+                $tmp = 0;
+                $extevents = $this->get_gcal_events($extgcalurl, $start, $end, $tmp, 0, true);
+//                $extevents = $this->get_gcal_events($extgcalurl, null, null, 0, 0, 0, true);
+                foreach ($extevents as $day) {
+                    foreach ($day as $extevent) {
+                        $event_cache = new stdClass();
+                        $event_cache->feed = $extgcalurl;
+                        $event_cache->event_id = $extevent->event_id;
+                        $event_cache->title = $extevent->title;
+                        $event_cache->body = $extevent->body;
+                        $event_cache->eventdate = $extevent->eventdate->date;
+                        if (isset($extevent->dateFinished) && $extevent->dateFinished != -68400)
+                            $event_cache->dateFinished = $extevent->dateFinished;
+                        if (isset($extevent->eventstart))
+                            $event_cache->eventstart = $extevent->eventstart;
+                        if (isset($extevent->eventend))
+                            $event_cache->eventend = $extevent->eventend;
+                        if (isset($extevent->is_allday))
+                            $event_cache->is_allday = $extevent->is_allday;
+                        $found = false;
+                        if ($extevent->eventdate->date < $start)   // prevent duplicating events crossing month boundaries
+                            $found = $db->selectObject('event_cache','feed="'.$extgcalurl.'" AND event_id="'.$event_cache->event_id.'" AND eventdate='.$event_cache->eventdate);
+                        if (!$found)
+                            $db->insertObject($event_cache,'event_cache');
+                    }
+                }
+                $start = expDateTime::startOfMonthTimestamp($end + 1024);
+            }
+            $cache_contents = serialize(array('start_date'=>$start,'first_date'=>(int)$db->selectValue('event_cache','eventdate','feed="'.$extgcalurl.'" ORDER BY eventdate'),'refresh_date'=>time()));
+            file_put_contents($cache_fname, $cache_contents);
+        }
+
+        // ical pull
+        $start = expDateTime::startOfMonthTimestamp(time());
+        if (!empty($this->config['pull_ical'])) foreach ($this->config['pull_ical'] as $key=>$exticalurl) {
+            $ical_cname = str_replace(array("/",":","&","?"),"_",$exticalurl);
+            $cache_fname = BASE.'tmp/cache/'.$ical_cname.".cache";
+            $db->delete('event_cache', "feed='" . $exticalurl . "' AND eventdate > " . $start);
+            // get 1 years worth of events
+            $extevents = $this->get_ical_events($exticalurl, $start);
+            foreach ($extevents as $day) {
+                foreach ($day as $extevent) {
+                    $event_cache = new stdClass();
+                    $event_cache->feed = $exticalurl;
+                    $event_cache->title = $extevent->title;
+                    $event_cache->body = $extevent->body;
+                    $event_cache->eventdate = $extevent->eventdate->date;
+                    if (isset($extevent->dateFinished))
+                        $event_cache->dateFinished = $extevent->dateFinished;
+                    $event_cache->eventstart = $extevent->eventstart;
+                    if (isset($extevent->eventend))
+                        $event_cache->eventend = $extevent->eventend;
+                    if (isset($extevent->is_allday))
+                        $event_cache->is_allday = $extevent->is_allday;
+                    $db->insertObject($event_cache, 'event_cache');
+                }
+            }
+            $cache_contents = serialize(array('start_date'=>$start,'first_date'=>(int)$db->selectValue('event_cache','eventdate','feed="'.$exticalurl.'" ORDER BY eventdate'),'refresh_date'=>time()));
+            file_put_contents($cache_fname, $cache_contents);
+        }
+        flash('message', gt('External Calendar Event cache updated'));
+        echo show_msg_queue();
+    }
+
+    function import() {
+        $pullable_modules = expModules::listInstalledControllers($this->baseclassname);
+        $modules = new expPaginator(array(
+            'records' => $pullable_modules,
+            'controller' => $this->loc->mod,
+            'action' => $this->params['action'],
+            'order'   => isset($this->params['order']) ? $this->params['order'] : 'section',
+            'dir'     => isset($this->params['dir']) ? $this->params['dir'] : '',
+            'page'    => (isset($this->params['page']) ? $this->params['page'] : 1),
+            'columns' => array(
+                gt('Title') => 'title',
+                gt('Page')  => 'section'
+            ),
+        ));
+
+        assign_to_template(array(
+            'modules' => $modules,
+        ));
+    }
+
+    function import_select()
+    {
+        if (empty($this->params['import_aggregate'])) {
+            expValidator::setErrorField('import_aggregate[]');
+            expValidator::failAndReturnToForm(gt('You must select a module.'), $this->params);
+        }
+        $extevents = array();
+        unset(
+            $this->params['begin'],
+            $this->params['end']
+        );  // always use date value
+        $begin = yuidatetimecontrol::parseData('begin', $this->params);
+        $end = yuidatetimecontrol::parseData('end', $this->params);
+        if ($this->params['file_type'] == 'file') {
+            //Get the temp directory to put the uploaded file
+            $directory = "tmp";
+
+            //Get the file save it to the temp directory
+            if (!empty($_FILES["import_file"]) && $_FILES["import_file"]["error"] == UPLOAD_ERR_OK) {
+                $file = expFile::fileUpload(
+                    "import_file",
+                    false,
+                    false,
+                    time() . "_" . $_FILES['import_file']['name'],
+                    $directory . '/'
+                );
+                if ($file === null) {
+                    switch ($_FILES["import_file"]["error"]) {
+                        case UPLOAD_ERR_INI_SIZE:
+                        case UPLOAD_ERR_FORM_SIZE:
+                            $this->params['_formError'] = gt(
+                                'The file you attempted to upload is too large.  Contact your system administrator if this is a problem.'
+                            );
+                            break;
+                        case UPLOAD_ERR_PARTIAL:
+                            $this->params['_formError'] = gt('The file was only partially uploaded.');
+                            break;
+                        case UPLOAD_ERR_NO_FILE:
+                            $this->params['_formError'] = gt('No file was uploaded.');
+                            break;
+                        default:
+                            $this->params['_formError'] = gt(
+                                'A strange internal error has occurred.  Please contact the Exponent Developers.'
+                            );
+                            break;
+                    }
+                    expSession::set("last_POST", $this->params);
+                    header("Location: " . $_SERVER['HTTP_REFERER']);
+                    exit("");
+                } else {
+                    $extevents = $this->get_ical_events($directory . "/" . $file->filename, $begin, $end);
+                }
+            } else {
+               expValidator::setErrorField('import_file');
+               expValidator::failAndReturnToForm(gt('File failed to upload.'), $this->params);  // file upload error
+            }
+        } else {
+            if (empty($this->params['ext_feed'])) {
+                expValidator::setErrorField('ext_feed');
+                expValidator::failAndReturnToForm(gt('You must enter a feed url.'), $this->params);
+            }
+            $extevents = $this->get_ical_events($this->params['ext_feed'], $begin, $end);
+        }
+
+        $src = $this->params['import_aggregate'][0];
+        $count = 0;
+        foreach ($extevents as $day) {
+            foreach ($day as $extevent) {
+                $event = array();
+                $event['title'] = $extevent->title;
+                $event['body'] = $extevent->body;
+                $event['eventdate'] = $extevent->eventdate->date;
+                $event['eventstart'] = $extevent->eventstart;
+                $event['eventstart'] -= $event['eventdate'];
+                if (isset($extevent->eventend))
+                    $event['eventend'] = $extevent->eventend;
+                else
+                    $event['eventend'] = $extevent->eventstart;
+                $event['eventend'] -= $event['eventdate'];
+                if (isset($extevent->is_allday))
+                    $event['is_allday'] = $extevent->is_allday;
+                $event['module'] = 'event';
+                $event['src'] = $src;
+                $item = new event();  // create new populated record to auto-set things
+                $item->update($event);
+                $count++;
+            }
+        }
+
+        unlink($directory . "/" . $file->filename);
+
+        // update search index
+        $this->addContentToSearch();
+
+        flashAndFlow('message', $count . ' ' . gt('events were imported.'));
+    }
+
+    /** @deprecated
      * function to build a control requested via ajax
      * we the html just like the control smarty function
+     * @deprecated
      */
     public function buildControl() {
         $control = new colorcontrol();

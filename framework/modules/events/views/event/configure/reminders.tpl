@@ -1,5 +1,5 @@
 {*
- * Copyright (c) 2004-2014 OIC Group, Inc.
+ * Copyright (c) 2004-2016 OIC Group, Inc.
  *
  * This file is part of Exponent
  *
@@ -24,13 +24,20 @@
 {control type="checkbox" postfalse=1 name="reminder_active" label="Enable Email Reminder feature?"|gettext checked=$config.reminder_active value=1}
 <blockquote>
     {'Reminders feature requires setting up a server cron task such as:'|gettext}{br}
-<code>curl -G -s {$smarty.const.URL_FUL}/event/send_reminders/title/THE_CALENDAR_SEF_URL/days/14/code/THE_CODE_FROM_BELOW</code>
+    <code>curl -G -s {$smarty.const.URL_FULL}event/send_reminders/title/CALENDAR_SEF_URL/days/14/code/CODE_FROM_BELOW</code>
+    <ul>
+        <li><strong>title</strong>: {'calendar sef url'|gettext}</li>
+        <li><strong>code</strong>: {'security code, if set below'|gettext}</li>
+        <li>days: {'number of days forward to include'|gettext} (<em>{'optional, defaults to 7'|gettext}</em>)</li>
+        <li>time: {'date to begin from'|gettext} (<em>{'optional'|gettext}</em>)</li>
+        <li>view: {'view template'|gettext} (<em>{'optional, defaults to send_reminders'|gettext}</em>)</li>
+    </ul>
 </blockquote>
 {control type="text" name="reminder_code" label="Code to restrict sending Email Reminders"|gettext description="Enter an optional alphanumeric code to better secure sending reminder emails"|gettext value=$config.reminder_code}
-{group label="Email Recepients"|gettext}
-    {userlistcontrol name="user_list" label="Users" items=$config.user_list}
-    {grouplistcontrol name="group_list" label="Groups" items=$config.group_list}
-    {control type="listbuilder" name="address_list" label="Other Addresses" values=$config.address_list size=5}
+{group label="Email Recipients"|gettext}
+    {userlistcontrol name="user_list" label="Users"|gettext items=$config.user_list}
+    {grouplistcontrol name="group_list" label="Groups"|gettext items=$config.group_list}
+    {control type="listbuilder" name="address_list" label="Other Addresses"|gettext values=$config.address_list size=5}
 {/group}
 {group label="Email Details"|gettext}
     {control type="text" name="email_title_reminder" label="Message Subject Prefix"|gettext value=$config.email_title_reminder}

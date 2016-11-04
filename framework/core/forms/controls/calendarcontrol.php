@@ -2,7 +2,7 @@
 
 ##################################################
 #
-# Copyright (c) 2004-2014 OIC Group, Inc.
+# Copyright (c) 2004-2016 OIC Group, Inc.
 #
 # This file is part of Exponent
 #
@@ -30,7 +30,6 @@ class calendarcontrol extends formcontrol {
 
 //    var $disable_text = "";
     var $showtime = true;
-    var $default = '';
     var $default_date = '';
     var $default_hour = '';
     var $default_min = '';
@@ -81,14 +80,17 @@ class calendarcontrol extends formcontrol {
 //    }
 
     function controlToHTML($name, $label = null) {
-        if (empty($this->default_date) && !empty($this->default)) {
+        if (empty($this->default_date)) {
+            if (empty($this->default)) {
+                $this->default = time();
+            }
             // parse out date into calendarcontrol fields
             $this->default_date = date('m/d/Y', $this->default);
             $this->default_hour = date('h', $this->default);
             $this->default_min = date('i', $this->default);
             $this->default_ampm = date('a', $this->default);
         }
-        $idname = str_replace(array('[',']',']['),'_',$name);
+        $idname = createValidId($name);
         $assets_path = SCRIPT_RELATIVE . 'framework/core/forms/controls/assets/';
         $html        = "
             <div id=\"calendar-container-" . $idname . "\" class=\"yui3-skin-sam\"> </div>
@@ -110,7 +112,7 @@ class calendarcontrol extends formcontrol {
         ";
 
         $script = "
-        YUI(EXPONENT.YUI3_CONFIG).use('node','calendar','datatype-date', function(Y) {
+        YUI(EXPONENT.YUI3_CONFIG).use('*', function(Y) {
 //        YUI(EXPONENT.YUI3_CONFIG).use('node','calendar','datatype-date','panel','dd-plugin','gallery-calendar-jumpnav',function(Y) {
             // Our calendar bounding div id
             var boundingBoxId = '#calendar-container-" . $idname . "',
@@ -223,7 +225,7 @@ class calendarcontrol extends formcontrol {
         "; // end JS
         expJavascript::pushToFoot(array(
             "unique"  => 'zzcal' . $idname,
-            "yui3mods"=> 1,
+            "yui3mods"=> "node,calendar,datatype-date",
             "content" => $script,
         ));
 
@@ -310,7 +312,8 @@ class calendarcontrol extends formcontrol {
         $form->register("identifier",gt('Identifier/Field'),new textcontrol($object->identifier));
         $form->register("caption",gt('Caption'), new textcontrol($object->caption));
         $form->register("showtime",gt('Show Time'), new checkboxcontrol($object->showtime,false));
-        $form->register("submit","",new buttongroupcontrol(gt('Save'),"",gt('Cancel'),"",'editable'));
+        if (!expJavascript::inAjaxAction())
+            $form->register("submit","",new buttongroupcontrol(gt('Save'),"",gt('Cancel'),"",'editable'));
         return $form;
     }
 
@@ -320,7 +323,7 @@ class calendarcontrol extends formcontrol {
             $object->default = 0;
         }
         if ($values['identifier'] == "") {
-            $post               = $_POST;
+			$post = expString::sanitize($_POST);
             $post['_formError'] = gt('Identifier is required.');
             expSession::set("last_POST", $post);
             return null;

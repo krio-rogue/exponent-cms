@@ -2,7 +2,7 @@
 
 ##################################################
 #
-# Copyright (c) 2004-2014 OIC Group, Inc.
+# Copyright (c) 2004-2016 OIC Group, Inc.
 #
 # This file is part of Exponent
 #
@@ -93,7 +93,7 @@ class yuidatetimecontrol extends formcontrol
 
     function controlToHTML($name, $label = null)
     {
-        $idname = str_replace(array('[', ']', ']['), '_', $name);
+        $idname = createValidId($name);
 //        $datectl  = new yuicalendarcontrol($this->default, '', false);
         $datectl = new yuicalendarcontrol($this->default, $this->showdate, $this->showtime);
 //        $timectl = new datetimecontrol($this->default, false);
@@ -102,7 +102,7 @@ class yuidatetimecontrol extends formcontrol
         $html = '<span id="dtdisplay-' . $idname . '">' . $datetime . '</span>';
         if (!$this->display_only) {
             $html .= ' <input id="pub-' . $idname . '" type="checkbox" class="form-control" name="' . $name . '"';
-            $html .= $this->checked ? ' checked> ' . $this->edit_text : '> ' . $this->edit_text;
+            $html .= ($this->checked ? ' checked> ' : '> ') . $this->edit_text;
             $html .= "<!-- cke lazy -->";
             $html .= '<div ';
             $html .= $this->checked ? 'style="display:none"' : 'style="display:block"';
@@ -117,7 +117,7 @@ class yuidatetimecontrol extends formcontrol
         }
 
         $script = "
-        YUI(EXPONENT.YUI3_CONFIG).use('yui','node','event-custom', function(Y) {
+        YUI(EXPONENT.YUI3_CONFIG).use('*', function(Y) {
             var handleCheck" . $idname . " = function(e) {
                 var cal = Y.one('#datetime-" . $idname . "');
                 if (cal.getStyle('display')=='none') {
@@ -125,24 +125,22 @@ class yuidatetimecontrol extends formcontrol
                 } else {
                     cal.setStyle('display','none');
                 }
-                $('#" . $idname . "date').datetimepicker('update');
+                $('#" . $idname . "date').datetimepicker('reset');
             };
             Y.Global.on('lazyload:cke', function() {
                 Y.one('#pub-" . $idname . "').detach('click', handleCheck" . $idname . ");
                 Y.one('#pub-" . $idname . "').on('click', handleCheck" . $idname . ");
-//                $('#" . $idname . "date').datetimepicker('update');
             });
             if (!Y.one('#pub-" . $idname . "').ancestor('.exp-skin-tabview')) {
                 Y.Global.fire('lazyload:cke');
             }
-//            $('#" . $idname . "date').datetimepicker('update');
         });
         ";
 
         expJavascript::pushToFoot(
             array(
                 "unique"   => "000-datetime-" . $idname,
-                "yui3mods" => "1",
+                "yui3mods" => "node,event-custom",
                 "jquery"   => "jquery.datetimepicker",
                 "content"  => $script,
             )
@@ -160,7 +158,10 @@ class yuidatetimecontrol extends formcontrol
     {
         if (!isset($formvalues[$original_name])) {
             $date = yuicalendarcontrol::parseData($original_name . 'date', $formvalues);
-            $time = datetimecontrol::parseData($original_name . 'time', $formvalues);
+            if (isset($formvalues[$original_name . 'time']))
+                $time = datetimecontrol::parseData($original_name . 'time', $formvalues);
+            else
+                $time = 0;
             return $date + $time;
         } else {
             return 0;
@@ -199,9 +200,9 @@ class yuidatetimecontrol extends formcontrol
         $form->register("identifier",gt('Identifier/Field'),new textcontrol($object->identifier));
         $form->register("caption",gt('Caption'), new textcontrol($object->caption));
         $form->register("showdate",gt('Show Date'), new checkboxcontrol($object->showdate,false));
-        $form->register("showtime",gt('Show tTme'), new checkboxcontrol($object->showtime,false));
-        
-        $form->register("submit","",new buttongroupcontrol(gt('Save'),"",gt('Cancel'),"",'editable'));
+        $form->register("showtime",gt('Show Time'), new checkboxcontrol($object->showtime,false));
+        if (!expJavascript::inAjaxAction())
+            $form->register("submit","",new buttongroupcontrol(gt('Save'),"",gt('Cancel'),"",'editable'));
         return $form;
         */
     }
@@ -214,7 +215,7 @@ class yuidatetimecontrol extends formcontrol
             $object->default = 0; //This will force the control to always show the current time as default
         }
         if ($values['identifier'] == "") {
-            $post = $_POST;
+			$post = expString::sanitize($_POST);
             $post['_formError'] = gt('Identifier is required.');
             expSession::set("last_POST",$post);
             return null;

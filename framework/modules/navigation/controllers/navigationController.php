@@ -2,7 +2,7 @@
 
 ##################################################
 #
-# Copyright (c) 2004-2014 OIC Group, Inc.
+# Copyright (c) 2004-2016 OIC Group, Inc.
 #
 # This file is part of Exponent
 #
@@ -25,6 +25,21 @@ class navigationController extends expController {
         'showall' => 'Show Navigation',
         'breadcrumb' => 'Breadcrumb',
     );
+    protected $remove_permissions = array(
+//        'configure',
+//        'create',
+//        'delete',
+//        'edit'
+    );
+    protected $add_permissions = array(
+        'manage'    => 'Manage',
+        'view'      => "View Page"
+    );
+    protected $manage_permissions = array(
+        'move'      => 'Move Page',
+        'remove'    => 'Remove Page',
+        'reparent'    => 'Reparent Page',
+    );
     public $remove_configs = array(
         'aggregation',
         'categories',
@@ -37,16 +52,6 @@ class navigationController extends expController {
         'tags',
         'twitter',
     );  // all options: ('aggregation','categories','comments','ealerts','facebook','files','pagination','rss','tags','twitter',)
-    protected $add_permissions = array(
-        'view' => "View Page"
-    );
-    protected $remove_permissions = array(
-        'configure',
-        'create',
-        'delete',
-        'edit'
-    );
-//    public $codequality = 'beta';
 
     static function displayname() { return gt("Navigation"); }
 
@@ -56,8 +61,19 @@ class navigationController extends expController {
 
     function searchName() { return gt('Webpage'); }
 
+    /**
+     * @param null $src
+     * @param array $params
+     *
+     */
+    function __construct($src = null, $params = array())
+    {
+        parent::__construct($src, $params);
+        if (!empty($params['id']))  // we normally throw out the $loc->int EXCEPT with navigation pages
+            $this->loc = expCore::makeLocation($this->baseclassname, $src, $params['id']);
+    }
+
     public function showall() {
-//        global $db, $user, $sectionObj, $sections;
         global $user, $sectionObj, $sections;
 
         expHistory::set('viewable', $this->params);
@@ -83,17 +99,15 @@ class navigationController extends expController {
     }
 
     public function breadcrumb() {
-//        global $db, $user, $sectionObj, $sections;
         global $sectionObj;
 
         expHistory::set('viewable', $this->params);
         $id      = $sectionObj->id;
         $current = null;
         // Show not only the location of a page in the hierarchy but also the location of a standalone page
-//        $current = $db->selectObject('section', ' id= ' . $id);
         $current = new section($id);
         if ($current->parent == -1) {  // standalone page
-            $navsections = self::levelTemplate(-1, 0);
+            $navsections = section::levelTemplate(-1, 0);
             foreach ($navsections as $section) {
                 if ($section->id == $id) {
                     $current = $section;
@@ -101,7 +115,7 @@ class navigationController extends expController {
                 }
             }
         } else {
-            $navsections = self::levelTemplate(0, 0);
+            $navsections = section::levelTemplate(0, 0);
             foreach ($navsections as $section) {
                 if ($section->id == $id) {
                     $current = $section;
@@ -115,11 +129,14 @@ class navigationController extends expController {
         ));
     }
 
+    /**
+     * @deprecated 2.3.4 moved to section model
+     */
     public static function navhierarchy($notyui=false) {
         global $sections;
 
         $json_array = array();
-        for ($i = 0; $i < count($sections); $i++) {
+        for ($i = 0, $iMax = count($sections); $i < $iMax; $i++) {
             if ($sections[$i]->depth == 0) {
                 $obj = new stdClass();
 //   				$obj->id = $sections[$i]->name.$sections[$i]->id;
@@ -129,6 +146,8 @@ class navigationController extends expController {
                 $obj->description = $sections[$i]->description;
                 $obj->new_window = $sections[$i]->new_window;
                 $obj->expFile = $sections[$i]->expFile;
+                $obj->glyph = $sections[$i]->glyph;
+                $obj->glyph_only = $sections[$i]->glyph_only;
                 $obj->type = $sections[$i]->alias_type;
                 if ($sections[$i]->active == 1) {
                     $obj->url = $sections[$i]->link;
@@ -161,10 +180,16 @@ class navigationController extends expController {
         return $json_array;
     }
 
+    /**
+     * @deprecated 2.3.4 moved to section model
+     */
     public static function navtojson() {
         return json_encode(self::navhierarchy());
     }
 
+    /**
+     * @deprecated 2.3.4 moved to section model
+     */
     public static function getChildren(&$i, $notyui=false) {
         global $sections;
 
@@ -177,7 +202,7 @@ class navigationController extends expController {
             $ret_depth = $sections[$i]->depth;
             $i++;
             $ret_array = array();
-            for ($i; $i < count($sections); $i++) {
+            for ($iMax = count($sections); $i < $iMax; $i++) {
                 // start setting up the objects to return
                 $obj       = new stdClass();
                 $obj->id   = $sections[$i]->id;
@@ -186,6 +211,8 @@ class navigationController extends expController {
                 $obj->description = $sections[$i]->description;
                 $obj->new_window = $sections[$i]->new_window;
                 $obj->expFile = $sections[$i]->expFile;
+                $obj->glyph = $sections[$i]->glyph;
+                $obj->glyph_only = $sections[$i]->glyph_only;
                 $obj->depth = $sections[$i]->depth;
                 if ($sections[$i]->active == 1) {
                     $obj->url = $sections[$i]->link;
@@ -237,6 +264,9 @@ class navigationController extends expController {
         }
     }
 
+    /**
+     * @deprecated 2.3.4 moved to section model
+     */
     public static function hasChildren($i) {
         global $sections;
 
@@ -247,16 +277,11 @@ class navigationController extends expController {
     /** exdoc
      * Creates a location object, based off of the three arguments passed, and returns it.
      *
-     * @internal param \The $mo module component of the location.
-     *
-     * @internal param \The $src source component of the location.
-     *
-     * @internal param \The $int internal component of the location.
      * @return array
-     * @node     Subsystems:expCore
+     * @deprecated 2.3.4 moved to section model
      */
     public static function initializeNavigation() {
-        $sections = self::levelTemplate(0, 0);
+        $sections = section::levelTemplate(0, 0);
         return $sections;
     }
 
@@ -270,9 +295,9 @@ class navigationController extends expController {
      * @param array $parents
      *
      * @return array
+     * @deprecated 2.3.4 moved to section model
      */
     public static function levelTemplate($parent, $depth = 0, $parents = array()) {
-//        global $db, $user;
         global $user;
 
         if ($parent != 0) $parents[] = $parent;
@@ -280,7 +305,6 @@ class navigationController extends expController {
         $cache = expSession::getCacheValue('navigation');
         $sect = new section();
         if (!isset($cache['kids'][$parent])) {
-//            $kids                   = $db->selectObjects('section', 'parent=' . $parent);
             $kids = $sect->find('all','parent=' . $parent);
             $cache['kids'][$parent] = $kids;
             expSession::setCacheValue('navigation', $cache);
@@ -288,7 +312,7 @@ class navigationController extends expController {
             $kids = $cache['kids'][$parent];
         }
         $kids = expSorter::sort(array('array' => $kids, 'sortby' => 'rank', 'order' => 'ASC'));
-        for ($i = 0; $i < count($kids); $i++) {
+        for ($i = 0, $iMax = count($kids); $i < $iMax; $i++) {
             $child = $kids[$i];
             //foreach ($kids as $child) {
             if ($child->public == 1 || expPermissions::check('view', expCore::makeLocation('navigation', '', $child->id))) {
@@ -333,7 +357,7 @@ class navigationController extends expController {
                 }
                 //$child->numChildren = $db->countObjects('section','parent='.$child->id);
                 $nodes[] = $child;
-                $nodes   = array_merge($nodes, self::levelTemplate($child->id, $depth + 1, $parents));
+                $nodes   = array_merge($nodes, section::levelTemplate($child->id, $depth + 1, $parents));
             }
         }
         return $nodes;
@@ -351,6 +375,7 @@ class navigationController extends expController {
      * @param bool   $addinternalalias
      *
      * @return array
+     * @deprecated 2.3.4 moved to section model, HOWEVER still used in theme config
      */
     public static function levelDropdownControlArray($parent, $depth = 0, $ignore_ids = array(), $full = false, $perm = 'view', $addstandalones = false, $addinternalalias = true) {
         global $db;
@@ -492,15 +517,15 @@ class navigationController extends expController {
      * @param int $depth  variable to hold level of recursion
      *
      * @return array
+     * @deprecated 2.0.0 this only for deprecated templates
      */
- 	//FIXME DEPRECATED: this only for deprecated templates
     public static function getTemplateHierarchyFlat($parent, $depth = 1) {
         global $db;
 
         $arr  = array();
         $kids = $db->selectObjects('section_template', 'parent=' . $parent, 'rank');
 //		$kids = expSorter::sort(array('array'=>$kids,'sortby'=>'rank', 'order'=>'ASC'));
-        for ($i = 0; $i < count($kids); $i++) {
+        for ($i = 0, $iMax = count($kids); $i < $iMax; $i++) {
             $page        = $kids[$i];
             $page->depth = $depth;
             $page->first = ($i == 0 ? 1 : 0);
@@ -511,7 +536,9 @@ class navigationController extends expController {
         return $arr;
     }
 
-	//FIXME DEPRECATED: this only for deprecated templates
+    /**
+     * @deprecated 2.0.0 this only for deprecated templates
+     */
     public static function process_section($section, $template) {
         global $db;
 
@@ -542,7 +569,10 @@ class navigationController extends expController {
 
     }
 
-    function process_subsections($parent_section, $subtpl) { //FIXME is this only for deprecated templates?
+    /**
+     * @deprecated 2.0.0 this only for deprecated templates
+     */
+    function process_subsections($parent_section, $subtpl) {
         global $db, $router;
 
         $section              = new stdClass();
@@ -564,6 +594,7 @@ class navigationController extends expController {
      * Delete page and send its contents to the recycle bin
      *
      * @param $parent
+     * @deprecated 2.3.4 moved to section model
      */
     public static function deleteLevel($parent) {
         global $db;
@@ -598,6 +629,7 @@ class navigationController extends expController {
      * Move content page and its children to stand-alones
      *
      * @param $parent
+     * @deprecated 2.3.4 moved to section model
      */
     public static function removeLevel($parent) {
         global $db;
@@ -612,6 +644,7 @@ class navigationController extends expController {
 
     /**
      * Check for cascading page view permission, esp. if not public
+     * @deprecated 2.3.4 moved to section model
      */
     public static function canView($section) {
         global $db;
@@ -635,6 +668,7 @@ class navigationController extends expController {
 
     /**
      * Check to see if page is public with cascading
+     * @deprecated 2.3.4 moved to section model
      */
     public static function isPublic($s) {
         if ($s == null) {
@@ -651,7 +685,7 @@ class navigationController extends expController {
         global $user;
 
         if ($user->isAdmin()) return true;
-        $standalones = self::levelTemplate(-1, 0);
+        $standalones = section::levelTemplate(-1, 0);
         //		$canmanage = false;
         foreach ($standalones as $standalone) {
             $loc = expCore::makeLocation('navigation', '', $standalone->id);
@@ -671,7 +705,7 @@ class navigationController extends expController {
         global $db;
 
         $section = $db->selectObject('section', 'id=' . $id);
-        $branch  = self::levelTemplate($id, 0);
+        $branch  = section::levelTemplate($id, 0);
         array_unshift($branch, $section);
         $allusers  = array();
         $allgroups = array();
@@ -705,8 +739,34 @@ class navigationController extends expController {
             'canManageStandalones' => self::canManageStandalones(),
             'sasections'           => $db->selectObjects('section', 'parent=-1'),
             'user'                 => $user,
-            'canManagePagesets'    => $user->isAdmin(),
-            'templates'            => $db->selectObjects('section_template', 'parent=0'),
+//            'canManagePagesets'    => $user->isAdmin(),
+//            'templates'            => $db->selectObjects('section_template', 'parent=0'),
+        ));
+    }
+
+    public function manage_sitemap() {
+        global $db, $user, $sectionObj, $sections;
+
+        expHistory::set('viewable', $this->params);
+        $id      = $sectionObj->id;
+        $current = null;
+        // all we need to do is determine the current section
+        $navsections = $sections;
+        if ($sectionObj->parent == -1) {
+            $current = $sectionObj;
+        } else {
+            foreach ($navsections as $section) {
+                if ($section->id == $id) {
+                    $current = $section;
+                    break;
+                }
+            }
+        }
+        assign_to_template(array(
+            'sasections'   => $db->selectObjects('section', 'parent=-1'),
+            'sections'     => $navsections,
+            'current'      => $current,
+            'canManage'    => ((isset($user->is_acting_admin) && $user->is_acting_admin == 1) ? 1 : 0),
         ));
     }
 
@@ -716,7 +776,7 @@ class navigationController extends expController {
     public static function returnChildrenAsJSON() {
         global $db;
 
-        //$nav = self::levelTemplate(intval($_REQUEST['id'], 0));
+        //$nav = section::levelTemplate(intval($_REQUEST['id'], 0));
         $id         = isset($_REQUEST['id']) ? intval($_REQUEST['id']) : 0;
         $nav        = $db->selectObjects('section', 'parent=' . $id, 'rank');
         //FIXME $manage_all is moot w/ cascading perms now?
@@ -740,8 +800,9 @@ class navigationController extends expController {
         $nav= array_values($nav);
 //        $nav[$navcount - 1]->last = true;
         if (count($nav)) $nav[count($nav) - 1]->last = true;
-        echo expJavascript::ajaxReply(201, '', $nav);
-        exit;
+//        echo expJavascript::ajaxReply(201, '', $nav);
+        $ar = new expAjaxReply(201, '', $nav);
+        $ar->send();
     }
 
     /**
@@ -757,15 +818,17 @@ class navigationController extends expController {
             3 => 'addfreeform',
         );
 
-//        $id         = isset($_REQUEST['id']) ? intval($_REQUEST['id']) : 0;
         $navs        = $db->selectObjects('section', 'parent!=-1', 'rank');
-        //FIXME recode to use foreach $key=>$value
-//        $navcount = count($jnav);
-//        for ($i = 0; $i < $navcount; $i++) {
         foreach ($navs as $i=>$nav) {
             $navs[$i]->parent = $nav->parent?$nav->parent:'#';
             $navs[$i]->text = $nav->name;
             $navs[$i]->icon = $icons[$nav->alias_type];
+            if (!$nav->active) {
+                $navs[$i]->icon .= ' inactive';
+                $attr = new stdClass();
+                $attr->class = 'inactive';  // class to obscure elements
+                $navs[$i]->a_attr = $attr;
+            }
             if (expPermissions::check('manage', expCore::makeLocation('navigation', '', $navs[$i]->id))) {
                 $navs[$i]->manage = 1;
                 $view = true;
@@ -775,10 +838,15 @@ class navigationController extends expController {
                 $view = $navs[$i]->public ? true : expPermissions::check('view', expCore::makeLocation('navigation', '', $navs[$i]->id));
             }
             $navs[$i]->link = expCore::makeLink(array('section' => $navs[$i]->id), '', $navs[$i]->sef_name);
-            if (!$view) unset($navs[$i]);
+            if (!$view) {
+//                unset($navs[$i]);  //FIXME this breaks jstree if we remove a parent and not the child
+                $attr = new stdClass();
+                $attr->class = 'hidden';  // bs3 class to hide elements
+                $navs[$i]->li_attr = $attr;
+            }
         }
         $navs= array_values($navs);
-        header('Content-Type: application/json; charset=utf8');
+//        header('Content-Type: application/json; charset=utf8');
 		echo json_encode($navs);
 //        echo expJavascript::ajaxReply(201, '', $navs);
         exit;
@@ -822,7 +890,7 @@ class navigationController extends expController {
             if ($oldParent != $moveSec->parent) {
                 //we need to re-rank the children of the parent that the miving section has just left
                 $childOfLastMove = $db->selectObjects("section", "parent=" . $oldParent . " ORDER BY rank");
-                for ($i = 0; $i < count($childOfLastMove); $i++) {
+                for ($i = 0, $iMax = count($childOfLastMove); $i < $iMax; $i++) {
                     $childOfLastMove[$i]->rank = $i;
                     $db->updateObject($childOfLastMove[$i], 'section');
                 }
@@ -866,7 +934,7 @@ class navigationController extends expController {
                     $db->updateObject($moveSec, 'section');
 //                    $moveSec->update();
                 }
-            } else {
+            } else {  // 'before', is this used?
                 //store ranks from the depth we're moving from.  Used to re-rank the level depth the moving section is moving from.
                 $oldRank   = $moveSec->rank;
                 $oldParent = $moveSec->parent;
@@ -894,7 +962,7 @@ class navigationController extends expController {
                 if ($oldParent != $moveSec->parent) {
                     //we need to re-rank the children of the parent that the moving section has just left
                     $childOfLastMove = $db->selectObjects("section", "parent=" . $oldParent . " ORDER BY rank");
-                    for ($i = 0; $i < count($childOfLastMove); $i++) {
+                    for ($i = 0, $iMax = count($childOfLastMove); $i < $iMax; $i++) {
                         $childOfLastMove[$i]->rank = $i;
                         $db->updateObject($childOfLastMove[$i], 'section');
                     }
@@ -930,7 +998,7 @@ class navigationController extends expController {
         expSession::clearAllUsersSessionCache('navigation');
     }
 
-    function add_section() {
+    function edit_section() {
         global $db, $user;
 
         $parent = new section($this->params['parent']);
@@ -957,7 +1025,6 @@ class navigationController extends expController {
             // ALWAYS be invoked with a parent or id value.
             $section  = new section($this->params);
         } else {
-//            echo SITE_404_HTML;
             notfoundController::handle_not_found();
             exit;
         }
@@ -974,7 +1041,6 @@ class navigationController extends expController {
                     // This is another precaution.  The parent attribute
                     // should ALWAYS be set by the caller.
                     //FJD - if that's the case, then we should die.
-//                    die(SITE_403_HTML);
                     notfoundController::handle_not_authorized();
                     exit;
                     //$section->parent = 0;
@@ -982,17 +1048,37 @@ class navigationController extends expController {
             }
             assign_to_template(array(
                 'section' => $section,
+                'glyphs' => self::get_glyphs(),
             ));
         } else {  // User does not have permission to manage sections.  Throw a 403
-//            echo SITE_403_HTML;
             notfoundController::handle_not_authorized();
+        }
+    }
+
+    private static function get_glyphs() {
+        if (bs()) {
+            require_once(BASE . 'external/font-awesome.class.php');
+            $fa = new Smk_FontAwesome;
+            if (bs3()) {
+                $icons = $fa->getArray(BASE . 'external/font-awesome4/css/font-awesome.css');
+                $icons = $fa->sortByName($icons);
+                return $fa->nameGlyph($icons);
+            } elseif (bs2()) {
+                expCSS::auto_compile_less(
+                    'external/font-awesome/less/font-awesome.less',
+                    'external/font-awesome/css/font-awesome.css'
+                ); // font-awesome is included within bootstrap2, but not as a separate .css file
+                $icons = $fa->getArray(BASE . 'external/font-awesome/css/font-awesome.css', 'icon-');
+                return $fa->nameGlyph($icons, 'icon-');
+            }
+        } else {
+            return array();
         }
     }
 
     function edit_internalalias() {
         $section = isset($this->params['id']) ? $this->section->find($this->params['id']) : new section($this->params);
         if ($section->parent == -1) {
-//            echo SITE_404_HTML;
             notfoundController::handle_not_found();
             exit;
         } // doesn't work for standalone pages
@@ -1002,7 +1088,6 @@ class navigationController extends expController {
                 // This is another precaution.  The parent attribute
                 // should ALWAYS be set by the caller.
                 //FJD - if that's the case, then we should die.
-//                die(SITE_403_HTML);
                 notfoundController::handle_not_authorized();
                 exit;
                 //$section->parent = 0;
@@ -1010,13 +1095,13 @@ class navigationController extends expController {
         }
         assign_to_template(array(
             'section' => $section,
+            'glyphs' => self::get_glyphs(),
         ));
     }
 
     function edit_freeform() {
         $section = isset($this->params['id']) ? $this->section->find($this->params['id']) : new section($this->params);
         if ($section->parent == -1) {
-//            echo SITE_404_HTML;
             notfoundController::handle_not_found();
             exit;
         } // doesn't work for standalone pages
@@ -1026,7 +1111,6 @@ class navigationController extends expController {
                 // This is another precaution.  The parent attribute
                 // should ALWAYS be set by the caller.
                 //FJD - if that's the case, then we should die.
-//                die(SITE_403_HTML);
                 notfoundController::handle_not_authorized();
                 exit;
                 //$section->parent = 0;
@@ -1034,13 +1118,13 @@ class navigationController extends expController {
         }
         assign_to_template(array(
             'section' => $section,
+            'glyphs' => self::get_glyphs(),
         ));
     }
 
     function edit_externalalias() {
         $section = isset($this->params['id']) ? $this->section->find($this->params['id']) : new section($this->params);
         if ($section->parent == -1) {
-//            echo SITE_404_HTML;
             notfoundController::handle_not_found();
             exit;
         } // doesn't work for standalone pages
@@ -1050,7 +1134,6 @@ class navigationController extends expController {
                 // This is another precaution.  The parent attribute
                 // should ALWAYS be set by the caller.
                 //FJD - if that's the case, then we should die.
-//                die(SITE_403_HTML);
                 notfoundController::handle_not_authorized();
                 exit;
                 //$section->parent = 0;
@@ -1058,6 +1141,7 @@ class navigationController extends expController {
         }
         assign_to_template(array(
             'section' => $section,
+            'glyphs' => self::get_glyphs(),
         ));
     }
 
@@ -1085,7 +1169,6 @@ class navigationController extends expController {
             expSession::clearAllUsersSessionCache('navigation');
             expHistory::back();
         } else {
-//            echo SITE_404_HTML;
             notfoundController::handle_not_found();
         }
     }
@@ -1099,14 +1182,13 @@ class navigationController extends expController {
 
         $section = $db->selectObject('section', 'id=' . $this->params['id']);
         if ($section) {
-            self::removeLevel($section->id);
+            section::removeLevel($section->id);
             $db->decrement('section', 'rank', 1, 'rank > ' . $section->rank . ' AND parent=' . $section->parent);
             $section->parent = -1;
             $db->updateObject($section, 'section');
             expSession::clearAllUsersSessionCache('navigation');
             expHistory::back();
         } else {
-//            echo SITE_403_HTML;
             notfoundController::handle_not_authorized();
         }
     }
@@ -1125,13 +1207,22 @@ class navigationController extends expController {
         expHistory::back();
     }
 
+    /**
+     * permission functions to aggregate a module's visible permissions based on add/remove permissions
+     *
+     * @return array
+     */
+    public function permissions() {
+        //set the permissions array
+        return $this->add_permissions;
+    }
+
     // create a psuedo global manage pages permission
     public static function checkPermissions($permission,$location) {
-//        global $exponent_permissions_r, $user, $db, $router;
         global $exponent_permissions_r, $router;
 
         // only applies to the 'manage' method
-        if (empty($location->src) && empty($location->int) && (!empty($router->params['action']) && $router->params['action'] == 'manage') || strpos($router->current_url, 'action=manage') !== false) {
+        if (empty($location->src) && empty($location->int) && ((!empty($router->params['action']) && $router->params['action'] == 'manage') || strpos($router->current_url, 'action=manage') !== false)) {
             if (!empty($exponent_permissions_r['navigation'])) foreach ($exponent_permissions_r['navigation'] as $page) {
                 foreach ($page as $pageperm) {
                     if (!empty($pageperm['manage'])) return true;
@@ -1143,6 +1234,7 @@ class navigationController extends expController {
 
     /**
      * Rebuild the sectionref table as a list of modules on a page
+     * @deprecated 2.3.4 moved to sectionref model
      */
     public static function rebuild_sectionrefs() {
         global $db;
@@ -1179,7 +1271,7 @@ class navigationController extends expController {
         }
 
         // first remove duplicate records
-        $db->sql('DELETE FROM ' . DB_TABLE_PREFIX . '_sectionref WHERE id NOT IN (SELECT * FROM (SELECT MIN(n.id) FROM ' . DB_TABLE_PREFIX . '_sectionref n GROUP BY n.module, n.source) x)');
+        $db->sql('DELETE FROM ' . $db->prefix . 'sectionref WHERE id NOT IN (SELECT * FROM (SELECT MIN(n.id) FROM ' . $db->prefix . 'sectionref n GROUP BY n.module, n.source) x)');
         $ret = scan_page(0);  // the page hierarchy
         $ret .= scan_page(-1);  // now the stand alone pages
 

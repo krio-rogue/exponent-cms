@@ -2,7 +2,7 @@
 
 ##################################################
 #
-# Copyright (c) 2004-2014 OIC Group, Inc.
+# Copyright (c) 2004-2016 OIC Group, Inc.
 #
 # This file is part of Exponent
 #
@@ -63,8 +63,14 @@ class giftcard extends expRecord {
         return 1;
     }
 
-    function addToCart($params) {
-        global $order;
+    function addToCart($params, $orderid = null) {
+        if (empty($params['options_shown'])) {  //get options and user input if needed
+            $this->displayForm('addToCart', $params);
+            return false;
+        }
+
+        if ($orderid == null) global $order;
+        else $order = new order($orderid);
 
         expSession::set('params', $params);
         //get the configuration
@@ -104,7 +110,7 @@ class giftcard extends expRecord {
                 expHistory::back();
             }
 
-            $item->products_name = expCore::getCurrencySymbol() . $params['card_amount'] . ' ' . $this->title . " Style Gift Card";
+            $item->products_name = expCore::getCurrencySymbol() . $item->products_price . ' ' . $this->title . " Style Gift Card";
 
             if (!empty($params['toname'])) {
                 $ed['To'] = isset($params['toname']) ? $params['toname'] : '';
@@ -169,12 +175,12 @@ class giftcard extends expRecord {
             BASE . 'themes/' . DISPLAY_THEME . '/modules/ecommerce/products/views/product/',
             BASE . 'framework/modules/ecommerce/products/views/product/',
         );
-        if (expSession::get('framework') == 'bootstrap') {
+        if (bs2()) {
             $vars = array(
                 '.bootstrap',
                 '',
             );
-        } elseif (expSession::get('framework') == 'bootstrap3') {
+        } elseif (bs3(true)) {
             $vars = array(
                 '.bootstrap3',
                 '.bootstrap',
@@ -198,12 +204,6 @@ class giftcard extends expRecord {
     function getBasePrice($orderitem = null) {
         return $this->products_price;
     }
-
-//    public function update($params = array()) {
-//		//FIXME do we really need to sub class this since we just call parent?
-//        // eDebug($params, true);
-//        parent::update($params);
-//    }
 
     function getDefaultQuantity() {
         //TMP: Make this actually do something.

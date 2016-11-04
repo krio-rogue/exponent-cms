@@ -1,5 +1,5 @@
 {*
- * Copyright (c) 2004-2014 OIC Group, Inc.
+ * Copyright (c) 2004-2016 OIC Group, Inc.
  *
  * This file is part of Exponent
  *
@@ -15,16 +15,18 @@
 
     {$myloc=serialize($__loc)}
 	<p class="caption">
-		&laquo;&#160;
-		<a class="evnav module-actions" href="{link action=showall view='showall_Monthly List' time=$prev_timestamp3}" rel="{$prev_timestamp3}" title="{$prev_timestamp3|format_date:"%B %Y"}">{$prev_timestamp3|format_date:"%b"}</a>&#160;&#160;&laquo;&#160;
-		<a class="evnav module-actions" href="{link action=showall view='showall_Monthly List' time=$prev_timestamp2}" rel="{$prev_timestamp2}" title="{$prev_timestamp2|format_date:"%B %Y"}">{$prev_timestamp2|format_date:"%b"}</a>&#160;&#160;&laquo;&#160;
-		<a class="evnav module-actions" href="{link action=showall view='showall_Monthly List' time=$prev_timestamp}" rel="{$prev_timestamp}" title="{$prev_timestamp|format_date:"%B %Y"}">{$prev_timestamp|format_date:"%b"}</a>&#160;&#160;&laquo;&#160;&#160;&#160;&#160;&#160;
-        <strong>{$time|format_date:"%B %Y"}</strong>&#160;&#160;{printer_friendly_link view='showall_Monthly+List' text=''|gettext}{export_pdf_link view='showall_Monthly+List' text=''|gettext}&#160;&#160;&#160;&#160;&raquo;&#160;&#160;
-		<a class="evnav module-actions" href="{link action=showall view='showall_Monthly List' time=$next_timestamp}" rel="{$next_timestamp}" title="{$next_timestamp|format_date:"%B %Y"}">{$next_timestamp|format_date:"%b"}</a>&#160;&#160;&raquo;&#160;
-		<a class="evnav module-actions" href="{link action=showall view='showall_Monthly List' time=$next_timestamp2}" rel="{$next_timestamp2}" title="{$next_timestamp2|format_date:"%B %Y"}">{$next_timestamp2|format_date:"%b"}</a>&#160;&#160;&raquo;&#160;
-		<a class="evnav module-actions" href="{link action=showall view='showall_Monthly List' time=$next_timestamp3}" rel="{$next_timestamp3}" title="{$next_timestamp3|format_date:"%B %Y"}">{$next_timestamp3|format_date:"%b"}</a>&#160;&#160;&raquo;
+		<span class="hidden-xs">&laquo;</span>&#160;
+		<a class="evnav module-actions" href="{link action=showall view='showall_Monthly List' time=$prev_timestamp3}" rel="{$prev_timestamp3}" title="{$prev_timestamp3|format_date:"%B %Y"}">{$prev_timestamp3|format_date:"%b"}</a><span class="hidden-xs">&#160;</span>&#160;&laquo;&#160;
+		<a class="evnav module-actions" href="{link action=showall view='showall_Monthly List' time=$prev_timestamp2}" rel="{$prev_timestamp2}" title="{$prev_timestamp2|format_date:"%B %Y"}">{$prev_timestamp2|format_date:"%b"}</a><span class="hidden-xs">&#160;</span>&#160;&laquo;&#160;
+		<a class="evnav module-actions" href="{link action=showall view='showall_Monthly List' time=$prev_timestamp}" rel="{$prev_timestamp}" title="{$prev_timestamp|format_date:"%B %Y"}">{$prev_timestamp|format_date:"%b"}</a><span class="hidden-xs">&#160;</span>&#160;&laquo;&#160;<span class="hidden-xs">&#160;&#160;&#160;&#160;</span>
+		<strong><span class="hidden-xs">{$time|format_date:"%B %Y"}</span><span class="visible-xs-inline">{$time|format_date:"%b %Y"}</span></strong><span class="hidden-xs">&#160;</span>&#160;{printer_friendly_link view='showall_Monthly+List' text=''}{export_pdf_link view='showall_Monthly+List' text=''}<span class="hidden-xs">&#160;&#160;&#160;</span>&#160;&raquo;<span class="hidden-xs">&#160;&#160;</span>
+		<input type='hidden' id='month{$__loc->src|replace:'@':'_'}' value="{$time|format_date:"%Y%m%d"}"/>
+		<a class="evnav module-actions" href="{link action=showall view='showall_Monthly List' time=$next_timestamp}" rel="{$next_timestamp}" title="{$next_timestamp|format_date:"%B %Y"}">{$next_timestamp|format_date:"%b"}</a><span class="hidden-xs">&#160;</span>&#160;&raquo;&#160;
+		<a class="evnav module-actions" href="{link action=showall view='showall_Monthly List' time=$next_timestamp2}" rel="{$next_timestamp2}" title="{$next_timestamp2|format_date:"%B %Y"}">{$next_timestamp2|format_date:"%b"}</a><span class="hidden-xs">&#160;</span>&#160;&raquo;&#160;
+		<a class="evnav module-actions" href="{link action=showall view='showall_Monthly List' time=$next_timestamp3}" rel="{$next_timestamp3}" title="{$next_timestamp3|format_date:"%B %Y"}">{$next_timestamp3|format_date:"%b"}</a>&#160;<span class="hidden-xs">&#160;&raquo;</span>
 	</p>
 	<dl class="viewweek">
+		{$none=1}
 		{foreach from=$days item=items key=ts}
 			{if_elements array=$items}
 				<dt>
@@ -33,7 +35,6 @@
 					</strong></div>
 				</dt>
 				<dd>
-                    {$none=1}
 					{foreach from=$items item=item}
                         {$none=0}
 						<div class="paragraph">
@@ -83,10 +84,9 @@
 						</div>
 					{/foreach}
 				</dd>
-				{if $none == 1}
-					<div class="paragraph"><dd><strong>{'No Events.'|gettext}</strong></dd></div>
-				{/if}
-				{br}
 			{/if_elements}
 		{/foreach}
+        {if $none == 1}
+            <div class="paragraph"><dd><strong>{'No Events'|gettext}</strong></dd></div>
+        {/if}
 	</dl>

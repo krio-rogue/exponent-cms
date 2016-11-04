@@ -1,5 +1,5 @@
 {*
- * Copyright (c) 2004-2014 OIC Group, Inc.
+ * Copyright (c) 2004-2016 OIC Group, Inc.
  *
  * This file is part of Exponent
  *
@@ -26,13 +26,13 @@
         {*control type="buttongroup" name="add2cart" submit="Pay now"*}
     {/form}
     {*<a id="paynow" class="add-to-cart-btn {button_style} rc-link" href="">{'Donate now'|gettext}<span></span></a> or*}
-    {icon id="paynow" class="add-to-cart-btn rc-link" button=true action=scriptaction text='Donate now'|gettext}<span></span></a> {'OR'|gettext}
+    {icon id="paynow" class="add-to-cart-btn rc-link" button=true size=large color=blue action=scriptaction title='Donate'|gettext text=expCore::getCurrencySymbol()|cat:' '|cat:'Donate now'|gettext}<span></span></a> {'OR'|gettext}
     {*<a id="continue" class="add-to-cart-btn {button_style} rc-link" href="{link controller=cart action=addItem}">{'Add to cart and continue shopping'|gettext}<span></span></a>*}
-    {icon id="continue" class="add-to-cart-btn rc-link" button=true controller=cart action=addItem text='Add to cart and continue shopping'|gettext}<span></span>
+    {icon id="continue" class="add-to-cart-btn rc-link" button=true size=large color=blue controller=cart action=addItem title='Donate'|gettext text='Add to cart and continue shopping'|gettext}<span></span>
 </div>
 
 {*FIXME convert to yui3*}
-{script unique="a2cgc" yui3mods=1}
+{*script unique="a2cgc" yui3mods=1}
 {literal}
 YUI(EXPONENT.YUI3_CONFIG).use('node','yui2-yahoo-dom-event', function(Y) {
     var YAHOO=Y.YUI2;
@@ -45,7 +45,7 @@ YUI(EXPONENT.YUI3_CONFIG).use('node','yui2-yahoo-dom-event', function(Y) {
             if (targ.id === 'continue') {
                 YAHOO.util.Dom.get('quick').value = 0;
             }
-            YAHOO.util.Dom.get('donationamt').submit(); 
+            YAHOO.util.Dom.get('donationamt').submit();
         });
 
         var bp = {/literal}{$product->base_price};{literal}
@@ -57,6 +57,32 @@ YUI(EXPONENT.YUI3_CONFIG).use('node','yui2-yahoo-dom-event', function(Y) {
                 this.value = '{/literal}{currency_symbol}{literal}'+bp+".00";
             }
         }, da, true);
+    });
+});
+{/literal}
+{/script*}
+
+{script unique="a2cgc" yui3mods="node"}
+{literal}
+YUI(EXPONENT.YUI3_CONFIG).use('*', function(Y) {
+    var links = Y.all('a.rc-link');
+
+    links.on('click', function (e) {
+        e.halt();
+        var targ = e.target;
+        if (targ.get('id') === 'continue') {
+            Y.one('#quick').value = 0;
+        }
+        Y.one('#donationamt').submit();
+    });
+
+    var bp = {/literal}{$product->base_price};{literal}
+    var da = Y.one('#dollar_amount');
+    da.on('blur', function(e,o){
+        var newint = parseInt(e.target.get('value').replace('$',"").replace(',',""));
+        if (newint < bp) {
+            e.target.set('value','{/literal}{currency_symbol}{literal}'+bp+'.00');
+        }
     });
 });
 {/literal}

@@ -2,7 +2,7 @@
 
 ##################################################
 #
-# Copyright (c) 2004-2014 OIC Group, Inc.
+# Copyright (c) 2004-2016 OIC Group, Inc.
 #
 # This file is part of Exponent
 #
@@ -96,6 +96,7 @@ function smarty_function_control($params, &$smarty) {
             case "uploader":
                 $control = new uploadcontrol();
                 if (!empty($params['accept'])) $control->accept = $params['accept'];
+                $control->horizontal = (isset($params['horizontal'])) ? 1 : 0;
                 break;
             case "files":
                 if (!empty($params['olduploader'])) {
@@ -117,8 +118,9 @@ function smarty_function_control($params, &$smarty) {
             case "dropdown":
                 $control                = new dropdowncontrol(!empty($params['default'])?$params['default']:null);
                 $control->horizontal = (isset($params['horizontal'])) ? 1 : 0;
-                if (!empty($params['default'])) $control->default = $params['default'];
+                if (isset($params['default'])) $control->default = $params['default'];
                 $control->type          = "select";
+                if (isset($params['style'])) $control->style = $params['style'];
                 $control->include_blank = isset($params['includeblank']) ? $params['includeblank'] : false;
                 $control->multiple      = isset($params['multiple']) ? true : false;
                 if (isset($params['from']) && isset($params['to'])) {
@@ -139,7 +141,7 @@ function smarty_function_control($params, &$smarty) {
                         $control->items[$item->$key] = $item->$display;
                     }
                     $noitems = gt("-- No items found --");
-                    if (count($control->items) < 1) $control->items = array(0=> $noitems);
+                    if (count($control->items) < 1 && empty($control->include_blank)) $control->items = array(0=> $noitems);
                 } else {
                     if (is_array($params['items'])) {
                         $control->items = $params['items'];
@@ -161,8 +163,12 @@ function smarty_function_control($params, &$smarty) {
                 }
                 break;
             case "checkbox":
-                $value              = isset($params['value']) ? $params['value'] : null;
-                $control            = new checkboxcontrol($value);
+                $default            = isset($params['checked']) ? $params['checked'] : false;
+                if (isset($params['checked']) && is_array($params['checked'])) {
+                    $value     = isset($params['value']) ? $params['value'] : 1;
+                    $default        = in_array($value,$params['checked']) ? true : false;
+                }
+                $control            = new checkboxcontrol($default);
                 $control->postfalse = isset($params['postfalse']) ? 1 : 0;
                 $control->horizontal = (isset($params['horizontal'])) ? 1 : 0;
                 $control->newschool = true;
@@ -173,7 +179,10 @@ function smarty_function_control($params, &$smarty) {
                 $control = new radiogroupcontrol();
                 // differentiate it from the old school forms
                 $control->newschool = true;
-                if (!empty($params['default'])) $control->default = $params['default'];
+                if (!empty($params['default']))
+                    $control->default = $params['default'];
+                elseif (!empty($params['value']))
+                    $control->default = $params['value'];
                 $control->cols      = $params['columns'];
 
                 // get the items to use as the radio button labels
@@ -211,12 +220,14 @@ function smarty_function_control($params, &$smarty) {
                 if ($editor == "ckeditor") {
                     $control = new ckeditorcontrol();
                     $control->toolbar  = !isset($params['toolbar']) ? '' : $params['toolbar'];
+                    $control->tb_collapsed  = !isset($params['tb_collapsed']) ? 0 : 1;
                     $control->lazyload = empty($params['lazyload']) ? 0 : 1;
                     $control->plugin = empty($params['plugin']) ? '' : $params['plugin'];
                     $control->additionalConfig = empty($params['additionalConfig']) ? '' : $params['additionalConfig'];
                 } elseif ($editor == "tinymce") {
                     $control = new tinymcecontrol();
                     $control->toolbar  = !isset($params['toolbar']) ? '' : $params['toolbar'];
+                    $control->tb_collapsed  = !isset($params['tb_collapsed']) ? 0 : 1;
                     $control->lazyload = empty($params['lazyload']) ? 0 : 1;
                     $control->plugin = empty($params['plugin']) ? '' : $params['plugin'];
                     $control->additionalConfig = empty($params['additionalConfig']) ? '' : $params['additionalConfig'];
@@ -290,9 +301,13 @@ function smarty_function_control($params, &$smarty) {
                     }
 
                     // sanitize the default value. can accept as id, code abbrv or full name,
-                    if (!empty($params['value']) && !is_numeric($params['value']) && !is_array($params['value'])) {
-                        $params['value'] = $db->selectValue('geo_region', 'id', 'name="' . $params['value'] . '" OR code="' . $params['value'] . '"');
+                    if (!empty($params['default']) && !is_numeric($params['default']) && !is_array($params['default'])) {
+                        $params['default'] = $db->selectValue('geo_region', 'id', 'name="' . $params['default'] . '" OR code="' . $params['default'] . '"');
+                    } elseif (is_numeric($params['default'])) {
+                        $params['default'];
                     }
+                    if (isset($params['default']))
+                        $control->default = $params['default'];
                 } else {
                     echo "NO TABLE";
                     exit();
@@ -321,9 +336,11 @@ function smarty_function_control($params, &$smarty) {
                     }
 
                     // sanitize the default value. can accept as id, code abbrv or full name,
-                    if (!empty($params['value']) && !is_numeric($params['value']) && !is_array($params['value'])) {
-                        $params['value'] = $db->selectValue('geo_country', 'id', 'name="' . $params['value'] . '" OR code="' . $params['value'] . '"');
+                    if (!empty($params['default']) && !is_numeric($params['default']) && !is_array($params['default'])) {
+                        $params['default'] = $db->selectValue('geo_country', 'id', 'name="' . $params['default'] . '" OR code="' . $params['default'] . '"');
                     }
+                    if (isset($params['default']))
+                        $control->default = $params['default'];
                 } else {
                     echo "NO TABLE";
                     exit();
@@ -349,21 +366,20 @@ function smarty_function_control($params, &$smarty) {
                 if (SITE_USE_ANTI_SPAM && ANTI_SPAM_CONTROL == 'recaptcha') {
                     // make sure we have the proper config.
                     if (!defined('RECAPTCHA_PUB_KEY') || RECAPTCHA_PUB_KEY == '') {
-                        echo '<h2 style="color:red">' . gt('reCaptcha configuration is missing the public key.') . '</h2>';
+                        echo '<h2 style="color:red">', gt('reCaptcha configuration is missing the public key.'), '</h2>';
                         return;
                     }
                     if ($user->isLoggedIn() && ANTI_SPAM_USERS_SKIP == 1) {
                         // skip it for logged on users based on config
                     } else {
                         // include the library and show the form control
-                        require_once(BASE . 'external/recaptchalib.php');
-                        if (expSession::get('framework') == 'bootstrap3') {
-                            echo recaptcha_get_html_bs3(RECAPTCHA_PUB_KEY);
-                        } else {  // non-Bootstrap3
-                            echo '<script type="text/javascript"> var RecaptchaOptions = {theme : "' . RECAPTCHA_THEME . '"}; </script>';
-                            echo recaptcha_get_html(RECAPTCHA_PUB_KEY);
-                        }
-                        echo '<p>' . gt('Fill out the above security question to submit your form.') . '</p>';
+//                        require_once(BASE . 'external/recaptchalib.php');
+                        require_once(BASE . 'external/ReCaptcha/autoload.php');  //FIXME not sure we need this here
+                        $re_theme = (RECAPTCHA_THEME == 'dark') ? 'dark' : 'light';
+                        echo '<input type="hidden" class="hiddenRecaptcha required" name="hiddenRecaptcha" id="hiddenRecaptcha">';
+                        echo '<div class="g-recaptcha" data-sitekey="' . RECAPTCHA_PUB_KEY . '" data-theme="' . $re_theme . '"></div>';
+                        echo '<script type="text/javascript" src="https://www.google.com/recaptcha/api.js?hl=' . LOCALE . '" async defer></script>';
+                        echo '<p>', gt('Fill out the above security question to submit your form.'), '</p>';
                     }
                     return;
                 } elseif (ANTI_SPAM_CONTROL == 0) {
@@ -372,12 +388,15 @@ function smarty_function_control($params, &$smarty) {
                 break;
             case "autocomplete":
                 $control              = new autocompletecontrol();
+                $control->placeholder = !empty($params['placeholder']) ? $params['placeholder'] : "";
+                $control->width       = !empty($params['width']) ? $params['width'] : "320px";
                 $control->schema      = "'" . str_replace(",", "','", $params['schema']) . "'";
-                $control->value   = isset($params['value']) ? $params['value'] : null;
+                $control->value       = isset($params['value']) ? $params['value'] : null;
                 $control->controller  = empty($params['controller']) ? "search" : $params['controller'];
                 $control->action      = empty($params['action']) ? "autocomplete" : $params['action'];
                 $control->searchmodel = empty($params['searchmodel']) ? "text" : $params['searchmodel'];
                 $control->searchoncol = empty($params['searchoncol']) ? "title" : $params['searchoncol'];
+                $control->maxresults  = empty($params['maxresults']) ? 12 : $params['maxresults'];
                 $control->jsinject    = empty($params['jsinject']) ? "" : $params['jsinject'];
                 break;
 //            case "massmail":
@@ -390,6 +409,16 @@ function smarty_function_control($params, &$smarty) {
 //                if (!empty($params['var'])) $control->type = 1;
 //                if (!empty($params['default'])) $control->default = $params['default'];
 //                break;
+            case "password":
+                $control       = new passwordcontrol();
+                $control->size = !empty($params['size']) ? $params['size'] : "40";
+                $control->placeholder = !empty($params['placeholder']) ? $params['placeholder'] : "";
+                $control->pattern = !empty($params['pattern']) ? $params['pattern'] : "";
+                $control->horizontal = (isset($params['horizontal'])) ? 1 : 0;
+                $control->prepend = !empty($params['prepend']) ? $params['prepend'] : "";
+                $control->multiple      = isset($params['multiple']) ? true : false;
+                $control->meter      = isset($params['meter']) ? true : false;
+                break;
             case "quantity":
 //                $value   = isset($params['value']) ? $params['value'] : null;
 //                $min     = isset($params['min']) ? $params['min'] : 0;
@@ -405,6 +434,7 @@ function smarty_function_control($params, &$smarty) {
             case "telephone":
             case "number":
             case "range":
+            case "hidden":
             default:
                 $control       = new genericcontrol($params['type']);
                 $control->size = !empty($params['size']) ? $params['size'] : "40";
@@ -447,19 +477,25 @@ function smarty_function_control($params, &$smarty) {
             $post_errors = expSession::get('last_post_errors');
             // flag this field as having errors if it failed validation
             if (is_array($post_errors) && in_array($params['name'], $post_errors)) {
-                $control->class .= ' field-error';
+                if (bs3()) {
+                    $control->class .= ' has-error';
+                } elseif (bs2()) {
+                    $control->class .= ' error';
+                } else {
+                    $control->class .= ' field-error';
+                }
             }
 
             if ($params['type'] == 'checkbox') {
-                $realname         = str_replace('[]', '', $params['name']);
-                $control->default = $params['value'];
-                if (!empty($post[$realname])) {
-                    if (is_array($post[$realname])) {
-                        if (in_array($params['value'], $post[$realname])) $control->checked = true;
-                    } else {
-                        $control->checked = true;
-                    }
-                }
+//                $realname         = str_replace('[]', '', $params['name']);
+//                $control->default = $params['value'];
+//                if (!empty($post[$realname])) {
+//                    if (is_array($post[$realname])) {
+//                        if (in_array($params['value'], $post[$realname])) $control->checked = true;
+//                    } else {
+//                        $control->checked = true;
+//                    }
+//                }
             } elseif (isset($params['multiple'])) {
                 $realname = str_replace('[]', '', $params['name']);
                 if (!empty($post[$realname])) $control->default = $post[$realname];
@@ -473,7 +509,7 @@ function smarty_function_control($params, &$smarty) {
             } elseif (!empty($params['filter']) && $params['filter'] == 'integer') {
                 $params['value'] = number_format($params['value'], 0, '.', ',');
             }
-            $control->default = $params['value'];
+            if ($params['type'] != 'checkbox' && $params['type'] != 'radio' && $params['type'] != 'radiogroup') $control->default = $params['value']; //FIXME is value always == default?
         }
 
         //if (isset($params['value'])) $control->default = $params['value'];
@@ -505,11 +541,13 @@ function smarty_function_control($params, &$smarty) {
         $control->name  = $params['name'];
 //        $badvals = array("[", "]", ",", " ", "'", "\"", "&", "#", "%", "@", "!", "$", "(", ")", "{", "}");
         //$newid = str_replace($badvals, "", $params['name']);
-        $params['id'] = createValidId(!empty($params['id']) ? $params['id'] : '');
-        $control->id  = createValidId(isset($params['id']) && $params['id'] != "" ? $params['id'] : "");
+        $params['id'] = createValidId(!empty($params['id']) ? $params['id'] : '', $params['value']);
+//        $control->id  = createValidId(isset($params['id']) && $params['id'] != "" ? $params['id'] : "");
+        $control->id  = $params['id'];
         //echo $control->id;
         if ($params['type'] != 'radio') {
-            if (empty($control->id)) $control->id = $params['name'];
+            // auto-create an 'id' from the name param and 'name' from the id param if needed
+            if (empty($control->id)) $control->id = createValidId($params['name'], $params['value']);
             if (empty($control->name)) $control->name = $params['id'];
         }
 
@@ -533,10 +571,14 @@ function smarty_function_control($params, &$smarty) {
         }
         //write out the control itself...and then we're done. 
         if (isset($params['model'])) {
-            echo $control->toHTML($params['label'], $params['model'] . '[' . $params['name'] . ']');
+            $control_output = $control->toHTML($params['label'], $params['model'] . '[' . $params['name'] . ']');
         } else {
-            echo $control->toHTML($params['label'], $params['name']);
+            $control_output = $control->toHTML($params['label'], $params['name']);
         }
+        if (!empty($params['json'])) {
+            $control_output = json_encode($control_output);
+        }
+        echo $control_output;
         /*
         //Write out the label for this control if the user specified a label and position is set to right
         if (isset($params['label']) && $params['labelpos'] == 'right') {
@@ -547,7 +589,7 @@ function smarty_function_control($params, &$smarty) {
         if($params['type']!='hidden'){ echo '</label>'; }
         */
     } else {
-        echo '<h2 style="color:red">' . gt("Both the 'type' and 'name' parameters are required for the control plugin to function") . '</h2>';
+        echo '<h2 style="color:red">', gt("Both the 'type' and 'name' parameters are required for the control plugin to function"), '</h2>';
     }
 }
 

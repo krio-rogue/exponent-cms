@@ -2,7 +2,7 @@
 
 ##################################################
 #
-# Copyright (c) 2004-2014 OIC Group, Inc.
+# Copyright (c) 2004-2016 OIC Group, Inc.
 #
 # This file is part of Exponent
 #
@@ -36,13 +36,14 @@ class rangecontrol extends textcontrol {
 
     function controlToHTML($name, $label) {
         $this->size = !empty($this->size) ? $this->size : 25;
-        $inputID  = (!empty($this->id)) ? ' id="'.$this->id.'"' : ' id="'.$name.'"';
+        $idname  = (!empty($this->id)) ? ' id="'.$this->id.'"' : ' id="'.$name.'"';
         if ($this->type != 'text') {
             $extra_class = ' ' . $this->type;
         } else {
             $extra_class = '';
         }
-        $html  = '<input' . $inputID . ' class="text form-control' . $extra_class . '" type="' . $this->type . '" name="' . $name . '"';
+        $html = ($this->horizontal && bs3()) ? '<div class="col-sm-10">' : '';
+        $html .= '<input' . $idname . ' class="text form-control' . $extra_class . '" type="' . $this->type . '" name="' . $name . '"';
         $html .= " value=\"" . str_replace('"',"&quot;",$this->default) . "\"";
         $html .= $this->size ? " size=\"".$this->size."\"" : "";
         $html .= $this->disabled ? " disabled " : "";
@@ -66,14 +67,15 @@ class rangecontrol extends textcontrol {
         if (!empty($this->required)) $html .= ' required="'.rawurlencode($this->default).'" caption="'.$caption.'"';
         $html .= "/>";
         if (!empty($this->description)) $html .= "<div class=\"control-desc\">".$this->description."</div>";
+        $html .= ($this->horizontal && bs3()) ? '</div>' : '';
         return $html;
     }
 
     static function form($object) {
         $form = parent::form($object);
-        $form->registerBefore("required",'min',gt('Minimum'), new textcontrol((empty($object->min)?"":$object->min),4,false,5));
-        $form->registerBefore("required",'max',gt('Maximum'), new textcontrol((empty($object->max)?"":$object->max),4,false,5));
-        $form->registerBefore("required",'step',gt('Step'), new textcontrol((empty($object->step)?"1":$object->step),4,false,5));
+        $form->registerBefore("required",'min',gt('Minimum'), new textcontrol((empty($object->min)?"":$object->min)));
+        $form->registerBefore("required",'max',gt('Maximum'), new textcontrol((empty($object->max)?"":$object->max)));
+        $form->registerBefore("required",'step',gt('Step'), new textcontrol((empty($object->step)?"1":$object->step)));
         return $form;
     }
 

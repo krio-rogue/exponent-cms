@@ -2,7 +2,7 @@
 
 ##################################################
 #
-# Copyright (c) 2004-2014 OIC Group, Inc.
+# Copyright (c) 2004-2016 OIC Group, Inc.
 #
 # This file is part of Exponent
 #
@@ -29,12 +29,11 @@ if (!defined('EXPONENT')) exit('');
  */
 class radiogroupcontrol extends formcontrol {
 
-	var $flip = false;
 	var $items = array();
 //	var $spacing = 100;
 	var $cols = 1;
 	var $onclick = null;
-	
+
 	static function name() { return "Options - Radio Button Group"; }
 	static function isSimpleControl() { return true; }
 	static function getFieldDefinition() {
@@ -42,7 +41,7 @@ class radiogroupcontrol extends formcontrol {
 			DB_FIELD_TYPE=>DB_DEF_STRING,
 			DB_FIELD_LEN=>512);
 	}
-	
+
 	function __construct($default = "", $items = array(), $flip=false, $spacing=100, $cols = 1) {
 		$this->default = $default;
 		$this->items = $items;
@@ -54,12 +53,12 @@ class radiogroupcontrol extends formcontrol {
 
 	function toHTML($label,$name) {
 		$this->id  = (empty($this->id)) ? $name : $this->id;
-		$html = "<div id=\"".$this->id."Control\" class=\"radiogroup control form-group";
+		$html = "<div role=\"radiogroup\" id=\"".$this->id."Control\" class=\"radiogroup control form-group";
 		$html .= (!empty($this->required)) ? ' required">' : '">';
 //		$html .= "<table border=0 cellspacing=0 cellpadding=0><tr>";
 //		$html .= (!empty($label))?"<td><span class=\"label\">".$label."</span></td></tr><tr>":"";
 //        $html .= (!empty($label))?"<span class=\"label\">".$label."</span>":"";
-        $html .= (!empty($label))?"<label class=\"".(bs3()?"control-label":"label")."\">".$label."</label>":"";
+        $html .= (!empty($label))?"<label class=\"".(bs3()||bs2()?"control-label":"label")."\">".$label."</label>":"";
 //        $html .= "<table border=0 cellspacing=0 cellpadding=0><tr>";
 //		$html .= "<td>".$this->controlToHTML($name, $label)."</td>";
 //		$html .= "</tr></table>";
@@ -67,7 +66,7 @@ class radiogroupcontrol extends formcontrol {
         $html .= "</div>";
 		return $html;
 	}
-	
+
 	function controlToHTML($name, $label) {
         //eDebug($this->items);
 		$html = '<table cellspacing="0" cellpadding="0" border="0"><tr>';
@@ -94,13 +93,13 @@ class radiogroupcontrol extends formcontrol {
     			$i = 0;
             }
 			$html .= '<td style="border:none; padding-left:5px">'.$radio->toHTML($rlabel, $name).'</td>';
-			$i++; 
-		}	
+			$i++;
+		}
 		$html .= '</tr></table>';
         if (!empty($this->description)) $html .= "<div class=\"".(bs3()?"help-block":"control-desc")."\">".$this->description."</div>";
 		return $html;
 	}
-	
+
 	static function form($object) {
 		$form = new form();
         if (empty($object)) $object = new stdClass();
@@ -113,7 +112,7 @@ class radiogroupcontrol extends formcontrol {
 //			$object->spacing = 100;
 			$object->cols = 1;
 			$object->items = array();
-		} 
+		}
         if (empty($object->description)) $object->description = "";
 		$form->register("identifier",gt('Identifier/Field'),new textcontrol($object->identifier));
 		$form->register("caption",gt('Caption'), new textcontrol($object->caption));
@@ -124,15 +123,16 @@ class radiogroupcontrol extends formcontrol {
 		$form->register("cols",gt('Columns'), new textcontrol($object->cols,4,false,2,"integer"));
 		$form->register(null,"", new htmlcontrol(gt('Setting Number of Columns to zero will put all items on one row.')));
 //		$form->register("spacing",gt('Column Spacing'), new textcontrol($object->spacing,5,false,4,"integer"));
-		$form->register("submit","",new buttongroupcontrol(gt('Save'),'',gt('Cancel'),"",'editable'));
-		
+		if (!expJavascript::inAjaxAction())
+			$form->register("submit","",new buttongroupcontrol(gt('Save'),'',gt('Cancel'),"",'editable'));
+
 		return $form;
 	}
-	
+
     static function update($values, $object) {
 		if ($object == null) $object = new radiogroupcontrol();
 		if ($values['identifier'] == "") {
-			$post = $_POST;
+			$post = expString::sanitize($_POST);
 			$post['_formError'] = gt('Identifier is required.');
 			expSession::set("last_POST",$post);
 			return null;

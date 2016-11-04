@@ -1,5 +1,5 @@
 {*
- * Copyright (c) 2004-2014 OIC Group, Inc.
+ * Copyright (c) 2004-2016 OIC Group, Inc.
  *
  * This file is part of Exponent
  *
@@ -31,6 +31,9 @@
 				{icon class=add action=edit rank=1 title="Add to the top"|gettext text="Add Image"|gettext}
                 {icon class=add action=multi_add title="Quickly Add Many Images"|gettext text="Add Multiple Images"|gettext}
 			{/if}
+            {if $permissions.delete}
+                {icon class=delete action=delete_multi title="Delete Many Images"|gettext text="Delete Multiple Images"|gettext onclick='null;'}
+            {/if}
             {if $permissions.manage}
                 {if !$config.disabletags}
                     {icon controller=expTag class="manage" action=manage_module model='photo' text="Manage Tags"|gettext}
@@ -67,9 +70,9 @@
                                     {if $record->expFile[0]->image_width >= $record->expFile[0]->image_height}{$x="w"}{else}{$x="w"}{/if}
                                     <a rel="lightbox[{$name}-{$group}]" href="{$smarty.const.PATH_RELATIVE}thumb.php?id={$record->expFile[0]->id}&{$x}={$config.pa_showall_enlarged}" title="{$record->alt|default:$record->title}">
                                 {else}
-                                    <a href="{link action=show title=$record->sef_url}" title="{$record->alt|default:$record->title}">
+                                    <a href="{link action=show title=$record->sef_url}" title="{$record->alt}">
                                 {/if}
-                                    {img class="img-small" alt=$record->alt|default:$record->expFile[0]->alt file_id=$record->expFile[0]->id w=$config.pa_showall_thumbbox|default:"150" h=$config.pa_showall_thumbbox|default:"150" far=TL f=jpeg q=$quality|default:75}
+                                    {img class="img-small" alt=$record->alt file_id=$record->expFile[0]->id w=$config.pa_showall_thumbbox|default:"150" h=$config.pa_showall_thumbbox|default:"150" far=TL f=jpeg q=$quality|default:75}
                                 </a>
                                 {permissions}
                                     <div class="item-actions">
@@ -100,7 +103,7 @@
     </div>
 </div>
 
-{script unique="expand-panels-`$id`" yui3mods="1"}
+{script unique="expand-panels-`$id`" yui3mods="node,anim,gallery-lightbox"}
 {literal}
 EXPONENT.YUI3_CONFIG.modules = {
    'gallery-lightbox' : {
@@ -113,7 +116,7 @@ EXPONENT.YUI3_CONFIG.modules = {
    }
 }
 
-YUI(EXPONENT.YUI3_CONFIG).use('node','anim','gallery-lightbox', function(Y) {
+YUI(EXPONENT.YUI3_CONFIG).use('*', function(Y) {
     var panels = Y.all("#photo-{/literal}{$id}{literal}.dashboard .panel");
     var expandHeight = [];
     var exclusiveExp = {/literal}{if $config.initial_view==1||$config.initial_view==3}true{else}false{/if}{literal};

@@ -1,7 +1,7 @@
 <?php
 ##################################################
 #
-# Copyright (c) 2004-2014 OIC Group, Inc.
+# Copyright (c) 2004-2016 OIC Group, Inc.
 #
 # This file is part of Exponent
 #
@@ -165,9 +165,9 @@ class expModules {
     		if (class_exists($module)) {
     			$mod = new $module();
 //                $mod = self::getController($module);
-    			$modstate = $db->selectObject("modstate","module='". expModules::getControllerName($module) . "'");
+    			$modstate = $db->selectObject("modstate","module='". self::getControllerName($module) . "'");
     			$moduleInfo[$module] = new stdClass();
-    			$moduleInfo[$module]->class = expModules::getControllerName($module);
+    			$moduleInfo[$module]->class = self::getControllerName($module);
     			$moduleInfo[$module]->name = $mod->name();
     			$moduleInfo[$module]->author = $mod->author();
     			$moduleInfo[$module]->description = $mod->description();
@@ -363,7 +363,7 @@ class expModules {
    	    if (empty($controllername) || !self::controllerExists($controllername)) return null;
 //        $controllerclassname = self::getControllerClassName($controllername);
 //        $controller = new $controllerclassname();
-        $controller = expModules::getController($controllername);
+        $controller = self::getController($controllername);
         return $controller->displayname();
    	}
 

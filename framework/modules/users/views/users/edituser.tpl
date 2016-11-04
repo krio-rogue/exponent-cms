@@ -1,5 +1,5 @@
 {*
- * Copyright (c) 2004-2014 OIC Group, Inc.
+ * Copyright (c) 2004-2016 OIC Group, Inc.
  *
  * This file is part of Exponent
  *
@@ -49,7 +49,7 @@
                             {*{control type=text name=email label="Email Address"|gettext value=$edit_user->email required=1}*}
                             {control type=email name=email label="Email Address"|gettext value=$edit_user->email required=1 focus=1}
                         {/if}
-                        {control type=password name=pass1 label="Password"|gettext required=1}
+                        {control type=password name=pass1 meter=1 label="Password"|gettext required=1}
                         {control type=password name=pass2 label="Confirm Password"|gettext required=1}
                     {else}
                         {control type="hidden" name="id" value=$edit_user->id}
@@ -130,7 +130,8 @@
 	            {/foreach}
 	        </div>
 	    </div>
-	    <div class="loadingdiv">{'Loading User Profile'|gettext}</div>
+	    {*<div class="loadingdiv">{'Loading User Profile'|gettext}</div>*}
+        {loading title='Loading User Profile'|gettext}
 	    {if $user->isAdmin() == 0}
 			{control type=antispam}
 		{/if}
@@ -138,14 +139,14 @@
 	{/form}
 </div>
 
-{script unique="edituser" yui3mods=1}
+{script unique="edituser" yui3mods="exptabs"}
 {literal}
     EXPONENT.YUI3_CONFIG.modules.exptabs = {
         fullpath: EXPONENT.JS_RELATIVE+'exp-tabs.js',
         requires: ['history','tabview','event-custom']
     };
 
-	YUI(EXPONENT.YUI3_CONFIG).use('exptabs', function(Y) {
+	YUI(EXPONENT.YUI3_CONFIG).use('*', function(Y) {
         Y.expTabs({srcNode: '#edituser-tabs'});
 		Y.one('#edituser-tabs').removeClass('hide');
 		Y.one('.loadingdiv').remove();

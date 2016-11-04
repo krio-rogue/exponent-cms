@@ -1,5 +1,5 @@
 {*
- * Copyright (c) 2004-2014 OIC Group, Inc.
+ * Copyright (c) 2004-2016 OIC Group, Inc.
  *
  * This file is part of Exponent
  *
@@ -13,13 +13,15 @@
  *
  *}
 
-{*{css unique="install-upgrades"}*}
-{*{literal}*}
-    {*.install-upgrades h3 {*}
-        {*display       : inline;*}
-    {*}*}
-{*{/literal}*}
-{*{/css}*}
+{*
+{css unique="install-upgrades"}
+{literal}
+    .install-upgrades h3 {
+        display       : inline;
+    }
+{/literal}
+{/css}
+*}
 
 <div class="module administration install-upgrades">
     <h1>{'Run Upgrade Scripts'|gettext}</h1>
@@ -35,6 +37,8 @@
                     <h3>{control type="checkbox" name=$upgradescript->classname label=$title value=1}</h3>
                     <p>{$upgradescript->description()}</p>
                 </li>
+            {foreachelse}
+                <h3>{'There are no upgrade scripts available to run'|gettext}</h3>
             {/foreach}
         </ol>
         {control type="buttongroup" submit="Run Selected Scripts"|gettext cancel="Cancel"|gettext}

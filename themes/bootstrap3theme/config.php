@@ -1,12 +1,14 @@
 <?php
 define("BTN_COLOR",'btn');
-define("SWATCH",'');
-define("ENHANCED_STYLE",'');
+define("SWATCH",'custom');
+define("ENHANCED_STYLE",'0');
 define("STYLE_WIDTH",'');
 define("BTN_SIZE",'small');
 define("MENU_LOCATION",'fixed-top');
-define("MENU_HEIGHT",'65');
+define("MENU_HEIGHT",'1');
 define("MENU_WIDTH",'769');
 define("MENU_ALIGN",'left');
+define("MENU_LENGTH",'2');
 define("FLYOUT_SIDEBAR",'1');
+define("THEME_CUSTOM_LANGUAGE",'0');
 ?>

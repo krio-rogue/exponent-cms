@@ -2,7 +2,7 @@
 
 ##################################################
 #
-# Copyright (c) 2004-2014 OIC Group, Inc.
+# Copyright (c) 2004-2016 OIC Group, Inc.
 #
 # This file is part of Exponent
 #
@@ -48,7 +48,7 @@ function smarty_function_help($params,&$smarty) {
             $link = help::makeHelpLink($doc);
         }
 
-        echo '<a class="' . $class. '" title="'.$title.'" href="'.$link.'" target="_blank"><i class="icon-question-sign '.expTheme::iconSize().'"></i> '.$text.'</a>';
+        echo '<a class="', $class, '" title="',$title,'" href="',$link,'" target="_blank"><i class="icon-question-sign ',expTheme::iconSize(),'"></i> ',$text,'</a>';
         expCSS::pushToHead(array(
 		    "corecss"=>"admin-global",
         ));

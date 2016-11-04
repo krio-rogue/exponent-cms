@@ -1,5 +1,5 @@
 {*
- * Copyright (c) 2004-2014 OIC Group, Inc.
+ * Copyright (c) 2004-2016 OIC Group, Inc.
  *
  * This file is part of Exponent
  *
@@ -61,7 +61,8 @@
                            {/foreach}
                        </div>
                    </div>
-                   <div class="loadingdiv">{'Loading'|gettext}</div>
+                   {*<div class="loadingdiv">{'Loading'|gettext}</div>*}
+                    {loading}
                </div>
             </div>
         {/if} {** END IF $product->requiredBilling **}
@@ -75,24 +76,25 @@
             <p>{'You\'ve got'|gettext} <strong>{$order->orderitem|@count}</strong> item{if $order->orderitem|@count > 1}s{/if} {'in your cart.'|gettext} {br}
             <a id="expandcart" href="#" class="fox-link">{'Show them?'|gettext}<span></span></a></p>
             <div id="shoppingcartwrapper">
-                {chain controller=cart action=show view=show_quickpay_donation_cart}
+                {*{chain controller=cart action=quickpay_donation_cart}*}
+                {showmodule controller=cart action=quickpay_donation_cart}
             </div>
         </div>
         {control type="buttongroup" submit="Submit"|gettext cancel="Cancel"|gettext}
     {/form}
 </div>
-{script unique="shoppingcartcheckout" yuimodules="animation,container,json" src="`$smarty.const.JS_RELATIVE`exp-ecomcheckout.js"}
+{script unique="shoppingcartcheckout" yui3mods=1 src="`$smarty.const.JS_RELATIVE`exp-ecomcheckout.js"}
 
 {/script}
 
-{script unique="`$id`" yui3mods="1"}
+{script unique="`$id`" yui3mods="exptabs"}
 {literal}
     EXPONENT.YUI3_CONFIG.modules.exptabs = {
         fullpath: EXPONENT.JS_RELATIVE+'exp-tabs.js',
         requires: ['history','tabview','event-custom']
     };
 
-	YUI(EXPONENT.YUI3_CONFIG).use('exptabs', function(Y) {
+	YUI(EXPONENT.YUI3_CONFIG).use('*', function(Y) {
         Y.expTabs({srcNode: '#{/literal}{$id}{literal}'});
 		Y.one('#{/literal}{$id}{literal}').removeClass('hide');
 		Y.one('.loadingdiv').remove();

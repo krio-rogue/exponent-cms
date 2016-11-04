@@ -1,7 +1,7 @@
 <?php
 ##################################################
 #
-# Copyright (c) 2004-2014 OIC Group, Inc.
+# Copyright (c) 2004-2016 OIC Group, Inc.
 #
 # This file is part of Exponent
 #
@@ -38,7 +38,7 @@ class expDatabase {
 	 * @param bool $new
 	 * @return \database the database object
 	 */
-	public static function connect($username,$password,$hostname,$database,$dbclass = '',$new=false) {
+	public static function connect($username,$password,$hostname,$database,$dbclass = '',$new=false,$log=null) {
 		if (!defined('DB_ENGINE')) {
 			$backends = array_keys(self::backends(1));
 			if (count($backends)) {
@@ -51,7 +51,7 @@ class expDatabase {
 		if ($dbclass == '' || $dbclass == null) $dbclass = DB_ENGINE;
 		(include_once(BASE.'framework/core/subsystems/database/'.$dbclass.'.php')) or exit(gt('The specified database backend').'  ('.$dbclass.') '.gt('is not supported by Exponent'));
 		$dbclass .= '_database';
-		$newdb = new $dbclass($username,$password,$hostname,$database,$new);
+		$newdb = new $dbclass($username,$password,$hostname,$database,$new,$log);
         if (!$newdb->tableExists('user')) {
             $newdb->havedb = false;
         }
@@ -120,7 +120,7 @@ class expDatabase {
         $renamed = array();
         foreach ($tablenames as $oldtablename=>$newtablename) {
             if (!$db->tableExists($newtablename)) {
-                $db->sql('RENAME TABLE '.DB_TABLE_PREFIX.'_'.$oldtablename.' TO '.DB_TABLE_PREFIX.'_'.$newtablename);
+                $db->sql('RENAME TABLE '.$db->prefix.$oldtablename.' TO '.$db->prefix.$newtablename);
                 $renamed[] = $newtablename;
             }
         }
@@ -231,7 +231,7 @@ class expDatabase {
 * This is the class database
 *
 * This is the generic implementation of the database class.
-* @subpackage Database = database
+* @subpackage Database
 * @package Subsystems
 */
 
@@ -558,8 +558,8 @@ abstract class database {
 	 */
 	function setUniqueFlag($object, $table, $col, $where=1) {
 	   if (isset($object->id)) {
-	       $this->sql("UPDATE " . DB_TABLE_PREFIX . "_" . $table . " SET " . $col . "=0 WHERE " . $where);
-	       $this->sql("UPDATE " . DB_TABLE_PREFIX . "_" . $table . " SET " . $col . "=1 WHERE id=" . $object->id);
+	       $this->sql("UPDATE " . $this->prefix . $table . " SET " . $col . "=0 WHERE " . $where);
+	       $this->sql("UPDATE " . $this->prefix . $table . " SET " . $col . "=1 WHERE id=" . $object->id);
 	       return true;
 	   }
 	   return false;
@@ -607,12 +607,16 @@ abstract class database {
 	}
 
 	/**
+	 * Select a single object by sql
+	 *
 	 * @param  $sql
 	 * @return null|void
 	 */
 	abstract function selectObjectBySql($sql);
 
 	/**
+	 * Select a series of objects by sql
+	 *
 	 * @param  $sql
 	 * @return array
 	 */
@@ -1024,6 +1028,63 @@ abstract class database {
 	}
 
 	/**
+	* This is an internal function for use only within the database class
+	* @internal Internal
+	* @param  $fieldObj
+	* @return int|mixed
+	*/
+	function getDDKey($fieldObj) {
+	   $key = strtolower($fieldObj->Key);
+	   if ($key == "pri")
+	       return DB_PRIMARY;
+	   else if ($key == "uni") {
+	       return DB_UNIQUE;
+	   } else {
+           return false;
+       }
+	}
+
+	/**
+	* This is an internal function for use only within the database class
+	* @internal Internal
+	* @param  $fieldObj
+	* @return int|mixed
+	*/
+	function getDDAutoIncrement($fieldObj) {
+	   $auto = strtolower($fieldObj->Extra);
+	   if ($auto == "auto_increment") {
+	       return true;
+	   } else {
+           return false;
+       }
+	}
+
+	/**
+	* This is an internal function for use only within the database class
+	* @internal Internal
+	* @param  $fieldObj
+	* @return int|mixed
+	*/
+	function getDDIsNull($fieldObj) {
+	   $null = strtolower($fieldObj->Null);
+	   if ($null == "yes") {
+	       return true;
+	   } else {
+           return false;
+       }
+	}
+
+	/**
+	* This is an internal function for use only within the database class
+	* @internal Internal
+	* @param  $fieldObj
+	* @return int|mixed
+	*/
+	function getDDDefault($fieldObj) {
+		return strtolower($fieldObj->Default);
+	}
+
+	/**
 	* Returns an error message from the database server.  This is intended to be
 	* used by the implementers of the database wrapper, so that certain
 	* cryptic error messages can be reworded.
@@ -1038,11 +1099,26 @@ abstract class database {
 	abstract function inError();
 
 	/**
-	 * Unescape a string based on the database connection
+	 * Escape a string based on the database connection
 	 * @param $string
 	 * @return string
 	 */
 	abstract function escapeString($string);
+
+    /**
+   	 * Attempt to prevent a sql injection
+   	 * @param $string
+   	 * @return string
+   	 */
+   	function injectProof($string) {
+   	    $quotes = substr_count("'", $string);
+        if ($quotes % 2 != 0)
+            $string = $this->escapeString($string);
+        $dquotes = substr_count('"', $string);
+        if ($dquotes % 2 != 0)
+            $string = $this->escapeString($string);
+        return $string;
+    }
 
 	/**
 	 * Create a SQL "limit" phrase
@@ -1105,7 +1181,7 @@ abstract class database {
 	abstract function selectArray($table, $where = null, $orderby = null, $is_revisioned=false, $needs_approval=false);
 
     /**
-     * Select a records from the database
+	 * Instantiate objects from selected records from the database
      *
      * @param string $table The name of the table/object to look at
      * @param string $where Criteria used to narrow the result set.  If this
@@ -1126,6 +1202,8 @@ abstract class database {
 	abstract function selectExpObjects($table, $where=null, $classname, $get_assoc=true, $get_attached=true, $except=array(), $cascade_except=false, $order=null, $limitsql=null, $is_revisioned=false, $needs_approval=false);
 
 	/**
+	 * Instantiate objects from selected records from the database
+	 *
 	* @param string $sql The sql statement to run on the model/classname
 	* @param string $classname Can be $this->baseclassname
 	* Returns an array of fields

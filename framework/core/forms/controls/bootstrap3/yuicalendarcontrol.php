@@ -2,7 +2,7 @@
 
 ##################################################
 #
-# Copyright (c) 2004-2014 OIC Group, Inc.
+# Copyright (c) 2004-2016 OIC Group, Inc.
 #
 # This file is part of Exponent
 #
@@ -87,7 +87,10 @@ class yuicalendarcontrol extends formcontrol
 
     function controlToHTML($name, $label = null)
     {
-        $idname = str_replace(array('[', ']', ']['), '_', $name);
+        $idname = createValidId($name);
+        if (empty($this->default)) {
+            $this->default = time();
+        }
         if (is_numeric($this->default)) {
             if ($this->showdate && !$this->showtime) {
                 $default = date('n/j/Y', $this->default);
@@ -100,36 +103,36 @@ class yuicalendarcontrol extends formcontrol
             $default = $this->default;
         }
 
-        $date_input = new textcontrol($default);
+        $date_input = new hiddenfieldcontrol($default);
+        if ($this->horizontal) 
+            $date_input->horizontal_top = true;
 //        $date_input->id = $idname;
 //        $date_input->name = $idname;
 //        $date_input->disabled = 'disabled';
 //        $html = "<!-- cke lazy -->";
-        $html = $date_input->toHTML(null, $name);
+        $html = '<div class="input-group input-append" id="'.$idname.'dateRangePicker">'.$date_input->toHTML(null, $name).'</div>';
 //        $html .= "
 //        <div style=\"clear:both\"></div>
 //        ";
 
         $script = "
             $(document).ready(function() {
-                $('#" . $idname . "').datetimepicker({
-                    datepicker: " . ($this->showdate ? 'true' : 'false') .",
-                    timepicker: " . ($this->showtime ? 'true' : 'false') .",
-                    format: '" .($this->showdate ? 'n/j/Y' : '') . ($this->showdate && $this->showtime ? ' ' : '') . ($this->showtime ? 'H:i' : '') ."',
-                    formatTime:'g:i a',
-                    step: 15,
-                    dayOfWeekStart: " . DISPLAY_START_OF_WEEK . ",
+                $('#" . $idname . "dateRangePicker').datetimepicker({
+                    format: '" .($this->showdate ? 'L' : '') . ($this->showdate && $this->showtime ? ' ' : '') . ($this->showtime ? 'LT' : '') ."',
+                    stepping: 15,
+                    locale: '" . LOCALE . "',
+                    showTodayButton: true,
                     inline: true,
-//                    value: '".$default."'
+                    sideBySide: true,
                 });
-                $('#" . $idname . "').datetimepicker('update');
             });
         ";
         expJavascript::pushToFoot(
             array(
-                "unique"   => '00yuical-' . $idname,
-                "jquery"   => "jquery.datetimepicker",
-                "content"  => $script,
+                "unique"    => '00yuical-' . $idname,
+                "jquery"    => "moment,bootstrap-datetimepicker",
+                "bootstrap" => "collapse,transitions",
+                "content"   => $script,
             )
         );
         return $html;
@@ -137,8 +140,10 @@ class yuicalendarcontrol extends formcontrol
 
     static function parseData($original_name, $formvalues)
     {
-        if (!empty($formvalues[$original_name])) {
+        if (!empty($formvalues[$original_name]) && is_string($formvalues[$original_name])) {
             return strtotime($formvalues[$original_name]);
+        } elseif (is_int($formvalues[$original_name])) {
+            return $formvalues[$original_name];
         } else {
             return 0;
         }
@@ -181,7 +186,8 @@ class yuicalendarcontrol extends formcontrol
         $form->register("caption", gt('Caption'), new textcontrol($object->caption));
         $form->register("showtime",gt('Show Time'), new checkboxcontrol($object->showtime,false));
 //        $form->register("is_hidden", gt('Make this a hidden field on initial entry'), new checkboxcontrol(!empty($object->is_hidden),false));
-        $form->register("submit", "", new buttongroupcontrol(gt('Save'), "", gt('Cancel'), "", 'editable'));
+        if (!expJavascript::inAjaxAction())
+            $form->register("submit", "", new buttongroupcontrol(gt('Save'), "", gt('Cancel'), "", 'editable'));
         return $form;
     }
 
@@ -192,7 +198,7 @@ class yuicalendarcontrol extends formcontrol
             $object->default = 0;
         }
         if ($values['identifier'] == "") {
-            $post = $_POST;
+            $post = expString::sanitize($_POST);
             $post['_formError'] = gt('Identifier is required.');
             expSession::set("last_POST", $post);
             return null;

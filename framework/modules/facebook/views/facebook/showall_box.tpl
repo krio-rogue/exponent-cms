@@ -1,5 +1,5 @@
 {*
- * Copyright (c) 2004-2014 OIC Group, Inc.
+ * Copyright (c) 2004-2016 OIC Group, Inc.
  *
  * This file is part of Exponent
  *
@@ -44,7 +44,7 @@
 {/literal}
 {if $config.resp_width}
 {literal}
-    $(window).bind("load resize", function(){
+    $(window).on("load resize", function(){
         $('#fb-container-{/literal}{$name}{literal}').attr('data-width', $('#fb-container-{/literal}{$name}{literal}').parent().width());
         FB.XFBML.parse();
     });

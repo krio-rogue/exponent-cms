@@ -1,5 +1,5 @@
 {*
- * Copyright (c) 2004-2014 OIC Group, Inc.
+ * Copyright (c) 2004-2016 OIC Group, Inc.
  *
  * This file is part of Exponent
  *
@@ -32,7 +32,7 @@
     {/if}
     {$myloc=serialize($__loc)}
 
-    <div id="catnav">
+    <div id="catnav" class="catnav">
         <ul>
             <li><a href="{link controller=store action=showall}">{'Browse all Products'|gettext}</a></li>
             {foreach from=$ancestors item=ancestor name=path}
@@ -44,7 +44,7 @@
                         <strong>{$ancestor->title}</strong>
                     {/if}
                 </li>
-                {/foreach}      
+            {/foreach}
             {$childdepth=$depth+10}
             {foreach from=$categories item=category}
                 <li style="margin-left: {$childdepth}px">
@@ -52,7 +52,7 @@
                 </li>
             {/foreach}          
             {br}
-            {if $user->is_admin == 1 || $user->is_acting_admin}
+            {if $user->isAdmin()}
                 <li><a href="{link controller=store action=showallUncategorized}">{'Show uncategorized products'|gettext}</a></li>
             {/if}
         </ul>

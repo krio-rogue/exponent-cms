@@ -1,7 +1,7 @@
 <?php
 ##################################################
 #
-# Copyright (c) 2004-2014 OIC Group, Inc.
+# Copyright (c) 2004-2016 OIC Group, Inc.
 #
 # This file is part of Exponent
 #
@@ -33,7 +33,16 @@ return array(
     ),
     "rate" => array(
         DB_FIELD_TYPE => DB_DEF_DECIMAL
-    )
+    ),
+    'shipping_taxed'=>array(
+   		DB_FIELD_TYPE=>DB_DEF_BOOLEAN
+    ),
+    'origin_tax'=>array(
+   		DB_FIELD_TYPE=>DB_DEF_BOOLEAN
+    ),
+    'inactive'=>array(
+   		DB_FIELD_TYPE=>DB_DEF_BOOLEAN
+    ),
 );
 
 ?>

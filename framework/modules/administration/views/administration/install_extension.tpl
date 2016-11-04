@@ -1,5 +1,5 @@
 {*
- * Copyright (c) 2004-2014 OIC Group, Inc.
+ * Copyright (c) 2004-2016 OIC Group, Inc.
  *
  * This file is part of Exponent
  *
@@ -115,7 +115,7 @@
                 <div>
                     {expCore::maxUploadSizeMessage()}
                     {form action=install_extension_confirm}
-                        {control type=uploader name=mod_archive label=gt('Extension Archive')}
+                        {control type=uploader name=mod_archive label='Extension Archive'|gettext}
                         {control type="checkbox" name="patch" label='Patch Exponent CMS or Install Theme?' value=1 description='All extensions are normally placed within the CURRENT theme (folder)'|gettext}
                         {control class=uploadfile type=buttongroup submit="Upload Extension"|gettext}
                     {/form}
@@ -124,16 +124,17 @@
 		</div>
 	</div>
 </div>
-<div class="loadingdiv">{'Loading'|gettext}</div>
+{*<div class="loadingdiv">{'Loading'|gettext}</div>*}
+{loading}
 
-{script unique="uploadextension" yui3mods=1}
+{script unique="uploadextension" yui3mods="exptabs"}
 {literal}
     EXPONENT.YUI3_CONFIG.modules.exptabs = {
         fullpath: EXPONENT.JS_RELATIVE+'exp-tabs.js',
         requires: ['history','tabview','event-custom']
     };
 
-	YUI(EXPONENT.YUI3_CONFIG).use('exptabs', function(Y) {
+	YUI(EXPONENT.YUI3_CONFIG).use('*', function(Y) {
         Y.expTabs({srcNode: '#extension-tabs'});
        Y.one('#extension-tabs').removeClass('hide');
        Y.one('.loadingdiv').remove();

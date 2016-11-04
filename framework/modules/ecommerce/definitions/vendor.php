@@ -2,7 +2,7 @@
 
 ##################################################
 #
-# Copyright (c) 2004-2014 OIC Group, Inc.
+# Copyright (c) 2004-2016 OIC Group, Inc.
 #
 # This file is part of Exponent
 #
@@ -28,7 +28,7 @@ return array(
 	"title"=>array(
 		DB_FIELD_TYPE=>DB_DEF_STRING,
 		DB_FIELD_LEN=>100,
-		DB_INDEX=>10,
+//		DB_INDEX=>10,
 		DB_FULLTEXT=>true),
 	"body"=>array(
 		DB_FIELD_TYPE=>DB_DEF_STRING,

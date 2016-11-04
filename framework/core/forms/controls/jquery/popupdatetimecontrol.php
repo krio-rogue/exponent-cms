@@ -2,7 +2,7 @@
 
 ##################################################
 #
-# Copyright (c) 2004-2014 OIC Group, Inc.
+# Copyright (c) 2004-2016 OIC Group, Inc.
 #
 # This file is part of Exponent
 #
@@ -33,6 +33,7 @@ class popupdatetimecontrol extends formcontrol
 
     var $disable_text = "";
     var $showtime = true;
+    var $showdate = true;
 
     static function name()
     {
@@ -78,7 +79,7 @@ class popupdatetimecontrol extends formcontrol
 
     function controlToHTML($name, $label)
     {
-        $idname = str_replace(array('[', ']', ']['), '_', $name);
+        $idname = createValidId($name);
         if ($this->default == 0) {
             $this->default = time();
         }
@@ -99,7 +100,7 @@ class popupdatetimecontrol extends formcontrol
         $img .= "\n";
 
         $html = "";
-        $html .= '<input type="hidden" name="' . $name . '" id="' . $idname . '" value="' . ($this->default) . '" />';
+        $html .= '<input type="hidden" name="' . $name . '" id="' . $idname . '" value="' . (date('n/j/Y H:i',$this->default)) . '" />';
         $html .= "\n";
         $html .= '<span class="';
         if ($this->disabled) {
@@ -194,9 +195,10 @@ class popupdatetimecontrol extends formcontrol
                     step: 15,
                     dayOfWeekStart: " . DISPLAY_START_OF_WEEK . ",
                     onChangeDateTime:function(dp,input){
+                        $('#" . $idname . "').val(input.val());
                         $('#" . $idname . "_span').html(input.val());
                     }
-                  });
+                });
             });
             $('#J_popup_closeable_" . $idname . "').click(function(){
                 $('#" . $idname . "_span').datetimepicker('show');
@@ -205,7 +207,6 @@ class popupdatetimecontrol extends formcontrol
         expJavascript::pushToFoot(
             array(
                 "unique" => 'popcal' . $idname,
-//                "yui3mods" => 1,
                 "jquery"   => "jquery.datetimepicker",
                 "content" => $script,
             )
@@ -215,9 +216,14 @@ class popupdatetimecontrol extends formcontrol
 
     static function parseData($original_name, $formvalues)
     {
-        if (!isset($formvalues[$original_name . '_disabled'])) {
-//			return strtotime($formvalues[$original_name]);
-            return $formvalues[$original_name];
+//        if (!isset($formvalues[$original_name . '_disabled'])) {
+////			return strtotime($formvalues[$original_name]);
+//            return $formvalues[$original_name];
+//        } else {
+//            return 0;
+//        }
+        if (!empty($formvalues[$original_name])) {
+            return strtotime($formvalues[$original_name]);
         } else {
             return 0;
         }
@@ -233,6 +239,8 @@ class popupdatetimecontrol extends formcontrol
      */
     static function templateFormat($db_data, $ctl)
     {
+        if (empty($db_data))
+            return gt('No Date Set');
         if ($ctl->showtime) {
 //			return strftime(DISPLAY_DATETIME_FORMAT,$db_data);
             $datetime = strftime(DISPLAY_DATETIME_FORMAT, $db_data);
@@ -262,8 +270,8 @@ class popupdatetimecontrol extends formcontrol
         $form->register("identifier", gt('Identifier/Field'), new textcontrol($object->identifier));
         $form->register("caption", gt('Caption'), new textcontrol($object->caption));
         $form->register("showtime", gt('Show Time'), new checkboxcontrol($object->showtime, false));
-
-        $form->register("submit", "", new buttongroupcontrol(gt('Save'), "", gt('Cancel'), "", 'editable'));
+        if (!expJavascript::inAjaxAction())
+            $form->register("submit", "", new buttongroupcontrol(gt('Save'), "", gt('Cancel'), "", 'editable'));
         return $form;
     }
 
@@ -274,7 +282,7 @@ class popupdatetimecontrol extends formcontrol
             $object->default = 0;
         }
         if ($values['identifier'] == "") {
-            $post = $_POST;
+            $post = expString::sanitize($_POST);
             $post['_formError'] = gt('Identifier is required.');
             expSession::set("last_POST", $post);
             return null;

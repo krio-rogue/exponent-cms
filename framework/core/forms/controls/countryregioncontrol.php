@@ -2,7 +2,7 @@
 
 ##################################################
 #
-# Copyright (c) 2004-2014 OIC Group, Inc.
+# Copyright (c) 2004-2016 OIC Group, Inc.
 #
 # This file is part of Exponent
 #
@@ -31,7 +31,6 @@ class countryregioncontrol extends formcontrol {
 	var $maxlength = "";
     var $include_blank = false;
     var $type = 'select';
-    var $multiple = false;
 
 	static function name() { return "Country / Region Selector"; }
 

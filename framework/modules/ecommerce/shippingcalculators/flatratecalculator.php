@@ -2,7 +2,7 @@
 
 ##################################################
 #
-# Copyright (c) 2004-2014 OIC Group, Inc.
+# Copyright (c) 2004-2016 OIC Group, Inc.
 #
 # This file is part of Exponent
 #
@@ -27,26 +27,32 @@ class flatratecalculator extends shippingcalculator {
 	 */
 	//overridden methods:
 	public function name() { return gt('Flat Rate'); }
-	public function description() { return gt('Flat Rate shipping calculator - one rate for all orders'); }
-	public function hasUserForm() { return true; }
-	public function hasConfig() { return true; }
-	public function addressRequired() { return true; }
-	public function isSelectable() { return true; }
+	public function description() { return gt('Flat Rate shipping calculator - single rate for entire order'); }
+    public function addressRequired() { return false; }
 
     public $shippingmethods = array("01"=>"Flat Rate");
 
     public function getRates($order) {        
-	    $rates = array('01'=>array('id'=>'01','title'=>$this->shippingmethods['01'],'cost'=>$this->configdata['rate']));
+	    $rates = array(
+            '01'=>array(
+                'id'=>'01',
+                'title'=>$this->shippingmethods['01'],
+                'cost'=>$this->configdata['rate']
+            )
+        );
 	    return $rates;
     }	
     
-   	public function configForm() { 
-   	    return BASE.'framework/modules/ecommerce/shippingcalculators/views/flatratecalculator/configure.tpl';
-   	}
+//   	public function configForm() {
+//   	    return BASE.'framework/modules/ecommerce/shippingcalculators/views/flatratecalculator/configure.tpl';
+//   	}
 	
 	//process config form
 	function parseConfig($values) {
-	    $config_vars = array('rate');
+	    $config_vars = array(
+            'rate'
+        );
+        $config = array();
 	    foreach ($config_vars as $varname) {
 	        if ($varname == 'rate') {
 	            $config[$varname] = isset($values[$varname]) ? expUtil::currency_to_float($values[$varname]) : null;
@@ -62,6 +68,7 @@ class flatratecalculator extends shippingcalculator {
 	function availableMethods() {
 	    return $this->shippingmethods;
 	}
+
 }
 
 ?>

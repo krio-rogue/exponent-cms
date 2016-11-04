@@ -1,5 +1,5 @@
 {*
- * Copyright (c) 2004-2014 OIC Group, Inc.
+ * Copyright (c) 2004-2016 OIC Group, Inc.
  *
  * This file is part of Exponent
  *
@@ -26,6 +26,9 @@
         {if $permissions.create}
             {icon class=add action=edit rank=1 text="Add a Slide"|gettext}
             {icon class=add action=multi_add title="Quickly Add Many Images"|gettext text="Add Multiple Images"|gettext}
+        {/if}
+        {if $permissions.delete}
+            {icon class=delete action=delete_multi title="Delete Many Images"|gettext text="Delete Multiple Images"|gettext onclick='null;'}
         {/if}
         {if $permissions.manage}
             {if !$config.disabletags}
@@ -76,7 +79,7 @@
                     {*{if $config.quality==100}*}
                         {*<img src="{$slide->expFile[0]->url}" class="slide-image" />*}
                     {*{else}*}
-                        {img file_id=$slide->expFile[0]->id w=1000 aoe=1 class="slide-image" far=TL f=jpeg q=$quality|default:75}
+                        {img file_id=$slide->expFile[0]->id w=1000 aoe=1 class="slide-image" far=TL f=jpeg q=$quality|default:75 alt=$slide->alt}
                     {*{/if}*}
                     {if $slide->link}
                         </a>

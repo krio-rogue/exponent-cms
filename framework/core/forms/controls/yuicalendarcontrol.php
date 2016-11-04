@@ -2,7 +2,7 @@
 
 ##################################################
 #
-# Copyright (c) 2004-2014 OIC Group, Inc.
+# Copyright (c) 2004-2016 OIC Group, Inc.
 #
 # This file is part of Exponent
 #
@@ -67,7 +67,7 @@ class yuicalendarcontrol extends formcontrol {
 //    }
 
     function controlToHTML($name, $label = null) {
-        $idname = str_replace(array('[',']',']['),'_',$name);
+        $idname = createValidId($name);
         if (is_numeric($this->default)) {
             $default = date('m/d/Y', $this->default);
         } else {
@@ -85,7 +85,7 @@ class yuicalendarcontrol extends formcontrol {
         ";
 
         $script = "
-            YUI(EXPONENT.YUI3_CONFIG).use('calendar','datatype-date','node-event-simulate',function(Y) {
+            YUI(EXPONENT.YUI3_CONFIG).use('*',function(Y) {
 //            YUI(EXPONENT.YUI3_CONFIG).use('calendar','datatype-date','gallery-input-calendar-sync','event-valuechange',function(Y) {
                 // Create a new instance of calendar, placing it in
                 // #mycalendar container, setting its width to 340px,
@@ -146,16 +146,20 @@ class yuicalendarcontrol extends formcontrol {
 
         expJavascript::pushToFoot(array(
             "unique"  => 'zzyuical-' . $idname,
-            "yui3mods"=> 1,
+            "yui3mods"=> "calendar,datatype-date,node-event-simulate",
             "content" => $script,
         ));
         return $html;
     }
 
     static function parseData($original_name, $formvalues) {
-        if (!empty($formvalues[$original_name])) {
+        if (!empty($formvalues[$original_name]) && is_string($formvalues[$original_name])) {
             return strtotime($formvalues[$original_name]);
-        } else return 0;
+        } elseif (is_int($formvalues[$original_name])) {
+            return $formvalues[$original_name];
+        } else {
+            return 0;
+        }
     }
 
     /**
@@ -191,7 +195,8 @@ class yuicalendarcontrol extends formcontrol {
         $form->register("caption",gt('Caption'), new textcontrol($object->caption));
         $form->register("showtime",gt('Show Time'), new checkboxcontrol($object->showtime,false));
 //        $form->register("is_hidden", gt('Make this a hidden field on initial entry'), new checkboxcontrol(!empty($object->is_hidden),false));
-        $form->register("submit","",new buttongroupcontrol(gt('Save'),"",gt('Cancel'),"",'editable'));
+        if (!expJavascript::inAjaxAction())
+            $form->register("submit","",new buttongroupcontrol(gt('Save'),"",gt('Cancel'),"",'editable'));
         return $form;
     }
 
@@ -201,7 +206,7 @@ class yuicalendarcontrol extends formcontrol {
             $object->default = 0;
         }
         if ($values['identifier'] == "") {
-            $post               = $_POST;
+            $post = expString::sanitize($_POST);
             $post['_formError'] = gt('Identifier is required.');
             expSession::set("last_POST", $post);
             return null;

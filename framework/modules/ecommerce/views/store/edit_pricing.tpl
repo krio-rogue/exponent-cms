@@ -1,5 +1,5 @@
 {*
- * Copyright (c) 2004-2014 OIC Group, Inc.
+ * Copyright (c) 2004-2016 OIC Group, Inc.
  *
  * This file is part of Exponent
  *
@@ -14,6 +14,9 @@
  *}
 
 {control type="hidden" name="tab_loaded[pricing]" value=1}
+{if count($record->childProduct)}
+    <h4><em>({'Price is determined by Child products.'|gettext})</em></h4>
+{/if}
 {group label="General Pricing"|gettext}
     <table>
         <tr>

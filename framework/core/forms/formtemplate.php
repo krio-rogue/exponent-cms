@@ -2,7 +2,7 @@
 
 ##################################################
 #
-# Copyright (c) 2004-2014 OIC Group, Inc.
+# Copyright (c) 2004-2016 OIC Group, Inc.
 #
 # This file is part of Exponent
 #
@@ -17,7 +17,6 @@
 ##################################################
 /** @define "BASE" "../../.." */
 
-//FIXME DEPRECATED
 /**
  * Form Template Wrapper
  *
@@ -25,6 +24,7 @@
  *
  * @package Subsystems-Forms
  * @subpackage Template
+ * @deprecated
  */
 class formtemplate extends basetemplate {  //FIXME only used by calendarmodule for feedback forms
 

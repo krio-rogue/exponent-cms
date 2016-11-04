@@ -1,5 +1,9 @@
 /* announcement view for news module */
-.news .announcement h2 {
+.news.announcement h2,
+.news.announcement h3,
+.news.announcement h4,
+.news.announcement h5,
+.news.announcement h6 {
 	text-align : center;
 }
 
@@ -20,6 +24,10 @@
 	box-shadow            : 0px 0px 8px rgba(0, 0, 0, 0.5);
 }
 
-.news.announcement .item-actions a {
-	color : #60a165 !important;
+.news.announcement .item.announcement.featured {
+	background-color: #ffd3c9;
 }
+
+/*.news.announcement .item-actions a {*/
+	/*color : #60a165 !important;*/
+/*}*/

@@ -2,7 +2,7 @@
 
 ##################################################
 #
-# Copyright (c) 2004-2014 OIC Group, Inc.
+# Copyright (c) 2004-2016 OIC Group, Inc.
 #
 # This file is part of Exponent
 #
@@ -28,6 +28,8 @@ return array(
 	'orders_id'=>array(
 		DB_FIELD_TYPE=>DB_DEF_ID,
 		DB_INDEX=>10),
+
+    // billing address
 	'addresses_id'=>array(
         DB_FIELD_TYPE=>DB_DEF_ID),
 	'firstname'=>array(
@@ -69,6 +71,8 @@ return array(
 	'email'=>array(
 		DB_FIELD_TYPE=>DB_DEF_STRING,
 		DB_FIELD_LEN=>150),
+
+    // billing transaction
 	'billingcalculator_id'=>array(
 		DB_FIELD_TYPE=>DB_DEF_ID),
 	'billing_cost'=>array(

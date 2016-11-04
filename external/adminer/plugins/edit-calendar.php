@@ -1,7 +1,7 @@
 <?php
 ##################################################
 #
-# Copyright (c) 2004-2014 OIC Group, Inc.
+# Copyright (c) 2004-2016 OIC Group, Inc.
 #
 # This file is part of Exponent
 #
@@ -26,18 +26,16 @@
 class AdminerEditCalendar {
 	/** @access protected */
 	var $prepend, $langPath;
-	
+
 	/**
 	* @param string text to append before first calendar usage
 	* @param string path to language file, %s stands for language code
 	*/
-	function AdminerEditCalendar($prepend = null, $langPath = null) {
-        $prepend = "<script type='text/javascript' src='".JQUERY_SCRIPT."'></script>\n<script type='text/javascript' src='".JQUERYUI_SCRIPT."'></script>\n<script type='text/javascript' src='".JQUERY_RELATIVE."addons/js/jquery-ui-timepicker-addon.js'></script>\n<link rel='stylesheet' type='text/css' href='".JQUERYUI_CSS."'>\n<link rel='stylesheet' type='text/css' href='".JQUERY_RELATIVE."addons/css/jquery-ui-timepicker-addon.css'>\n";
-        $langPath = JQUERY_RELATIVE."js/ui/i18n/jquery.ui.datepicker-%s.js";
-        $this->prepend = $prepend;
+    function __construct($prepend = "<script type='text/javascript' src='jquery-ui/jquery.js'></script>\n<script type='text/javascript' src='jquery-ui/jquery-ui.js'></script>\n<script type='text/javascript' src='jquery-ui/jquery-ui-timepicker-addon.js'></script>\n<link rel='stylesheet' type='text/css' href='jquery-ui/jquery-ui.css'>\n", $langPath = "jquery-ui/i18n/jquery.ui.datepicker-%s.js") {
+		$this->prepend = $prepend;
 		$this->langPath = $langPath;
 	}
-	
+
 	function head() {
 		echo $this->prepend;
 		if ($this->langPath && function_exists('get_lang')) { // since Adminer 3.2.0
@@ -50,9 +48,14 @@ class AdminerEditCalendar {
 		}
 	}
 
+	function selectVal(&$val, $link, $field) {
+		if (preg_match("~date|time|_at|publish|_accessed|posted|created_on|last_|expires|shipped|purchased|updated|signup_cutoff|event~", $field["field"])) {
+			$val = '<div title="'.htmlentities(html_entity_decode(strftime('%m/%d/%y %I:%M%p',$val)),true).'">'.$val.'</div>';
+		}
+	}
+
 	function editInput($table, $field, $attrs, $value) {
-//		if (ereg("date|time", $field["type"])) {
-		if (preg_match("~date|_at|publish|_accessed|posted|timestamp|eventstart|eventend~", $field["field"])) {
+		if (preg_match("~date|time|_at|publish|_accessed|posted|created_on|last_|expires|shipped|purchased|updated|signup_cutoff|event~", $field["field"])) {
 			$dateFormat = "changeYear: true,changeMonth: true,defaultDate: null,dateFormat: '@',showOtherMonths: true,selectOtherMonths: true,showOn: 'both',buttonImage: '".PATH_RELATIVE."framework/core/forms/controls/assets/calendar/calbtn.gif',buttonImageOnly: true,
 			    beforeShow: function(input,inst){
 			        jQuery('#fields-" . js_escape($field['field']) . "c').val(parseInt(jQuery('#fields-" . js_escape($field['field']) . "').val()) * 1000);
@@ -84,11 +87,12 @@ class AdminerEditCalendar {
 			return "<input id='fields-" . h($field["field"]) . "' value='" . h($value) . "'" . (+$field["length"] ? " maxlength='" . (+$field["length"]) . "'" : "") . $attrs. ">".
                 "<input type=hidden id='fields-" . h($field["field"]) . "c' value='" . h($value) . "'" . (+$field["length"] ? " maxlength='" . (+$field["length"]) . "'" : "") . $attrs. ">".
                 "<script type='text/javascript'>jQuery('#fields-" . js_escape($field["field"]) . "c')."
-                    . ((preg_match("~eventstart~", $field["field"]) || preg_match("~eventend~", $field["field"])) ? "timepicker({ $timeFormat })"
-                    : (preg_match("~_at|publish|_accessed|posted|timestamp~", $field["field"]) ? "datetimepicker({ $datetimeFormat })"
-                    : "datepicker({ $dateFormat })"
-                )) . ";</script>";
+                    . ((preg_match("~eventstart|eventend~", $field["field"])) ? "timepicker({ $timeFormat })" : "datetimepicker({ $datetimeFormat })"
+//                    : (preg_match("~_at|publish|_accessed|posted|time~", $field["field"]) ? "datetimepicker({ $datetimeFormat })"
+//				: "datepicker({ $dateFormat })"
+//			)) . ";</script>";
+			) . ";</script>";
 		}
 	}
-	
+
 }

@@ -2,7 +2,7 @@
 
 ##################################################
 #
-# Copyright (c) 2004-2014 OIC Group, Inc.
+# Copyright (c) 2004-2016 OIC Group, Inc.
 #
 # This file is part of Exponent
 #
@@ -26,16 +26,23 @@ if (!defined('EXPONENT')) exit('');
  */
 abstract class formcontrol {
 
+    var $id = null;
+    var $name = "";
 	var $accesskey = "";
+    var $class = "";
 	var $default = "";
 	var $disabled = false;
-    var $required = false;  
+    var $required = false;
+    var $multiple = false;
+    var $flip = false;
     var $is_hidden = false;
     var $focus = false;
 	var $tabindex = -1;
 	var $inError = 0; // This will ONLY be set by the parent form.
 	var $type = 'text';
-    var $horizontal = 0;
+    var $horizontal = false;
+    var $horizontal_top = false;
+    var $jsHooks = array();
 
 	static function name() { return "formcontrol"; }
 
@@ -81,8 +88,8 @@ abstract class formcontrol {
     function toHTML($label,$name) {
         if (!empty($this->_ishidden)) {
             $this->name = empty($this->name) ? $name : $this->name;
-            $inputID  = (!empty($this->id)) ? ' id="'.$this->id.'"' : "";
-    		$html = '<input type="hidden"' . $inputID . ' name="' . $this->name . '" value="'.$this->default.'"';
+            $idname  = (!empty($this->id)) ? ' id="'.$this->id.'"' : "";
+    		$html = '<input type="hidden"' . $idname . ' name="' . $this->name . '" value="'.$this->default.'"';
     		$html .= ' />';
     		return $html;
         } else {
@@ -90,13 +97,15 @@ abstract class formcontrol {
                 $divID = ' id="' . $this->id . 'Control"';
                 $for = ' for="' . $this->id . '"';
             } else {
-//		    $divID  = '';
                 $divID = ' id="' . $name . 'Control"';
-                $for = '';
+//                $for = '';
+                $for = ' for="' . $name . '"';
             }
 
             $disabled = $this->disabled != 0 ? "disabled='disabled'" : "";
             $class = empty($this->class) ? '' : $this->class;
+            if ($this->horizontal_top)
+                $class .= ' col-sm-10 ';
 
             $html = "<div" . $divID . " class=\"" . $this->type . "-control control form-group " . $class . $disabled;
             $html .= !empty($this->required) ? ' required">' : '">';
@@ -108,10 +117,13 @@ abstract class formcontrol {
             } else {
                 $labeltag = $label;
             }
-
-            $html .= (!empty($label)) ? "<label" . $for . " class=\"control-label" . (($this->horizontal == 1) ? ' col-sm-2' : '') . "\">" . $labeltag . "</label>" : "";
+            if (empty($this->flip)) {
+                $html .= (!empty($label)) ? "<label" . $for . " class=\"".(bs3()?"control-label":"") . (($this->horizontal == 1)?' col-sm-2':'') ."\">" . $labeltag . "</label>" : "";
             $html .= $this->controlToHTML($name, $label);
-
+            } else {
+                $html .= $this->controlToHTML($name, $label);
+                $html .= (!empty($label)) ? "<label" . $for . " class=\"".(bs3()?"control-label":"")."\">" . $labeltag . "</label>" : "";
+            }
             //$html .= "</label>";
             $html .= "</div>";
             return $html;

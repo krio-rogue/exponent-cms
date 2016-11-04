@@ -1,5 +1,5 @@
 {*
- * Copyright (c) 2004-2014 OIC Group, Inc.
+ * Copyright (c) 2004-2016 OIC Group, Inc.
  *
  * This file is part of Exponent
  *
@@ -35,7 +35,7 @@
 {foreach from=$page['photo']->records item=mod key=src name=mod}
         <tr class="{cycle values="even,odd"}">
             <td width="20">
-                {control type="checkbox" name="photo_aggregate[]" value=$mod->src checked=$config.photo_aggregate}
+                {control type="checkbox" name="photo_aggregate[]" value=$mod->src checked=in_array($mod->src,$config.photo_aggregate)}
             </td>
             <td>
                 {$mod->title}
@@ -45,7 +45,7 @@
             </td>
         </tr>
 {foreachelse}
-        <tr><td colspan=3>{'There doesn\'t appear to be any other modules installed that you can aggregate data from'|gettext}</td></tr>
+        <tr><td colspan=3>{'There doesn\'t appear to be any modules installed that you can aggregate data from'|gettext}</td></tr>
 {/foreach}
     </tbody>
 </table>

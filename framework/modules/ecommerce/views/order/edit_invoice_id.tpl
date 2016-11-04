@@ -1,5 +1,5 @@
 {*
- * Copyright (c) 2004-2014 OIC Group, Inc.
+ * Copyright (c) 2004-2016 OIC Group, Inc.
  *
  * This file is part of Exponent
  *
@@ -14,7 +14,7 @@
  *}
 
 <div class="module order edit">
-    <h1>{'Editing Invoice Number'|gettext}</h1>
+    <h1>{'Editing order invoice number'|gettext}</h1>
     <blockquote>
         {'Invoice #\'s should be numeric and although you may select any number you\'d like, ideally it should fall in line with the current sequence of invoice #\'s.'|gettext}
     </blockquote>

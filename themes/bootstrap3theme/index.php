@@ -1,5 +1,5 @@
 <!DOCTYPE HTML>
-<html>
+<html lang="<?php echo (substr(LOCALE,0,2)) ?>">
     <head>
         <?php
         if (ENHANCED_STYLE == 1) {
@@ -27,6 +27,7 @@
             "lessvars"=>array(
                 'menu_height'=>MENU_HEIGHT,
                 'menu_width'=>MENU_WIDTH,
+                'menu_align_center'=>(MENU_ALIGN == 'center'),
             ),
             "css_links"=>true,
             "css_theme"=>true
@@ -39,7 +40,7 @@
             <?php expTheme::module(array("controller"=>"navigation","action"=>"showall","view"=>"showall_Flydown")); ?>
         </div>
         <!-- main page body -->
-        <div class="container<?php echo (STYLE_WIDTH) ?> <?php echo (MENU_LOCATION) ? 'fixedmenu' : '' ?>">
+        <div class="container<?php echo (STYLE_WIDTH) ?> <?php echo (MENU_LOCATION == 'fixed-top') ? 'fixedmenu' : '' ?>">
             <!-- optional flyout sidebar container -->
             <?php if (FLYOUT_SIDEBAR != 0) expTheme::module(array("controller"=>"navigation","action"=>"showall","view"=>"showall_flyout_sidebar","source"=>"navsidebar","chrome"=>true)); ?>
             <section id="main" class="row">

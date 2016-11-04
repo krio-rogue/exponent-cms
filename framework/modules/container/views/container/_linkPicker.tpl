@@ -1,5 +1,5 @@
 {*
- * Copyright (c) 2004-2014 OIC Group, Inc.
+ * Copyright (c) 2004-2016 OIC Group, Inc.
  *
  * This file is part of Exponent
  *
@@ -13,7 +13,7 @@
  *
  *}
 
-{if $container->info.clickable}
+{if $container->info.clickable && $container->id}
 <div id="module{$container->id}" class="exp-container-module-wrapper">
 	<div class="{if bs3()}exp-container-chrome-module exp-{/if}container-chrome module-chrome">
 		{* <a style="text-align:center;display:block;font-size:11px;padding-top:2px" href="{$dest}&ss={$container->info.source}&sm={$container->info.class}"> *}

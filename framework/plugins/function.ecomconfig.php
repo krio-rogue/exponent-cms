@@ -2,7 +2,7 @@
 
 ##################################################
 #
-# Copyright (c) 2004-2014 OIC Group, Inc.
+# Copyright (c) 2004-2016 OIC Group, Inc.
 #
 # This file is part of Exponent
 #
@@ -34,12 +34,20 @@
  * @return null|string
  */
 function smarty_function_ecomconfig($params,&$smarty) {
-        $ecc = new ecomconfig();
-        $retval = $ecc->getConfig($params['var']);
-        if (empty($retval)) return $params['default'];
-        else {
-            if ($params['unescape']) $retval = stripcslashes($retval);
+    $retval = ecomconfig::getConfig($params['var']);
+    if (empty($retval))
+        return $params['default'];
+    else {
+        if ($params['unescape'])
+            $retval = stripcslashes($retval);
+        if ($params['json']) {
+            $retval = str_replace('\r\n','', $retval = json_encode($retval));
+        }
+        if ($params['assign']) {
+            $smarty->assign($params['assign'], $retval);
+        } else {
             return $retval;
         }
+    }
 }                           
 ?>

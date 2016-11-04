@@ -2,7 +2,7 @@
 
 ##################################################
 #
-# Copyright (c) 2004-2014 OIC Group, Inc.
+# Copyright (c) 2004-2016 OIC Group, Inc.
 #
 # This file is part of Exponent
 #
@@ -18,7 +18,7 @@
 
 /**
  * @subpackage Models
- * @package Core
+ * @package Modules
  */
 class order_discounts extends expRecord {
     public $table = 'order_discounts';
@@ -34,7 +34,7 @@ class order_discounts extends expRecord {
         global $router;
         /*$discount = new discounts($this->discounts_id);
         $validateDiscountMessage = $discount->validateDiscount();*/        
-        $validateDiscountMessage = $this->discounts->validateDiscount();
+        $validateDiscountMessage = $this->discounts->validateDiscount();  //FIXME this has a global $order
         
         if ($validateDiscountMessage == "")
         {
@@ -52,7 +52,8 @@ class order_discounts extends expRecord {
         
     function caclulateDiscount()
     {
-        global $order;
+        global $order; //FIXME we do NOT want the global $order, but it's not used
+
         $discount = new discounts($this->discounts_id);
         //check discount type and calculate accordingly
         //eDebug($this);   

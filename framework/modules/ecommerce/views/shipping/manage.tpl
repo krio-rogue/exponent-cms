@@ -1,5 +1,5 @@
 {*
- * Copyright (c) 2004-2014 OIC Group, Inc.
+ * Copyright (c) 2004-2016 OIC Group, Inc.
  *
  * This file is part of Exponent
  *
@@ -20,7 +20,7 @@
 <div class="module shipping manage">
     <h1>{'Manage Shipping Options'|gettext}</h1>
     <blockquote>
-        {'This page allows you to enable different shipping options for customers on your webstore.'|gettext}
+        {'This page allows you to enable different shipping options (known as shipping calculators) for customers on your webstore.'|gettext}
     </blockquote>
     <table class="exp-skin-table">
         <thead>

@@ -2,7 +2,7 @@
 
 ##################################################
 #
-# Copyright (c) 2004-2014 OIC Group, Inc.
+# Copyright (c) 2004-2016 OIC Group, Inc.
 #
 # This file is part of Exponent
 #
@@ -40,10 +40,10 @@ if (!defined('EXPONENT')) {
 
 <?php
 if (!defined('LANGUAGE')) {
-    if (empty($_POST['sc']['LANGUAGE'])) {
-        $_POST['sc']['LANGUAGE'] = 'English - US';
+    if (empty($_REQUEST['sc']['LANGUAGE'])) {
+        $_REQUEST['sc']['LANGUAGE'] = 'English - US';
     }
-    define('LANGUAGE', $_POST['sc']['LANGUAGE']);
+    define('LANGUAGE', $_REQUEST['sc']['LANGUAGE']);
 }
 ?>
 

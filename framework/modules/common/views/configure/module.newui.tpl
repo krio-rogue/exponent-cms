@@ -1,5 +1,5 @@
 {*
- * Copyright (c) 2004-2014 OIC Group, Inc.
+ * Copyright (c) 2004-2016 OIC Group, Inc.
  *
  * This file is part of Exponent
  *
@@ -77,7 +77,6 @@
 {if !$hcview}
     {script unique="edit-module" jquery=1}
     {literal}
-        //YUI(EXPONENT.YUI_CONFIG).use("node", "event", "node-event-delegate", "io", "json-parse", function (Y) {
         $(document).ready(function() {
             var modpicker = $('#modcntrol'); // the module selection dropdown
             var current_action = {/literal}{if $container->action}"{$container->action}"{else}false{/if}{literal}; //Do we have an existing action
@@ -89,6 +88,7 @@
             actionpicker.on('change', function() {
                 viewpicker.removeAttr('disabled');
                 $.ajax({
+                    headers: { 'X-Transaction': 'Getting Action Views'},
                     url: EXPONENT.PATH_RELATIVE+'index.php?controller=container&action=getactionviews&ajax_action=1&mod={/literal}{$container->internal->mod}{literal}' + '&act=' + actionpicker.val() + '&actname=' + actionpicker.val(),
                     success: function(o){
                         var opts = $.parseJSON(o);
@@ -104,10 +104,11 @@
                         viewpicker.val(0);
 
                         $.ajax({
+                            headers: { 'X-Transaction': 'Getting View Configs'},
                             url: EXPONENT.PATH_RELATIVE + "index.php?controller=file&action=get_module_view_config&ajax_action=1&mod={/literal}{$controller}{literal}&view=" + viewpicker.val(),
                             success: handleSuccessView
                         });
-                        $('#moduleViewConfig').html($('<div id="loadingview" class="loadingdiv" style="width:40%">{/literal}{"Loading Form"|gettext}{literal}</div>'));
+                        $('#moduleViewConfig').html($('{/literal}{loading title="Loading Form"|gettext}{literal}'));
                     }
                 });
             });
@@ -116,10 +117,11 @@
             viewpicker.on('change', function (e) {
                 if (e.target.value != 0) {
                     $.ajax({
+                        headers: { 'X-Transaction': 'Getting View Configs'},
                         url: EXPONENT.PATH_RELATIVE + "index.php?controller=file&action=get_module_view_config&ajax_action=1&mod={/literal}{$controller}{literal}&view=" + e.target.value,
                         success: handleSuccessView
                     });
-                    $('#moduleViewConfig').html($('<div id="loadingview" class="loadingdiv" style="width:40%">{/literal}{"Loading Form"|gettext}{literal}</div>'));
+                    $('#moduleViewConfig').html($('{/literal}{loading title="Loading Form"|gettext}{literal}'));
                 }
             });
 
@@ -127,19 +129,16 @@
             var handleSuccessView = function (o, ioId) {
                 if (o) {
                     $('#moduleViewConfig').html(o);
-                    $('#moduleViewConfig script').each(function (n) {
-                        if (!n.get('src')) {
-                            eval(n.get('innerHTML'));
+                    $('#moduleViewConfig script').each(function (k, n) {
+                        if (!$(n).attr('src')) {
+                            eval($(n).html);
                         } else {
-                            var url = n.get('src');
-                            if (url.indexOf("ckeditor")) {
-                                $.getScript(url);
-                            }
+                            var url = $(n).attr('src');
+                            $.getScript(url);
                         }
                     });
-                    $('#moduleViewConfig link').each(function (n) {
-                        var url = n.get('href');
-                        $("head").append("  <link href=\"&quot;" + url + "&quot;\" rel=\"stylesheet\" />");
+                    $('#moduleViewConfig link').each(function (k, n) {
+                        $("head").append("  <link href=\"" + $(n).attr('href') + "\" rel=\"stylesheet\" type=\"text/css\" />");
                     });
                 } else {
                     $('#moduleViewConfig #loadingview').remove();

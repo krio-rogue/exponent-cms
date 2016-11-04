@@ -1,5 +1,5 @@
 {*
- * Copyright (c) 2004-2014 OIC Group, Inc.
+ * Copyright (c) 2004-2016 OIC Group, Inc.
  *
  * This file is part of Exponent
  *
@@ -25,14 +25,17 @@
     <h3>{"Add RSS Feeds"|gettext}</h3>
     {*{control type="text" id="feedmaker" name="feedmaker" label="RSS Feed URL"|gettext}*}
     {control type=url id="feedmaker" name="feedmaker" label="RSS Feed URL"|gettext}
-    {if (BTN_SIZE == 'large')}
-        {$btn_size = ''}
+    {if $smarty.const.BTN_SIZE == 'large'}
+        {$btn_size = 'btn-lg'}
         {$icon_size = 'fa-lg'}
-    {elseif (BTN_SIZE == 'small')}
+    {elseif $smarty.const.BTN_SIZE == 'small'}
+        {$btn_size = 'btn-sm'}
+        {$icon_size = ''}
+    {elseif $smarty.const.BTN_SIZE == 'extrasmall'}
         {$btn_size = 'btn-xs'}
         {$icon_size = ''}
     {else}
-        {$btn_size = 'btn-sm'}
+        {$btn_size = ''}
         {$icon_size = 'fa-lg'}
     {/if}
     <a id="addtolist" class="btn btn-success {$btn_size}" href="#"><i class="fa fa-plus-circle {$icon_size}"></i> {'Add to list'|gettext}</a>{br}{br}
@@ -44,9 +47,9 @@
         <li id="norssfeeds">{'You don\'t have any RSS feeds configured'|gettext}</li>
     </ul>
 
-    {script unique="rssfeedpicker3" yui3mods=1}
+    {script unique="rssfeedpicker3" yui3mods="node"}
     {literal}
-    YUI(EXPONENT.YUI3_CONFIG).use('node', function(Y) {
+    YUI(EXPONENT.YUI3_CONFIG).use('*', function(Y) {
         if (Y.one('#rsspull-feeds').get('children').size() > 1) Y.one('#norssfeeds').setStyle('display','none');
         Y.one('#addtolist').on('click', function(e){
             e.halt();

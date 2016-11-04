@@ -2,7 +2,7 @@
 
 ##################################################
 #
-# Copyright (c) 2004-2014 OIC Group, Inc.
+# Copyright (c) 2004-2016 OIC Group, Inc.
 #
 # This file is part of Exponent
 #
@@ -53,7 +53,7 @@ if (!function_exists('smarty_function_message')) {
             $class = 'success';
         }
         $centered = empty($params['center']) ? '' : ' style="text-align:center"';
-        echo '<div class="alert alert-' . $class . $centered . '" role="alert">' . $text . '</div>';
+        echo '<div class="alert alert-', $class, $centered, '" role="alert">', $text, '</div>';
     }
 }
 

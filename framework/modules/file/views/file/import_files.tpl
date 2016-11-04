@@ -1,5 +1,5 @@
 {*
- * Copyright (c) 2004-2014 OIC Group, Inc.
+ * Copyright (c) 2004-2016 OIC Group, Inc.
  *
  * This file is part of Exponent
  *
@@ -20,7 +20,7 @@
 	</div>
     <div>
         {form action=import_files_process}
-            {control type=uploader name=file accept="application/x-gzip" label=gt('Files Archive')}
+            {control type=uploader name=file accept="application/x-gzip" label='Files Archive'|gettext}
             {control class=uploadfile type=buttongroup submit="Restore"|gettext}
         {/form}
     </div>

@@ -1,5 +1,5 @@
 {*
- * Copyright (c) 2004-2014 OIC Group, Inc.
+ * Copyright (c) 2004-2016 OIC Group, Inc.
  *
  * This file is part of Exponent
  *
@@ -23,9 +23,9 @@
         <strong>{'Right click on a tree item'|gettext}</strong> {'for a context menu of options.'|gettext}
     </blockquote>
     {permissions}
-        {if $user->is_admin || $user->is_acting_admin}
+        {if $user->isAdmin()}
                <div class="module-actions">
-                   {icon class="add" action=add_section parent='0' text='Create a New Top Level Page'|gettext}
+                   {icon class="add" action=edit_section parent='0' text='Create a New Top Level Page'|gettext}
                </div>
         {/if}
     {/permissions}
@@ -44,13 +44,14 @@
         $('#nav_jstree').jstree({
             'core' : {
                 'data' : {
-                    'url' : eXp.PATH_RELATIVE+"index.php?ajax_action=1&module=navigation&action=returnChildrenAsJSON2",
+                    'url' : eXp.PATH_RELATIVE+"index.php?ajax_action=1&module=navigation&action=returnChildrenAsJSON2&json=1",
                     'data' : function (node) {
                         return { 'id' : node.id };
                     }
                 },
                 'check_callback' : true,
                 'themes' : {
+                    'name': 'proton',
                     'responsive' : true,
                     'url' : true,
                     'dots' : false,
@@ -167,6 +168,7 @@
                                 var yesbtn = "{/literal}{"Delete Page"|gettext}{literal}";
                             }
                             BootstrapDialog.show({
+                                type: BootstrapDialog.TYPE_DANGER,
                                 title: "{/literal}{'Remove'|gettext}{literal} \""+obj.text+"\" {/literal}{'from hierarchy'|gettext}{literal}",
                                 message: message,
                                 buttons: [{

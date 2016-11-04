@@ -2,7 +2,7 @@
 
 ##################################################
 #
-# Copyright (c) 2004-2014 OIC Group, Inc.
+# Copyright (c) 2004-2016 OIC Group, Inc.
 #
 # This file is part of Exponent
 #
@@ -82,7 +82,7 @@ require_once("../../../../exponent.php");
                 }
             }
 
-            $funcNum = $_GET['CKEditorFuncNum'] ;
+            $funcNum = expString::sanitize($_GET['CKEditorFuncNum']);
             echo "<script type='text/javascript'>window.parent.CKEDITOR.tools.callFunction(".$funcNum.", '".$url."', '".$message."');</script>";
         ?>
     </head>

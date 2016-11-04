@@ -1,5 +1,5 @@
 {*
- * Copyright (c) 2004-2014 OIC Group, Inc.
+ * Copyright (c) 2004-2016 OIC Group, Inc.
  *
  * This file is part of Exponent
  *
@@ -25,9 +25,12 @@
     <div class="module-actions">
         {icon action=edit_zone class="add" text="Add a Tax Zone"|gettext}
     </div>
-    {*{control type=state name=state label="State/Province"|gettext value=$record->state}*}
-    {*{control type=country name=country label="Country"|gettext value=$record->country}*}
+    {*{control type=state name=state label="State/Province"|gettext default=$record->state}*}
+    {*{control type=country name=country label="Country"|gettext default=$record->country}*}
     {*{control type="countryregion" name=address label="Country/State"|gettext country_default=$record->country|default:223 region_default=$record->state includeblank="-- Choose a State --"|gettext}*}
     {control type="text" name="rate" label="Percentage Rate"|gettext value=$record->rate}
+    {control type="checkbox" name="shipping_taxed" label="Shipping cost is taxable"|gettext value=1 checked=$record->shipping_taxed}
+    {control type="checkbox" name="origin_tax" label="Tax is based on origin (store address)"|gettext value=1 checked=$record->origin_tax}
+    {control type="checkbox" name="inactive" label="Disable this tax rate"|gettext value=1 checked=$record->inactive}
     {control type="buttongroup" submit="Submit"|gettext cancel="Cancel"|gettext}
 {/form}

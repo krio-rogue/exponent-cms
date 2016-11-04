@@ -1,5 +1,5 @@
 {*
- * Copyright (c) 2004-2014 OIC Group, Inc.
+ * Copyright (c) 2004-2016 OIC Group, Inc.
  *
  * This file is part of Exponent
  *
@@ -26,11 +26,10 @@
             <span class="itemname"><strong>{$item->products_name}</strong></span>
 			 <div class="itembody">
 				{if $message.To}
-					{'To:'|gettext} {$message.To}
+					<strong>{'To'|gettext}:</strong> {$message.To}
 				{/if}
-				
 				{if $message.From}
-					{'From'|gettext}: {$message.From}
+					<strong>{'From'|gettext}:</strong> {$message.From}
 				{/if}
 				{br}{$message.Message|truncate:50:"..."}    
 			</div>

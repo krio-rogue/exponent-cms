@@ -1,5 +1,5 @@
 {*
- * Copyright (c) 2004-2014 OIC Group, Inc.
+ * Copyright (c) 2004-2016 OIC Group, Inc.
  *
  * This file is part of Exponent
  *
@@ -29,9 +29,9 @@
 <div class="vevent">
     <div class="image" style="padding:0px 10px 10px;float:left;overflow: hidden;">
     {if $product->expFile.mainimage[0]->url != ""}
-        {img file_id=$product->expFile.mainimage[0]->id alt=$product->image_alt_tag|default:"Image of `$product->title`" title="`$product->title`" class="large-img photo" id="enlarged-image"}
+        {img file_id=$product->expFile.mainimage[0]->id alt=$product->image_alt_tag|default:"Image of `$product->title`" title="`$product->title`" w=128}
     {else}
-        {img src="`$asset_path`images/no-image.jpg" alt=$product->image_alt_tag|default:"Image of `$product->title`" title="`$product->title`" class="large-img" id="enlarged-image"}
+        {img src="`$asset_path`images/no-image.jpg" alt=$product->image_alt_tag|default:"Image of `$product->title`" title="`$product->title`"}
     {/if}
         {clear}
     </div>
@@ -88,7 +88,7 @@
                 {*{control type="hidden" name="quick" value="1"}*}
                 {if $product->spacesLeft() && $product->signup_cutoff >= time()}
                     <span class="tickets">
-                      <span class="hoffer">
+                    <span class="hoffer">
                     <span class="label">{'Registration Closes:'|gettext} </span>
                     <span class="value pricevaliduntil">{$product->signup_cutoff|format_date}</span>{br}
                     <span class="label">{'Seats Available:'|gettext} </span>
@@ -126,10 +126,10 @@
                             {/if}
                         </div>
                         {clear}
-                            {if $product->multi_registrant}
+                        {if $product->multi_registrant}
                         </div>
-                          {/if}
-                      </span>
+                        {/if}
+                    </span>
                     </span>
                     {if $product->multi_registrant && $product->quantity_discount_num_items}
                         <div class="label">
@@ -141,22 +141,18 @@
                         </div>
                     {/if}
 
+                    {* NOTE display product options *}
                     {if $product->hasOptions()}
                         {clear}
-                        <h4>{'Options'|gettext}</h4>
+                        {*FIXME segregate these options using options.tpl?*}
                         <div class="product-options">
+                            <h4>{'Options'|gettext}</h4>
                             {control type=hidden name="ticket_types" value="1"}
                             {control type=hidden name="options_shown" value=$product->id}
                             {foreach from=$product->optiongroup item=og}
                                 {if $og->hasEnabledOptions()}
                                     <div class="option {cycle values="odd,even"}">
-                                        {if $og->allow_multiple}
-                                            {*{optiondisplayer product=$product options=$og->title view=checkboxes display_price_as=total selected=$params.options}*}
-                                            {optiondisplayer product=$product options=$og->title view=checkboxes display_price_as=diff selected=$params.options}
-                                        {else}
-                                            {*{optiondisplayer product=$product options=$og->title view=dropdown display_price_as=total selected=$params.options}*}
-                                            {optiondisplayer product=$product options=$og->title view=dropdown display_price_as=diff selected=$params.options}
-                                        {/if}
+                                        {optiondisplayer product=$product options=$og->title view=$og->allow_multiple display_price_as=diff selected=$params.options}
                                     </div>
                                 {/if}
                             {/foreach}
@@ -278,9 +274,9 @@
 </div>
 </div>
 
-{script unique="expanding-text" yui3mods="yui"}
+{script unique="expanding-text" yui3mods="anim-easing,node,anim"}
 {literal}
-    YUI().use("anim-easing","node","anim", function(Y) {
+    YUI(EXPONENT.YUI3_CONFIG).use('*', function(Y) {
         // This is for the terms and condition toogle
         if (Y.one('.more-text') != null) {
             var content = Y.one('.more-text').plug(Y.Plugin.NodeFX, {
@@ -313,9 +309,9 @@
 {/literal}
 {/script}
 {if $product->multi_registrant && $product->forms_id}
-{script unique="multi-registrants" yui3mods="yui"}
+{script unique="multi-registrants" yui3mods="anim-easing,node,io"}
 {literal}
-    YUI().use("anim-easing","node","io", function(Y) {
+    YUI(EXPONENT.YUI3_CONFIG).use('*', function(Y) {
         var addcounter = 0;
 
         function addRow(tableID) {

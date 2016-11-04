@@ -1,5 +1,5 @@
 {*
- * Copyright (c) 2004-2014 OIC Group, Inc.
+ * Copyright (c) 2004-2016 OIC Group, Inc.
  *
  * This file is part of Exponent
  *
@@ -40,26 +40,33 @@
                     {if $section->id == 0}
                         {control type=hidden name=parent value=$section->parent}
                     {else}
-                        {control type=dropdown name=parent label="Parent Page"|gettext items=navigationController::levelDropdownControlArray(0,0,array($section->id),($user->isAdmin() || $section->parent == 0),'manage') value=$section->parent}
+                        {control type=dropdown name=parent label="Parent Page"|gettext items=section::levelDropdownControlArray(0,0,array($section->id),($user->isAdmin() || $section->parent == 0),'manage') value=$section->parent}
                     {/if}
                     {control type="checkbox" name="new_window" label="Open in New Window"|gettext|cat:"?" checked=$section->new_window value=1 description='Should menu links for this page open in a new window/tab?'|gettext}
-                    {control type="dropdown" name="internal_id" label="Page"|gettext items=navigationController::levelDropdownControlArray(0,0,array(),false,'manage',false,false) value=$section->internal_id default=$smarty.const.SITE_DEFAULT_SECTION description='Select a page to associate this with'|gettext}
+                    {control type="dropdown" name="internal_id" label="Page"|gettext items=section::levelDropdownControlArray(0,0,array(),false,'manage',false,false) value=$section->internal_id default=$smarty.const.SITE_DEFAULT_SECTION description='Select a page to associate this with'|gettext}
                     {control type="checkbox" name="public" label="Public"|gettext|cat:"?" checked=$section->public|default:1 value=1 description='Should this page and menu item be visible to all users regardless of permissions?'|gettext}
-                    {control type="files" name="files" label="Icon"|gettext accept="image/*" value=$section->expFile limit=1 description='Select an icon to use for this menu item'|gettext}
+                    {group label='Menu Item Icon'|gettext}
+                        {control type="files" name="files" label="Graphic Icon"|gettext accept="image/*" value=$section->expFile limit=1 description='Select an icon to use with this menu item'|gettext}
+                        {if bs2()}
+                            {control type="dropdown" name="glyph" label="Font Icon"|gettext items=$glyphs includeblank='No Font Icon'|gettext style="font-family: 'FontAwesome', Helvetica;" value=$section->glyph description='or Select a font icon to use with this menu item'|gettext}
+                        {/if}
+                        {control type="checkbox" name="glyph_only" label="Display Icon Alone"|gettext checked=$section->glyph_only value=1 description='Should the menu only display the icon without the page name?'|gettext}
+                    {/group}
                 </div>
             </div>
         </div>
-        <div class="loadingdiv">{'Loading Pages'|gettext}</div>
+        {*<div class="loadingdiv">{'Loading Pages'|gettext}</div>*}
+        {loading title='Loading Pages'|gettext}
         {control type=buttongroup submit="Save"|gettext cancel="Cancel"|gettext}
     {/form}
-{script unique="configure" yui3mods=1}
+{script unique="configure" yui3mods="exptabs"}
 {literal}
     EXPONENT.YUI3_CONFIG.modules.exptabs = {
         fullpath: EXPONENT.JS_RELATIVE+'exp-tabs.js',
         requires: ['history','tabview','event-custom']
     };
 
-    YUI(EXPONENT.YUI3_CONFIG).use('exptabs', function(Y) {
+    YUI(EXPONENT.YUI3_CONFIG).use('*', function(Y) {
         Y.expTabs({srcNode: '#configure-tabs'});
         Y.one('#configure-tabs').removeClass('hide');
         Y.one('.loadingdiv').remove();

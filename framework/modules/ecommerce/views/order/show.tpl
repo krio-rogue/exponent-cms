@@ -1,5 +1,5 @@
 {*
- * Copyright (c) 2004-2014 OIC Group, Inc.
+ * Copyright (c) 2004-2016 OIC Group, Inc.
  *
  * This file is part of Exponent
  *
@@ -41,12 +41,11 @@
                     {/if}
                     {permissions}
                         {if $permissions.manage}
-                            {printer_friendly_link class="{button_style}" text="Print Packing Slip"|gettext view="show_packing" show=1}
                             <a class="{button_style}" href="{link controller='order' action='createReferenceOrder' id=$order->id}">{'Spawn Reference Order'|gettext}</a>
                         {/if}
                     {/permissions} 
                 </div>               
-                {include file="`$smarty.const.BASE`framework/modules/ecommerce/views/order/invoice.tpl"}
+                {exp_include file="invoice.tpl"}
             </div>
             <div id="ordhistory">
                 <h2>{'Order History'|gettext}</h2>
@@ -92,7 +91,7 @@
                     {foreach from=$order->order_status_changes item=change}
                         <tr style="border-bottom: 1px solid gray;"><td>
                         <strong>
-                        {'Status was changed from'|gettext} {selectvalue table='order_status' field="title" where="id=`$change->from_status_id`"}
+                        {'Status was changed'|gettext} {if $change->from_status_id}{'from'|gettext} {selectvalue table='order_status' field="title" where="id=`$change->from_status_id`"}{/if}
                         {'to'|gettext} {selectvalue table='order_status' field="title" where="id=`$change->to_status_id`"} {'on'|gettext} {$change->getTimestamp()} {'by'|gettext} {$change->getPoster()}
                         </strong>
                         {if $change->comment != ''}
@@ -110,6 +109,13 @@
                 </table>
             </div>
             <div id="shipinfo">
+                <div id="buttons">
+                    {permissions}
+                        {if $permissions.manage && $order->shipping_required}
+                            {printer_friendly_link class="{button_style}" text="Print Packing Slip"|gettext view="show_packing" show=1}
+                        {/if}
+                    {/permissions}
+                </div>
                 <h2>{"Shipping and Tracking"|gettext}</h2>
                  <table class="order-info">
                     <thead>
@@ -119,18 +125,79 @@
                     </thead>
                     <tbody>                         
                     {if $permissions.manage}
-                        <tr><td colspan="2">
-                        {if !$order->shipping_required}
-                            {'No Shipping Required'|gettext}
-                        {else}
-                            {form action=update_shipping}
-                                {control type="hidden" name="id" value=$order->id}
-                                {control type="text" name="shipping_tracking_number" label="Tracking #"|gettext value=$order->shipping_tracking_number}
-                                {control type="datetimecontrol" name="shipped" showtime=false label="Date Shipped"|gettext value=$order->shipped}
-                                {control type="buttongroup" submit="Save Shipping Info"|gettext}
-                            {/form}
+                    {if $order->shipping_required}
+                        <tr>
+                            <td>
+                                {if $shipping->shippingmethod->carrier != ''}
+                                <strong>{"Carrier"|gettext}:</strong>{br}
+                                {$shipping->shippingmethod->carrier}
+                                {/if}
+                            </td>
+                            <td>
+                                <strong>{"Shipping Method"|gettext}:</strong>{br}
+                                {$shipping->shippingmethod->option_title}
+                                {permissions}
+                                    <div class="item-permissions">
+                                        {if $permissions.edit_shipping_method && !$pf}
+                                            {icon class="edit" action=edit_shipping_method id=$order->id title='Edit Shipping Method'|gettext}
+                                        {/if}
+                                    </div>
+                                {/permissions}
+                            </td>
+                        </tr>
                         {/if}
-                        </td>
+                        <tr><td>
+                            {if !$order->shipping_required}
+                                {'No Shipping Required'|gettext}
+                            {else}
+                                {form action=update_shipping}
+                                    {control type="hidden" name="id" value=$order->id}
+                                    {control type="text" name="shipping_tracking_number" label="Tracking #"|gettext value=$order->shipping_tracking_number}
+                                    {control type="datetimecontrol" name="shipped" showtime=false label="Date Shipped"|gettext value=$order->shipped}
+                                    {control type="buttongroup" submit="Update Shipping Info"|gettext}
+                                {/form}
+                            {/if}
+                            </td>
+                            <td>
+                                {if $order->shipping_required}
+                                    <h4>{'Packages'|gettext}</h4>
+                                    <ol>
+                                        {foreach $order->shippingmethods as $sm}
+                                            {$sm->attachCalculator()}
+                                            <li>
+                                                <div>
+                                                    {$sm->carrier} - {$sm->option_title}
+                                                    {if empty($sm->shipping_options.shipment_status) || $sm->shipping_options.shipment_status == 'cancelled'}
+                                                        {if $sm->shipping_options.shipment_status == 'cancelled'}{$text='Re-Create Package'|gettext}{else}{$text='Create Package'|gettext}{/if}
+                                                        {icon class=add action=edit_parcel id=$sm->id text=$text title='Enter details about the items in the package'|gettext}
+                                                    {elseif $sm->shipping_options.shipment_status == 'created' && $sm->calculator->labelsEnabled()}
+                                                        {icon class=edit action=edit_label id=$sm->id text='Purchase Label'|gettext}
+                                                    {elseif $sm->shipping_options.shipment_status == 'purchased' && $sm->calculator->labelsEnabled()}
+                                                        {icon class=downloadfile action=download_label id=$sm->id text='Print Label'|gettext}
+                                                        {icon class=delete action=delete_label id=$sm->id text='Cancel Label'|gettext}
+                                                        {'Tracking'|gettext}: {$sm->shipping_options.shipment_tracking_number}
+                                                        {if $sm->calculator->pickupEnabled() && $sm->carrier != 'USPS'}
+                                                            {if ($sm->shipping_options.pickup_status != 'purchased')} {* FIXME *}
+                                                                {icon class=add action=edit_pickup id=$sm->id text='Request Pickup'|gettext}
+                                                            {elseif $sm->shipping_options.pickup_status == 'purchased'}
+                                                                {icon class=delete action=delete_pickup id=$sm->id text='Cancel Pickup'|gettext}
+                                                            {/if}
+                                                        {/if}
+                                                    {/if}
+                                                    {if $sm->calculator != null}
+                                                        {$msg = $sm->calculator->getPackageDetails($sm)}
+                                                        {if $msg}
+                                                            {pop id="pkg_details`$sm->id`" text="Package Details"|gettext title="Package Details"|gettext buttons="Close"|gettext}
+                                                                {$msg}
+                                                            {/pop}
+                                                        {/if}
+                                                    {/if}
+                                                </div>
+                                            </li>
+                                        {/foreach}
+                                    </ol>
+                                {/if}
+                            </td>
                         </tr>
                     {else}
                         <tr><td> 
@@ -145,6 +212,7 @@
                             {/if}
                         </td></tr>
                     {/if}
+                    </tbody>
                  </table>
             </div>
             <div id="billinfo">
@@ -154,7 +222,7 @@
                     <table class="order-info">
                     <thead>
                         <tr>
-                            <th colspan="2">{'Transaction state:'|gettext} {$bt->transaction_state}.</th>
+                            <th colspan="2">{'Transaction state:'|gettext} {$bt->transaction_state}</th>
                         </tr> 
                     </thead>
                     <tbody>     
@@ -175,7 +243,8 @@
                     {if $permissions.manage && $smarty.foreach.foo.first}
                         <tr>
                             <td>
-                            {if $bt->transaction_state == "authorized"}
+                            {* fixme this is where we'd do reAuthorize() or authorize() *}
+                            {if $bt->transaction_state == "authorized" || ($bt->billing_options->pending_reason == "authorization" && $bt->transaction_state == "error")}
                                 {if $bt->captureEnabled() == true}
                                     {form action=captureAuthorization}
                                         {control type="hidden" name="id" value=$order->id}
@@ -190,7 +259,7 @@
                                     {/form}
                                 {/if}
                             {/if}                            
-                            {if $bt->transaction_state == "complete"}
+                            {if $bt->transaction_state == "complete" || $bt->transaction_state == "paid"}
                                 {if $billing->calculator != null && $bt->creditEnabled() == true}
                                     {form action=creditTransaction}
                                         {control type="hidden" name="id" value=$order->id}
@@ -307,17 +376,18 @@
     {/permissions}
         </div>
     </div>
-    <div class="loadingdiv">{'Loading Order'|gettext}</div>
+    {*<div class="loadingdiv">{'Loading Order'|gettext}</div>*}
+    {loading title='Loading Order'|gettext}
 </div>
 
-{script unique="msgbox" yui3mods="1"}
+{script unique="msgbox" yui3mods="exptabs"}
 {literal}
     EXPONENT.YUI3_CONFIG.modules.exptabs = {
         fullpath: EXPONENT.JS_RELATIVE+'exp-tabs.js',
         requires: ['history','tabview','event-custom']
     };
 
-    YUI(EXPONENT.YUI3_CONFIG).use('exptabs', function(Y) {
+    YUI(EXPONENT.YUI3_CONFIG).use('*', function(Y) {
         Y.expTabs({srcNode: '#ordertabs'});
         Y.one('#ordertabs').removeClass('hide');
         Y.one('.loadingdiv').remove();

@@ -1,5 +1,5 @@
 {*
- * Copyright (c) 2004-2014 OIC Group, Inc.
+ * Copyright (c) 2004-2016 OIC Group, Inc.
  *
  * This file is part of Exponent
  *
@@ -38,10 +38,17 @@
         inputSelector: "#portfoliosearchinput",
         toggle: function(item, containsText) {
             // use a typically jQuery effect instead of simply showing/hiding the item element
-            if (containsText)
+            if (containsText) {
+                {/literal}{if $config.usecategories}
+                $(item).prev('h2.category').fadeIn();
+                {/if}{literal}
                 $(item).fadeIn();
-            else
+            } else {
+                {/literal}{if $config.usecategories}
+                $(item).prev('h2.category').fadeOut();
+                {/if}{literal}
                 $(item).fadeOut();
+            }
         }
     });
 {/literal}

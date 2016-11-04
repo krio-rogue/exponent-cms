@@ -1,5 +1,5 @@
 {*
- * Copyright (c) 2004-2014 OIC Group, Inc.
+ * Copyright (c) 2004-2016 OIC Group, Inc.
  *
  * This file is part of Exponent
  *
@@ -30,17 +30,17 @@
 			{/if}
 	    </div>
 	    <div id="edituser-tabs" class="">
-		    <ul class="nav nav-tabs">
-		        <li class="active"><a href="#tab1" data-toggle="tab"><em>{"General"|gettext}</em></a></li>
+		    <ul class="nav nav-tabs" role="tablist">
+		        <li role="presentation" class="active"><a href="#tab1" role="tab" data-toggle="tab"><em>{"General"|gettext}</em></a></li>
                 {if !empty($groups->records)}
-                    <li><a href="#tab2" data-toggle="tab"><em>{"Group Membership"|gettext}</em></a></li>
+                    <li role="presentation"><a href="#tab2" role="tab" data-toggle="tab"><em>{"Group Membership"|gettext}</em></a></li>
                 {/if}
                 {foreach from=$extensions item=extension}
-		            <li><a href="#tab{$extension->id+2}" data-toggle="tab"><em>{$extension->title}</em></a></li>
+		            <li role="presentation"><a href="#tab{$extension->id+2}" role="tab" data-toggle="tab"><em>{$extension->title}</em></a></li>
                 {/foreach}
 		    </ul>
 	        <div class="tab-content">
-	            <div id="tab1" class="tab-pane fade in active">
+	            <div id="tab1" role="tabpanel" class="tab-pane fade in active">
 	                {*{if $edit_user->id == "" || $edit_user->id == 0}*}
                     {if empty($edit_user->id)}
                         {if $smarty.const.USER_REGISTRATION_USE_EMAIL == 0}
@@ -49,12 +49,7 @@
                             {*{control type=text name=email label="Email Address"|gettext value=$edit_user->email required=1}*}
                             {control type=email name=email label="Email Address"|gettext value=$edit_user->email required=1 focus=1}
                         {/if}
-                        <div class="row">
-                            {control type=password name=pass1 label="Password"|gettext required=1}
-                            <div class="col-sm-4" style="padding-top: 8px;">
-                                <div class="pwstrength_viewport_progress"></div>
-                            </div>
-                        </div>
+                        {control class="col-sm-4" type=password name=pass1 meter=1 label="Password"|gettext required=1}
                         {control type=password name=pass2 label="Confirm Password"|gettext required=1}
                     {else}
                         {control type="hidden" name="id" value=$edit_user->id}
@@ -88,7 +83,7 @@
                     {/if}
 	            </div>
                 {if !empty($groups->records)}
-                <div id="tab2" class="tab-pane fade">
+                <div id="tab2" role="tabpanel" class="tab-pane fade">
                     {pagelinks paginate=$groups top=1}
                 	<table class="exp-skin-table">
                 	    <thead>
@@ -125,7 +120,7 @@
                 </div>
                 {/if}
 	            {foreach from=$extensions item=extension}
-                    <div id="tab{$extension->id+2}" class="tab-pane fade">
+                    <div id="tab{$extension->id+2}" role="tabpanel" class="tab-pane fade">
                         {if file_exists("`$smarty.const.THEME_ABSOLUTE`modules/users/views/extensions/`$extension->classname`.tpl")}
                             {include file="`$smarty.const.THEME_ABSOLUTE`modules/users/views/extensions/`$extension->classname`.tpl"}
                         {elseif file_exists("`$smarty.const.BASE`framework/modules/users/views/extensions/`$extension->classname`.tpl")}
@@ -135,7 +130,8 @@
 	            {/foreach}
 	        </div>
 	    </div>
-	    <div class="loadingdiv">{'Loading User Profile'|gettext}</div>
+	    {*<div class="loadingdiv">{'Loading User Profile'|gettext}</div>*}
+        {loading title='Loading User Profile'|gettext}
 	    {if $user->isAdmin() == 0}
 			{control type=antispam}
 		{/if}
@@ -143,42 +139,8 @@
 	{/form}
 </div>
 
-{*{script unique="edituser" yui3mods=1}*}
-{*{literal}*}
-    {*EXPONENT.YUI3_CONFIG.modules.exptabs = {*}
-        {*fullpath: EXPONENT.JS_RELATIVE+'exp-tabs.js',*}
-        {*requires: ['history','tabview','event-custom']*}
-    {*};*}
-
-	{*YUI(EXPONENT.YUI3_CONFIG).use('exptabs', function(Y) {*}
-        {*Y.expTabs({srcNode: '#edituser-tabs'});*}
-		{*Y.one('#edituser-tabs').removeClass('hide');*}
-		{*Y.one('.loadingdiv').remove();*}
-	{*});*}
-{*{/literal}*}
-{*{/script}*}
-
 {script unique="tabload" jquery=1 bootstrap="tab,transition"}
 {literal}
     $('.loadingdiv').remove();
-{/literal}
-{/script}
-
-{script unique="showlogin" jquery='pwstrength-bootstrap-1.2.2'}
-{literal}
-    $(document).ready(function () {
-        "use strict";
-        var options = {};
-        options.ui = {
-            container: ".users.edit",
-            showVerdictsInsideProgressBar: true,
-            showErrors: true,
-            viewports: {
-                progress: ".pwstrength_viewport_progress",
-                errors: ".pwstrength_viewport_progress",
-            }
-        };
-        $('#pass1').pwstrength(options);
-    });
 {/literal}
 {/script}

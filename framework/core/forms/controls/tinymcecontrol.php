@@ -2,7 +2,7 @@
 
 ##################################################
 #
-# Copyright (c) 2004-2014 OIC Group, Inc.
+# Copyright (c) 2004-2016 OIC Group, Inc.
 #
 # This file is part of Exponent
 #
@@ -34,6 +34,7 @@ class tinymcecontrol extends formcontrol
     var $cols;
     var $maxchars;
     var $toolbar;
+    var $tb_collapsed = false;
 
     static function name()
     {
@@ -51,18 +52,18 @@ class tinymcecontrol extends formcontrol
 
     function controlToHTML($name, $label)
     {
+        global $user;
+
         $contentCSS = '';
-        $cssabs = BASE . 'themes/' . DISPLAY_THEME . '/editors/tinymce/tinymce.css';
-        $css = PATH_RELATIVE . 'themes/' . DISPLAY_THEME . '/editors/tinymce/tinymce.css';
+        $css = 'themes/' . DISPLAY_THEME . '/editors/tinymce/tinymce.css';
         if (THEME_STYLE != "" && is_file(
                 BASE . 'themes/' . DISPLAY_THEME . '/editors/tinymce/tinymce_' . THEME_STYLE . '.css'
             )
         ) {
-            $cssabs = BASE . 'themes/' . DISPLAY_THEME . '/editors/tinymce/tinymce_' . THEME_STYLE . '.css';
-            $css = PATH_RELATIVE . 'themes/' . DISPLAY_THEME . '/editors/tinymce/tinymce_' . THEME_STYLE . '.css';
+            $css = 'themes/' . DISPLAY_THEME . '/editors/tinymce/tinymce_' . THEME_STYLE . '.css';
         }
-        if (is_file($cssabs)) {
-            $contentCSS = "content_css : '" . $css . "',
+        if (is_file(BASE . $css)) {
+            $contentCSS = "content_css : '" . PATH_RELATIVE . $css . "',
             ";
         }
         if ($this->toolbar === '') {
@@ -70,10 +71,37 @@ class tinymcecontrol extends formcontrol
         } elseif (intval($this->toolbar) != 0) {
             $settings = expHTMLEditorController::getEditorSettings($this->toolbar, 'tinymce');
         }
-        $plugins = "advlist,autolink,lists,link,image,charmap,print,preview,hr,anchor,pagebreak" .
-                ",searchreplace,wordcount,visualblocks,visualchars,code,fullscreen" .
-                ",insertdatetime,media,nonbreaking,save,table,contextmenu,directionality" .
-                ",emoticons,paste,textcolor,visualblocks,importcss";
+        if (!$user->globalPerm('prevent_uploads')) {
+            $upload = "plupload_basepath	: './plugins/quickupload',
+                upload_url			: '" . URL_FULL . "framework/modules/file/connector/uploader_tinymce.php',
+                upload_post_params	: {
+                    action:'upload',
+                    ajax_action:'1',
+                    json:'1'
+                },
+                upload_file_size	: '5mb',
+                upload_callback		: function(res, file, up) {
+                    if (res.status == 200) {
+                        var response = JSON.parse(res.response);
+                        return response.data;  //image path
+                    } else {
+                        return false;
+                    }
+                },
+                upload_error		: function(err, up) {
+                    console.log(err.status);
+                    console.log(err.message);
+                                    },
+                images_upload_url: '" . URL_FULL . "framework/modules/file/connector/uploader_paste_tinymce.php',
+                paste_data_images: true,";
+//            $upload .= "
+//            images_upload_url: '" . URL_FULL . "framework/modules/file/connector/uploader_tinymce.php',";
+//            $upload .= "
+//            paste_data_images: false,
+//            images_upload_base_path: '" . UPLOAD_DIRECTORY . "',";
+        } else {
+            $upload = '';
+        }
         if (!empty($settings)) {
 //            $tb = stripSlashes($settings->data);
             $tb_raw = explode("\n", $settings->data);
@@ -90,9 +118,18 @@ class tinymcecontrol extends formcontrol
         }
         if (!empty($this->additionalConfig)) {
             $additionalConfig = $this->additionalConfig;
+        } elseif (!empty($settings->additionalconfig)) {
+            $additionalConfig = stripSlashes($settings->additionalconfig);
+        } else {
+            $additionalConfig = '';
         }
         if (!empty($this->plugin)) {
             $plugins .= ',' . $this->plugin;
+        } else {
+            $plugins = "advlist,autolink,lists,link,image,imagetools,charmap,print,preview,hr,anchor,pagebreak" .
+                    ",searchreplace,wordcount,visualblocks,visualchars,code,fullscreen" .
+                    ",media,nonbreaking,save,table,contextmenu,directionality" .
+                    ",emoticons,paste,textcolor,quickupload,localautosave";
         }
         // clean up (custom) plugins list from missing plugins
         if (!empty($plugins)) {
@@ -107,11 +144,11 @@ class tinymcecontrol extends formcontrol
         if (empty($tb)) {
             if ($this->toolbar === 'basic') {
                 $tb = "
-                toolbar: 'bold italic underline removeformat | bullist numlist | link unlink',";
+                toolbar: 'bold italic underline removeformat | bullist numlist | link unlink localautosave',";
             } else {
                 $tb = "
-                toolbar1: 'undo redo | styleselect formatselect fontselect fontsizeselect | cut copy paste | bold italic underline removeformat | alignleft aligncenter alignright alignjustify | bullist numlist outdent indent',
-                toolbar2: 'link unlink image | print preview visualblocks fullscreen code media | forecolor backcolor emoticons";
+                toolbar1: 'undo redo localautosave | styleselect formatselect fontselect fontsizeselect | cut copy paste | bold italic underline removeformat | alignleft aligncenter alignright alignjustify | bullist numlist outdent indent',
+                toolbar2: 'link unlink image quickupload | print preview visualblocks fullscreen code media | forecolor backcolor emoticons";
                 if (!empty($this->plugin)) {
                     $plugs = explode(',',trim($this->plugin));
                     $tb .= ' |';
@@ -127,16 +164,56 @@ class tinymcecontrol extends formcontrol
                    toolbar_items_size: 'small',
                    statusbar: false,";
         }
+        if (!MOBILE && $this->tb_collapsed) $tb .= "menubar: false, toolbar_items_size: 'small',";
 
         if (empty($skin) || !is_dir(BASE . 'external/editors/tinymce/skins/' . $skin)) {
             $skin = 'lightgray';
         }
         if (empty($sc_brw_off)) $sc_brw_off = 'true';
         if (empty($stylesset)) {
-            $stylesset = "'default'";
+            $stylesset = "{title: 'Inline', items: [
+                    {title: 'Strikethrough', inline: 'span', styles : {textDecoration : 'line-through'}, icon: 'strikethrough'},
+                    {title: 'Superscript', inline: 'sup', icon: 'superscript'},
+                    {title: 'Subscript', inline: 'sub', icon: 'subscript'},
+                    {title: 'Marker',			inline: 'mark'},
+                    {title: 'Big',				inline: 'big'},
+                    {title: 'Small',			inline: 'small'},
+                    {title: 'Typewriter',		inline: 'tt'},
+                    {title: 'Computer Code',	inline: 'code', icon: 'code'},
+                    {title: 'Keyboard Phrase',	inline: 'kbd'},
+                    {title: 'Sample Text',		inline: 'samp'},
+                    {title: 'Variable',		inline: 'var'},
+                    {title: 'Deleted Text',	inline: 'del'},
+                    {title: 'Inserted Text',	inline: 'ins'},
+                    {title: 'Cited Work',		inline: 'cite'},
+                    {title: 'Inline Quotation', inline: 'q'},
+                ]},
+                {title: 'Containers', items: [
+                    {title: 'section', block: 'section', wrapper: true, merge_siblings: false},
+                    {title: 'article', block: 'article', wrapper: true, merge_siblings: false},
+                    {title: 'blockquote', block: 'blockquote', wrapper: true},
+                    {title: 'hgroup', block: 'hgroup', wrapper: true},
+                    {title: 'aside', block: 'aside', wrapper: true},
+                    {title: 'figure', block: 'figure', wrapper: true}
+                ]},
+                {title: 'Images', items: [
+                    {title: 'Styled image (left)',
+                        selector: 'img',
+                        classes: 'img-left'
+                    },
+                    {title: 'Styled image (right)',
+                        selector: 'img',
+                        classes: 'img-right'
+                    },
+                    {title: 'Styled image (center)',
+                        selector: 'img',
+                        classes: 'img-center'
+                    },
+                ]},
+            ";
         }
         if (empty($formattags)) {
-            $formattags = "'p;h1;h2;h3;h4;h5;h6;pre;address;div'";
+            $formattags = "'Normal=p;Heading 1=h1;Heading 2=h2;Heading 3=h3;Heading 4=h4;Heading 5=h5;Heading 6=h6;Formatted=pre;Address=address;Normal (DIV)=div'";
         }
         if (empty($fontnames)) {
             $fontnames = "'Andale Mono=andale mono,times;'+
@@ -159,7 +236,7 @@ class tinymcecontrol extends formcontrol
             ";
         }
         $content = "
-        YUI(EXPONENT.YUI3_CONFIG).use('yui','node','event-custom', function(Y) {
+        YUI(EXPONENT.YUI3_CONFIG).use('*', function(Y) {
             Y.Global.on(\"lazyload:cke\", function () {
                 if(!Y.Lang.isUndefined(EXPONENT.editor" . createValidId($name) . ")){
                     return true;
@@ -169,74 +246,48 @@ class tinymcecontrol extends formcontrol
                     plugins : ['" . $plugins . "'],
                     " . $additionalConfig . "
                     " . $contentCSS . "
+                    relative_urls : false,
+                    remove_script_host : true,
                     document_base_url : '" . PATH_RELATIVE . "',
                     " . $tb . "
                     skin: '" . $skin . "',
                     image_advtab: true,
+                    image_title: true,
+                    image_caption: true,
+                    pagebreak_separator: '<div style=\"page-break-after: always;\"><span style=\"display: none;\">&nbsp;</span></div>',
+                    " . $upload . "
                     browser_spellcheck : " . $sc_brw_off . " ,
-                    importcss_append: true,
-                    style_formats: [
-                        {title: 'Image Left', selector: 'img', styles: {
-                            'float' : 'left',
-                            'margin': '0 10px 0 10px'
-                        }},
-                        {title: 'Image Right', selector: 'img', styles: {
-                            'float' : 'right',
-                            'margin': '0 10px 0 10px'
-                        }},
-                        {title: 'Headers', items: [
-                            {title: 'h1', block: 'h1'},
-                            {title: 'h2', block: 'h2'},
-                            {title: 'h3', block: 'h3'},
-                            {title: 'h4', block: 'h4'},
-                            {title: 'h5', block: 'h5'},
-                            {title: 'h6', block: 'h6'}
-                        ]},
-                        {title: 'Inline', items: [
-                            {title: 'Bold', inline: 'b', icon: 'bold'},
-                            {title: 'Italic', inline: 'i', icon: 'italic'},
-                            {title: 'Underline', inline: 'span', styles : {textDecoration : 'underline'}, icon: 'underline'},
-                            {title: 'Strikethrough', inline: 'span', styles : {textDecoration : 'line-through'}, icon: 'strikethrough'},
-                            {title: 'Superscript', inline: 'sup', icon: 'superscript'},
-                            {title: 'Subscript', inline: 'sub', icon: 'subscript'},
-                            {title: 'Code', inline: 'code', icon: 'code'},
-                        ]},
-                        {title: 'Blocks', items: [
-                            {title: 'Paragraph', block: 'p'},
-                            {title: 'Blockquote', block: 'blockquote'},
-                            {title: 'Div', block: 'div'},
-                            {title: 'Pre', block: 'pre'}
-                        ]},
-                        {title: 'Alignment', items: [
-                            {title: 'Left', block: 'div', styles : {textAlign : 'left'}, icon: 'alignleft'},
-                            {title: 'Center', block: 'div', styles : {textAlign : 'center'}, icon: 'aligncenter'},
-                            {title: 'Right', block: 'div', styles : {textAlign : 'right'}, icon: 'alignright'},
-                            {title: 'Justify', block: 'div', styles : {textAlign : 'justify'}, icon: 'alignjustify'}
-                        ]},
-                        {title: 'Containers', items: [
-                            {title: 'section', block: 'section', wrapper: true, merge_siblings: false},
-                            {title: 'article', block: 'article', wrapper: true, merge_siblings: false},
-                            {title: 'blockquote', block: 'blockquote', wrapper: true},
-                            {title: 'hgroup', block: 'hgroup', wrapper: true},
-                            {title: 'aside', block: 'aside', wrapper: true},
-                            {title: 'figure', block: 'figure', wrapper: true}
-                        ]}
-                    ],
-                    font_names :
+//                    importcss_append: true,
+                    style_formats: [" . $stylesset . "],
+                    block_formats : " . $formattags . ",
+                    font_formats :
                         " . $fontnames . ",
                     end_container_on_empty_block: true,
-                    file_browser_callback: function expBrowser (field_name, url, type, win) {
+                    file_picker_callback: function expBrowser (callback, value, meta) {
                         tinymce.activeEditor.windowManager.open({
                             file: '" . makelink(
                                     array("controller" => "file", "action" => "picker", "ajax_action" => 1, "update" => "tiny")
-                                ) . "?filter='+type,
+                                ) . "?filter='+meta.filetype,
                             title: '".gt('File Manager')."',
                             width: " . FM_WIDTH . ",
                             height: " . FM_HEIGHT . ",
                             resizable: 'yes'
                         }, {
-                            setUrl: function (url) {
-                                win.document.getElementById(field_name).value = url;
+                            oninsert: function (url, alt, title) {
+                                // Provide file and text for the link dialog
+                                if (meta.filetype == 'file') {
+                                    callback(url, {text: alt, title: title});
+                                }
+
+                                // Provide image and alt text for the image dialog
+                                if (meta.filetype == 'image') {
+                                    callback(url, {alt: alt});
+                                }
+
+                                // Provide alternative source and posted for the media dialog
+                                if (meta.filetype == 'media') {
+                                    callback(url);
+                                }
                             }
                         });
                         return false;
@@ -252,20 +303,24 @@ class tinymcecontrol extends formcontrol
 
         expJavascript::pushToFoot(
             array(
-                "unique" => "000-tinymce" . $name,
-                "yui3mods" => "1",
-                "content" => $content,
-                //"src"=>PATH_RELATIVE."external/tinymce/tinymce.min.js"
+                "unique" => "tinymcepu",
+                "src"=>PATH_RELATIVE."external/editors/tinymce/plugins/quickupload/plupload.full.min.js"
             )
         );
-//        $html = "<script src=\"" . PATH_RELATIVE . "external/editors/tinymce/tinymce.min.js\"></script>";
         expJavascript::pushToFoot(
             array(
                 "unique" => "tinymce",
                 "src"=>PATH_RELATIVE."external/editors/tinymce/tinymce.min.js"
             )
         );
-        // $html .= ($this->lazyload==1)?"<!-- cke lazy -->":"";
+        expJavascript::pushToFoot(
+            array(
+                "unique" => "000-tinymce" . $name,
+                "yui3mods" => "node,event-custom",
+                "content" => $content,
+            )
+        );
+
         $html = "<!-- cke lazy -->";
         $html .= "<textarea class=\"textarea\" id=\"" . createValidId($name) . "\" name=\"$name\"";
         if ($this->focus) $html .= " autofocus";

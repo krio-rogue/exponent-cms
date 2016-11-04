@@ -1,8 +1,7 @@
 <?php
-//FIXME Deprecated! Not used
 ##################################################
 #
-# Copyright (c) 2004-2014 OIC Group, Inc.
+# Copyright (c) 2004-2016 OIC Group, Inc.
 #
 # This file is part of Exponent
 #
@@ -20,6 +19,7 @@
  * Smarty plugin
  * @package Smarty-Plugins
  * @subpackage Function
+ * @deprecated Not used
  */
 
 /**
@@ -41,7 +41,7 @@ function smarty_function_yuimenu($params,&$smarty) {
                 hidedelay:	100,
                 lazyload: true
             });
-            var aSubmenuData = '.navigationController::navtojson().';
+            var aSubmenuData = '.section::navtojson().';
             oMenuSidenavJs.subscribe("beforeRender", function () {
                 if (this.getRoot() == this) {
 					for (i=0; i<=this.getItems().length; i++){

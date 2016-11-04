@@ -2,7 +2,7 @@
 
 ##################################################
 #
-# Copyright (c) 2004-2014 OIC Group, Inc.
+# Copyright (c) 2004-2016 OIC Group, Inc.
 #
 # This file is part of Exponent
 #
@@ -32,16 +32,15 @@ ini_set('max_file_uploads', FM_SIMLIMIT); // allow uploading up to FM_SIMLIMIT f
 //ini_set('mbstring.internal_encoding', 'UTF-8');
 //ini_set('mbstring.func_overload', 2);
 
-include_once BASE . 'external/elFinder/php/elFinderConnector.class.php';
-include_once BASE . 'external/elFinder/php/elFinder.class.php';
-include_once BASE . 'framework/modules/file/connector/elFinderExponent.class.php'; // our custom elFinder object
-include_once BASE . 'external/elFinder/php/elFinderVolumeDriver.class.php';
-include_once BASE . 'external/elFinder/php/elFinderVolumeLocalFileSystem.class.php';
-//include_once BASE . 'external/elFinder/php/elFinderVolumeMySQL.class.php';
-//include_once BASE . 'external/elFinder/php/elFinderVolumeFTP.class.php';
-//include_once BASE . 'external/elFinder/php/elFinderVolumeS3.class.php';
-//include_once BASE . 'external/elFinder/php/elFinderVolumeDropbox.class.php';
-include_once BASE . 'framework/modules/file/connector/elFinderVolumeExponent.class.php'; // our custom elFInder volume driver
+include BASE . 'external/elFinder/php/elFinderConnector.class.php';
+include BASE . 'external/elFinder/php/elFinder.class.php';
+include BASE . 'framework/modules/file/connector/elFinderExponent.class.php'; // our custom elFinder object
+include BASE . 'external/elFinder/php/elFinderVolumeDriver.class.php';
+include BASE . 'external/elFinder/php/elFinderVolumeLocalFileSystem.class.php';
+//include BASE . 'external/elFinder/php/elFinderVolumeMySQL.class.php';
+//include BASE . 'external/elFinder/php/elFinderVolumeFTP.class.php';
+//include BASE . 'external/elFinder/php/elFinderVolumeS3.class.php';
+include BASE . 'framework/modules/file/connector/elFinderVolumeExponent.class.php'; // our custom elFInder volume driver
 
 define('ELFINDER_IMG_PARENT_URL', PATH_RELATIVE . 'external/elFinder/');
 
@@ -53,7 +52,7 @@ define('ELFINDER_IMG_PARENT_URL', PATH_RELATIVE . 'external/elFinder/');
  *  * HTTP_OAUTH package require HTTP_Request2 and Net_URL2
  */
 // Required for Dropbox.com connector support
-// include_once dirname(__FILE__).DIRECTORY_SEPARATOR.'elFinderVolumeDropbox.class.php';
+//include BASE . 'external/elFinder/php/elFinderVolumeDropbox.class.php';
 
 // Dropbox driver need next two settings. You can get at https://www.dropbox.com/developers
 // define('ELFINDER_DROPBOX_CONSUMERKEY',    '');
@@ -67,7 +66,7 @@ function debug($o)
 }
 
 /**
- * Smart logger function
+ * example logger function
  * Demonstrate how to work with elFinder event api
  *
  * @param  string   $cmd      command name
@@ -80,53 +79,55 @@ function debug($o)
  **/
 function logger($cmd, $result, $args, $elfinder)
 {
-
-    $log = sprintf("[%s] %s: %s \n", date('r'), strtoupper($cmd), var_export($result, true));
-    $logfile = BASE . 'tmp/elfinder.txt';
-    $dir = dirname($logfile);
-    if (!is_dir($dir) && !mkdir($dir)) {
-        return;
-    }
-    if (($fp = fopen($logfile, 'a'))) {
-        fwrite($fp, $log);
-        fclose($fp);
-    }
-    return;
-
-    foreach ($result as $key => $value) {
-        if (empty($value)) {
-            continue;
+    if (DEVELOPMENT && LOGGER) {
+        $log = sprintf("[%s] %s: %s \n", date('r'), strtoupper($cmd), var_export($result, true));
+        $logfile = BASE . 'tmp/elfinder.log';
+        $dir = dirname($logfile);
+        if (!is_dir($dir) && !mkdir($dir,DIR_DEFAULT_MODE_STR)) {
+            return;
         }
-        $data = array();
-        if (in_array($key, array('error', 'warning'))) {
-            array_push($data, implode(' ', $value));
-        } else {
-            if (is_array($value)) { // changes made to files
-                foreach ($value as $file) {
-                    $filepath = (isset($file['realpath']) ? $file['realpath'] : $elfinder->realpath($file['hash']));
-                    array_push($data, $filepath);
-                }
-            } else { // other value (ex. header)
-                array_push($data, $value);
-            }
+        if (($fp = fopen($logfile, 'a'))) {
+            fwrite($fp, $log);
+            fclose($fp);
         }
-        $log .= sprintf(' %s(%s)', $key, implode(', ', $data));
-    }
-    $log .= "\n";
-
-    $logfile = BASE . 'tmp/elfinder.txt';
-    $dir = dirname($logfile);
-    if (!is_dir($dir) && !mkdir($dir)) {
         return;
-    }
-    if (($fp = fopen($logfile, 'a'))) {
-        fwrite($fp, $log);
-        fclose($fp);
+
+//        // alternative logging method
+//        foreach ($result as $key => $value) {
+//            if (empty($value)) {
+//                continue;
+//            }
+//            $data = array();
+//            if (in_array($key, array('error', 'warning'))) {
+//                array_push($data, implode(' ', $value));
+//            } else {
+//                if (is_array($value)) { // changes made to files
+//                    foreach ($value as $file) {
+//                        $filepath = (isset($file['realpath']) ? $file['realpath'] : $elfinder->realpath($file['hash']));
+//                        array_push($data, $filepath);
+//                    }
+//                } else { // other value (ex. header)
+//                    array_push($data, $value);
+//                }
+//            }
+//            $log .= sprintf(' %s(%s)', $key, implode(', ', $data));
+//        }
+//        $log .= "\n";
+//
+//        $logfile = BASE . 'tmp/elfinder.log';
+//        $dir = dirname($logfile);
+//        if (!is_dir($dir) && !mkdir($dir)) {
+//            return;
+//        }
+//        if (($fp = fopen($logfile, 'a'))) {
+//            fwrite($fp, $log);
+//            fclose($fp);
+//        }
     }
 }
 
 /**
- * Simple logger function.
+ * example logger class
  * Demonstrate how to work with elFinder event api.
  *
  * @package elFinder
@@ -155,7 +156,7 @@ class elFinderSimpleLogger
         $this->file = $path;
         $dir = dirname($path);
         if (!is_dir($dir)) {
-            mkdir($dir);
+            mkdir($dir,DIR_DEFAULT_MODE_STR);
         }
     }
 
@@ -172,36 +173,39 @@ class elFinderSimpleLogger
      **/
     public function log($cmd, $result, $args, $elfinder)
     {
-        $log = $cmd . ' [' . date('d.m H:s') . "]\n";
+        if (DEVELOPMENT && LOGGER) {
+            $log = $cmd . ' [' . date('d.m H:s') . "]\n";
 
-        if (!empty($result['error'])) {
-            $log .= "\tERROR: " . implode(' ', $result['error']) . "\n";
-        }
-
-        if (!empty($result['warning'])) {
-            $log .= "\tWARNING: " . implode(' ', $result['warning']) . "\n";
-        }
-
-        if (!empty($result['removed'])) {
-            foreach ($result['removed'] as $file) {
-                // removed file contain additional field "realpath"
-                $log .= "\tREMOVED: " . $file['realpath'] . "\n";
+            if (!empty($result['error'])) {
+                $log .= "\tERROR: " . implode(' ', $result['error']) . "\n";
             }
-        }
 
-        if (!empty($result['added'])) {
-            foreach ($result['added'] as $file) {
-                $log .= "\tADDED: " . $elfinder->realpath($file['hash']) . "\n";
+            if (!empty($result['warning'])) {
+                $log .= "\tWARNING: " . implode(' ', $result['warning']) . "\n";
             }
-        }
 
-        if (!empty($result['changed'])) {
-            foreach ($result['changed'] as $file) {
-                $log .= "\tCHANGED: " . $elfinder->realpath($file['hash']) . "\n";
+            if (!empty($result['removed'])) {
+                foreach ($result['removed'] as $file) {
+                    // removed file contain additional field "realpath"
+                    $log .= "\tREMOVED: " . $file['realpath'] . "\n";
+                }
             }
-        }
 
-        $this->write($log);
+            if (!empty($result['added'])) {
+                foreach ($result['added'] as $file) {
+                    $log .= "\tADDED: " . $elfinder->realpath($file['hash']) . "\n";
+                }
+            }
+
+            if (!empty($result['changed'])) {
+                foreach ($result['changed'] as $file) {
+                    $log .= "\tCHANGED: " . $elfinder->realpath($file['hash']) . "\n";
+                }
+            }
+
+            $this->write($log);
+            $this->write(var_export($result, true), true);
+        }
     }
 
     /**
@@ -212,19 +216,22 @@ class elFinderSimpleLogger
      * @return void
      * @author Dmitry (dio) Levashov
      **/
-    protected function write($log)
+    protected function write($log, $eol=false)
     {
-
+        if ($eol)
+            $eol = "\n";
         if (($fp = @fopen($this->file, 'a'))) {
-            fwrite($fp, $log . "\n");
+            fwrite($fp, $log . $eol);
             fclose($fp);
         }
     }
 
 } // END class 
+//$logger = new elFinderSimpleLogger(BASE.'tmp/elfinder.log');
 
 /**
- * Simple function to demonstrate how to control file access using "accessControl" callback.
+ * example accessControl function
+ * to demonstrate how to control file access using "accessControl" callback.
  * This method will disable accessing files/folders starting from  '.' (dot)
  *
  * @param  string    $attr   attribute name (read|write|locked|hidden)
@@ -242,7 +249,7 @@ function access($attr, $path, $data, $volume, $isDir) {
 }
 
 /**
- * Access control example class
+ * example accessControl class
  *
  * @author Dmitry (dio) Levashov
  **/
@@ -273,32 +280,37 @@ class elFinderTestACL
     }
 
 } // END class 
+//$acl = new elFinderTestACL();
 
-$acl = new elFinderTestACL();
-
-// example acceptedName function
+/**
+ * example acceptedName function
+ */
 function validName($name)
 {
     return strpos($name, '.') !== 0;
 }
 
-//$logger = new elFinderSimpleLogger(BASE.'tmp/elfinder.txt');
-
 $opts = array(
-    'locale' => 'en_US.UTF-8',
+    'locale' => LOCALE . '.' . LANG_CHARSET,
     'bind'   => array(
         // '*' => 'logger',
         'mkdir mkfile rename duplicate upload rm paste' => 'logger',
-//        'mkdir.pre mkfile.pre rename.pre' => array(
+//        'mkdir mkfile rename duplicate upload rm paste' => array($logger, 'log'),
+//        'upload.pre mkdir.pre mkfile.pre rename.pre archive.pre ls.pre' => array(
 //            'Plugin.Normalizer.cmdPreprocess',
 //            'Plugin.Sanitizer.cmdPreprocess',
 //        ),
+//        'ls' => array(
+//            'Plugin.Normalizer.cmdPostprocess',
+//            'Plugin.Sanitizer.cmdPostprocess',
+//        ),
         'upload.presave'                                => array(
             'Plugin.AutoResize.onUpLoadPreSave',
-            //        'Plugin.Watermark.onUpLoadPreSave',
-            //        'Plugin.Normalizer.onUpLoadPreSave',
-            //        'Plugin.Normalizer.onUpLoadPreSave'
-        )
+//            'Plugin.Watermark.onUpLoadPreSave',
+//            'Plugin.Normalizer.onUpLoadPreSave',
+//            'Plugin.Sanitizer.onUpLoadPreSave',
+//            'Plugin.AutoRotate.onUpLoadPreSave',
+        ),
     ),
     // global plugin configure (optional)
     'plugin' => array(
@@ -307,7 +319,8 @@ $opts = array(
             'maxWidth'   => UPLOAD_WIDTH,
             'maxHeight'  => UPLOAD_WIDTH,
             'quality'    => THUMB_QUALITY, // JPEG image save quality
-            'targetType' => IMG_GIF | IMG_JPG | IMG_PNG | IMG_WBMP // Target image formats ( bit-field )
+            'targetType' => IMG_GIF | IMG_JPG | IMG_PNG | IMG_WBMP, // Target image formats ( bit-field )
+//            'preserveExif'   => false,      // Preserve EXIF data (Imagick only)
         ),
 //        'Watermark' => array(
 //            'enable'         => true,       // For control by volume driver
@@ -322,48 +335,63 @@ $opts = array(
 //        'Normalizer' => array(
 //            'enable' => true,
 //            'nfc'    => true,
-//            'nfkc'   => true
+//            'nfkc'   => true,
+//            'lowercase' => false,
+//            'convmap'   => array()
 //        ),
 //       'Sanitizer' => array(
 //           'enable' => true,
 //           'targets'  => array('\\','/',':','*','?','"','<','>','|'), // target chars
 //           'replace'  => '_'    // replace to this
+//        ),
+//        'AutoRotate' => array(
+//            'enable'         => true,       // For control by volume driver
+//            'quality'        => 95          // JPEG image save quality
 //        )
     ),
     'debug'  => DEVELOPMENT,
 //	'netVolumesSessionKey' => 'netVolumes',
+    'callbackWindowURL' => makeLink(array('controller'=>'file','action'=>'picker','ajax_action'=>1)),
+
     'roots'  => array(
         array(
             // 'id' => 'x5',
             'driver'          => 'Exponent',
             'path'            => BASE . 'files/',
             'URL'             => URL_FULL . 'files/',
+            'dirMode'         => octdec(DIR_DEFAULT_MODE_STR + 0),    // new dirs mode (default 0755)
+            'fileMode'        => octdec(FILE_DEFAULT_MODE_STR + 0),   // new files mode (default 0644)
+            'detectDirIcon'   => '.foldericon.png',       // File to be detected as a folder icon image (elFinder >= 2.1.10) e.g. '.favicon.png'
+            'keepTimestamp'   => array('copy', 'move'),   // Keep timestamp at inner filesystem (elFinder >= 2.1.12) It allowed 'copy', 'move' and 'upload'.
+            // 'treeDeep'        => 3,
             'alias'           => 'files',
             'disabled'        => array('netmount'),
-            'maxArcFilesSize' => 100,
+//            'maxArcFilesSize' => 100,
             'accessControl'   => 'access',
             // 'accessControl' => array($acl, 'fsAccess'),
             // 'accessControlData' => array('uid' => 1),
-            'uploadAllow'     => array('all'),
             'uploadDeny'      => array('all'),
+            'uploadAllow'     => array('all'),
             'uploadOrder'     => 'deny,allow',
             'uploadOverwrite' => true,
 //            'uploadMaxSize'   => '128m',
             // 'copyOverwrite' => false,
             'copyJoin'        => true,
-//            'mimeDetect' => 'internal',
+//            'mimeDetect'      => 'internal',
 //            'tmpPath'         => BASE . 'tmp',
             'tmbCrop'         => false,
-//            'imgLib' => 'gd',  // 'auto' doesn't seem to work on some servers
-            'tmbPath'         => BASE . 'tmp' . DIRECTORY_SEPARATOR . 'img_cache',
-            'tmbURL'          => URL_FULL . 'tmp/img_cache/',
-            'tmbPathMode'     => 0755,
+//            'imgLib'          => 'gd',  // 'auto' doesn't seem to work on some servers
+            'tmbPath'         => BASE . 'tmp' . DIRECTORY_SEPARATOR . 'elfinder',
+            'tmbURL'          => URL_FULL . 'tmp/elfinder/',
+            'tmbPathMode'     => octdec(DIR_DEFAULT_MODE_STR + 0),
             'tmbBgColor'      => 'transparent',
             'tmbSize'         => FM_THUMB_SIZE,
+            'quarantine'      => '..' . DIRECTORY_SEPARATOR . 'tmp' . DIRECTORY_SEPARATOR . 'elfinder' . DIRECTORY_SEPARATOR . '.quarantine',
             'acceptedName'    => '/^[^\.].*$/',
             // 'acceptedName'    => '/^[\W]*$/',
-            // 'acceptedName' => 'validName',
+            // 'acceptedName'    => 'validName',
             'utf8fix'         => false,
+//            'statOwner'       => true,
             'attributes'      => array(
                 array(
                     'pattern' => '/^\/\./', // dot files are hidden
@@ -372,8 +400,8 @@ $opts = array(
                     'hidden'  => true,
                     'locked'  => true
                 )
-            ),
-        ),
+            )
+        )
     )
 );
 

@@ -2,7 +2,7 @@
 
 ##################################################
 #
-# Copyright (c) 2004-2014 OIC Group, Inc.
+# Copyright (c) 2004-2016 OIC Group, Inc.
 #
 # This file is part of Exponent
 #
@@ -41,7 +41,7 @@ class textController extends expController {
     static function description() { return gt("Places text on your web pages"); }
 
 	public function showall() {
-//        global $db;
+        global $user;
 
 	    expHistory::set('viewable', $this->params);
 		$where = $this->aggregateWhereClause();
@@ -79,10 +79,148 @@ class textController extends expController {
             } else {
                 $settings->paste_word = '';
             }
+            // clean up (custom) plugins list from missing plugins
+            if (!empty($settings->plugins)) {
+                $plugs = explode(',',trim($settings->plugins));
+                foreach ($plugs as $key=>$plug) {
+                    if (empty($plug) || !is_dir(BASE . 'external/editors/ckeditor/plugins/' . $plug)) unset($plugs[$key]);
+                }
+                $settings->plugins = implode(',',$plugs);
+            }
+            if (!empty($settings->fontnames)) {
+                $settings->fontnames  = stripSlashes($settings->fontnames);
+            } else {
+                $settings->fontnames = "'Arial/Arial, Helvetica, sans-serif;' +
+                    'Comic Sans MS/Comic Sans MS, cursive;' +
+                    'Courier New/Courier New, Courier, monospace;' +
+                    'Georgia/Georgia, serif;' +
+                    'Lucida Sans Unicode/Lucida Sans Unicode, Lucida Grande, sans-serif;' +
+                    'Tahoma/Tahoma, Geneva, sans-serif;' +
+                    'Times New Roman/Times New Roman, Times, serif;' +
+                    'Trebuchet MS/Trebuchet MS, Helvetica, sans-serif;' +
+                    'Verdana/Verdana, Geneva, sans-serif'";
+            }
+            if (!empty($settings->stylesset)) {
+                $settings->stylesset  = stripSlashes($settings->stylesset);
+            } else {
+                $settings->stylesset = "'default'";
+            }
+            if (!empty($settings->formattags)) {
+                $settings->formattags = stripSlashes($settings->formattags);
+            } else {
+                $settings->formattags = "'p;h1;h2;h3;h4;h5;h6;pre;address;div'";
+            }
         } elseif (SITE_WYSIWYG_EDITOR == 'tinymce') {
             if (empty($settings->skin)) $settings->skin = 'lightgray';
+            if (empty($settings->scayt_on)) $settings->scayt_on = 'false';
+            // clean up (custom) plugins list from missing plugins  //FIXME we don't load any custom stuff in this view except skin & plugins
+            if (!empty($settings->plugins)) {
+                $plugs = explode(',',trim($settings->plugins));
+                foreach ($plugs as $key=>$plug) {
+                    if (empty($plug) || !is_dir(BASE . 'external/editors/tinymce/plugins/' . $plug)) unset($plugs[$key]);
+                }
+                $settings->plugins = implode(',',$plugs);
+            }
+            if (!empty($settings->fontnames)) {
+                $settings->fontnames  = stripSlashes($settings->fontnames);
+            } else {
+                $settings->fontnames = "'Andale Mono=andale mono,times;'+
+                    'Arial=arial,helvetica,sans-serif;'+
+                    'Arial Black=arial black,avant garde;'+
+                    'Book Antiqua=book antiqua,palatino;'+
+                    'Comic Sans MS=comic sans ms,sans-serif;'+
+                    'Courier New=courier new,courier;'+
+                    'Georgia=georgia,palatino;'+
+                    'Helvetica=helvetica;'+
+                    'Impact=impact,chicago;'+
+                    'Symbol=symbol;'+
+                    'Tahoma=tahoma,arial,helvetica,sans-serif;'+
+                    'Terminal=terminal,monaco;'+
+                    'Times New Roman=times new roman,times;'+
+                    'Trebuchet MS=trebuchet ms,geneva;'+
+                    'Verdana=verdana,geneva;'+
+                    'Webdings=webdings;'+
+                    'Wingdings=wingdings,zapf dingbats'
+            ";
+            }
+            if (!empty($settings->stylesset)) {
+                $settings->stylesset  = stripSlashes($settings->stylesset);
+            } else {
+                $settings->stylesset = "{title: 'Inline', items: [
+                        {title: 'Strikethrough', inline: 'span', styles : {textDecoration : 'line-through'}, icon: 'strikethrough'},
+                        {title: 'Superscript', inline: 'sup', icon: 'superscript'},
+                        {title: 'Subscript', inline: 'sub', icon: 'subscript'},
+                        {title: 'Marker',			inline: 'mark'},
+                        {title: 'Big',				inline: 'big'},
+                        {title: 'Small',			inline: 'small'},
+                        {title: 'Typewriter',		inline: 'tt'},
+                        {title: 'Computer Code',	inline: 'code', icon: 'code'},
+                        {title: 'Keyboard Phrase',	inline: 'kbd'},
+                        {title: 'Sample Text',		inline: 'samp'},
+                        {title: 'Variable',		inline: 'var'},
+                        {title: 'Deleted Text',	inline: 'del'},
+                        {title: 'Inserted Text',	inline: 'ins'},
+                        {title: 'Cited Work',		inline: 'cite'},
+                        {title: 'Inline Quotation', inline: 'q'},
+                    ]},
+                    {title: 'Containers', items: [
+                        {title: 'section', block: 'section', wrapper: true, merge_siblings: false},
+                        {title: 'article', block: 'article', wrapper: true, merge_siblings: false},
+                        {title: 'blockquote', block: 'blockquote', wrapper: true},
+                        {title: 'hgroup', block: 'hgroup', wrapper: true},
+                        {title: 'aside', block: 'aside', wrapper: true},
+                        {title: 'figure', block: 'figure', wrapper: true}
+                    ]},
+                    {title: 'Images', items: [
+                        {title: 'Styled image (left)',
+                            selector: 'img',
+                            classes: 'img-left'
+                        },
+                        {title: 'Styled image (right)',
+                            selector: 'img',
+                            classes: 'img-right'
+                        },
+                        {title: 'Styled image (center)',
+                            selector: 'img',
+                            classes: 'img-center'
+                        },
+                    ]},
+                ";
+            }
+            if (!empty($settings->formattags)) {
+                $settings->formattags = stripSlashes($settings->formattags);
+            } else {
+                $settings->formattags = "'Normal=p;Heading 1=h1;Heading 2=h2;Heading 3=h3;Heading 4=h4;Heading 5=h5;Heading 6=h6;Formatted=pre;Address=address;Normal (DIV)=div'";
+            }
+            if (!$user->globalPerm('prevent_uploads')) {
+                $settings->upload = "plupload_basepath	: './plugins/quickupload',
+                    upload_url			: '" . URL_FULL . "framework/modules/file/connector/uploader_tinymce.php',
+                    upload_post_params	: {
+                        action:'upload',
+                        ajax_action:'1',
+                        json:'1'
+                    },
+                    upload_file_size	: '5mb',
+                    upload_callback		: function(res, file, up) {
+                        if (res.status == 200) {
+                            var response = JSON.parse(res.response);
+                            return response.data;  //image path
+                        } else {
+                            return false;
+                        }
+                    },
+                    upload_error		: function(err, up) {
+                        console.log(err.status);
+                        console.log(err.message);
+                    },
+                    images_upload_url: '" . URL_FULL . "framework/modules/file/connector/uploader_paste_tinymce.php',
+                    paste_data_images: true,";
+            } else {
+                $settings->upload = '';
+            }
         }
 
+        //fixme we do NOT pass toolbars, nor custom plugins in toolbar
 		assign_to_template(array(
             'items'=>$items,
             'preview'=>($level == UILEVEL_PREVIEW),  // needed for inline edit to work
@@ -106,8 +244,6 @@ class textController extends expController {
         $this->text->update($this->params);
         
         // update the search index since text is relegated to page content.
-        //FIXME need to come up with a better method
-//        navigationController::addContentToSearch();
         $nav = new navigationController();
         $nav->addContentToSearch();
 
@@ -119,8 +255,8 @@ class textController extends expController {
      * function to update the text item object sent via ajax
      * we only have to deal with a title and body which can be edited by ckeditor4 inline
      */
-    public function saveItem() {
-        $text = new text($this->params['id']);
+    public function edit_item() {
+        $text = new text($this->params['id']);  // get existing data
         if ($this->params['type'] != 'revert') {
             if ($this->params['id'] != 0) {
                 $prop = $this->params['type'];
@@ -128,22 +264,21 @@ class textController extends expController {
                 if ($prop == 'title') $data = trim(strip_tags($data));
                 $text->$prop = $data;
             } else {
-                $text->title = 'title placeholder';
-                $text->body = '<p>content placeholder</p>';
+                $text->title = gt('title placeholder');
+                $text->body = '<p>' . gt('content placeholder') . '</p>';
                 $text->location_data = serialize(expCore::makeLocation('text',$this->params['src'],''));
             }
             $text->update();
-            $ar = new expAjaxReply(200, gt('The text item was saved'), $text->id);
-        } else {
-            $ar = new expAjaxReply(200, gt('The text item was saved'), json_encode($text));
+            $text->refresh();  // need to get updated database info
         }
+        $ar = new expAjaxReply(200, gt('The text item was saved'), json_encode($text));
         $ar->send();
     }
 
     /**
      * function to delete the text item object sent via ajax
      */
-    public function deleteItem() {
+    public function delete_item() {
         if (!empty($this->params['id'])) {
             $text = new text($this->params['id']);
             $text->delete();

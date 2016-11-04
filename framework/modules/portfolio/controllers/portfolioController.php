@@ -2,7 +2,7 @@
 
 ##################################################
 #
-# Copyright (c) 2004-2014 OIC Group, Inc.
+# Copyright (c) 2004-2016 OIC Group, Inc.
 #
 # This file is part of Exponent
 #
@@ -27,6 +27,10 @@ class portfolioController extends expController {
         'tags'=>"Tags",
         'slideshow'=>"Slideshow"
     );
+    protected $manage_permissions = array(
+        'import'=>'Import Portfolio Items',
+        'export'=>'Export Portfolio Items'
+    );
     public $remove_configs = array(
         'comments',
         'ealerts',
@@ -34,10 +38,6 @@ class portfolioController extends expController {
         'rss',
         'twitter',
     );  // all options: ('aggregation','categories','comments','ealerts','facebook','files','pagination','rss','tags','twitter',)
-    protected $add_permissions = array(
-        'import'=>'Import Portfolio Items',
-        'export'=>'Export Portfolio Items'
-    );
 
     static function displayname() { return gt("Portfolio"); }
     static function description() { return gt("Display a portfolio or listing."); }
@@ -52,6 +52,7 @@ class portfolioController extends expController {
     }
 
     public function showall() {
+        expHistory::set('viewable', $this->params);
         $limit = (isset($this->config['limit']) && $this->config['limit'] != '') ? $this->config['limit'] : 10;
         if (!empty($this->params['view']) && ($this->params['view'] == 'showall_accordion' || $this->params['view'] == 'showall_tabbed')) {
             $limit = '0';
@@ -76,7 +77,8 @@ class portfolioController extends expController {
 
         assign_to_template(array(
             'page'=>$page,
-            'rank'=>($order==='rank')?1:0
+            'rank'=>($order==='rank')?1:0,
+            'params'=>$this->params,
         ));
     }
     

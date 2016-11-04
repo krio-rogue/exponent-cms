@@ -1,5 +1,5 @@
 {*
- * Copyright (c) 2004-2014 OIC Group, Inc.
+ * Copyright (c) 2004-2016 OIC Group, Inc.
  *
  * This file is part of Exponent
  *
@@ -23,7 +23,13 @@
                 <li class="selected"><a href="#tab1"><em>{'General'|gettext}</em></a></li>
                 <li><a href="#tab2"><em>{'Publish'|gettext}</em></a></li>
                 <li><a href="#tab3"><em>{'SEO'|gettext}</em></a></li>
-            </ul>            
+                {if !$config.disable_facebook_meta}
+                    <li><a href="#tab4"><em>{'Facebook'|gettext}</em></a></li>
+                {/if}
+                {if !$config.disable_twitter_meta}
+                    <li><a href="#tab5"><em>{'Twitter'|gettext}</em></a></li>
+                {/if}
+            </ul>
             <div class="yui-content yui3-skin-sam">
                 <div id="tab1">
                     <h2>{'File Download'|gettext}</h2>
@@ -76,21 +82,42 @@
                     {control type="checkbox" name="meta_noindex" label="Do Not Index"|gettext|cat:"?" checked=$section->meta_noindex value=1 description='Should this page be indexed by search engines?'|gettext}
                     {control type="checkbox" name="meta_nofollow" label="Do Not Follow Links"|gettext|cat:"?" checked=$section->meta_nofollow value=1 description='Should links on this page be indexed and followed by search engines?'|gettext}
                 </div>
+                {if !$config.disable_facebook_meta}
+                    <div id="tab4">
+                        <h2>{'Facebook Meta'|gettext}</h2>
+                        <blockquote>
+                            {'Also used for Twitter, Pinterest, etc...'|gettext}
+                        </blockquote>
+                        {control type="text" name="fb[title]" label="Meta Title"|gettext value=$record->meta_fb.title size=88 description='Override the item title for social media'|gettext}
+                        {control type="textarea" name="fb[description]" label="Meta Description"|gettext rows=5 cols=35 size=200 value=$record->meta_fb.description description='Override the item summary for social media'|gettext}
+                        {control type="text" name="fb[url]" label="Meta URL"|gettext value=$record->meta_fb.url description='Canonical URL for social media if different than Canonical URL'|gettext}
+                        {control type="files" name="fbimage" subtype=fbimage label="Meta Image"|gettext value=$record->meta_fb folder=$config.upload_folder limit=1 description='Image for social media (1200px x 630px or 600px x 315px, but larger than 200px x 200px)'|gettext}
+                    </div>
+                {/if}
+                {if !$config.disable_twitter_meta}
+                    <div id="tab5">
+                        <h2>{'Twitter Meta'|gettext}</h2>
+                        {control type="text" name="tw[title]" label="Meta Title"|gettext value=$record->meta_tw.title size=88 description='Override the item title for social media'|gettext}
+                        {control type="textarea" name="tw[description]" label="Meta Description"|gettext rows=5 cols=35 size=200 value=$record->meta_tw.description description='Override the item summary for social media'|gettext}
+                        {control type="text" name="tw[site]" label="Twitter Account"|gettext value=$record->meta_tw.twsite description='Must include @'|gettext}
+                        {control type="files" name="twimage" subtype=twimage label="Meta Image"|gettext value=$record->meta_tw folder=$config.upload_folder limit=1 description='Image for social media (120px x 120px minimum)'|gettext}
+                    </div>
+                {/if}
             </div>
         </div>
-	    <div class="loadingdiv">{"Loading File Download Item"|gettext}</div>
+        {loading title="Loading File Download Item"|gettext}
         {control type=buttongroup submit="Save File"|gettext cancel="Cancel"|gettext}
     {/form}   
 </div>
 
-{script unique="editform" yui3mods=1}
+{script unique="editform" yui3mods="exptabs"}
 {literal}
     EXPONENT.YUI3_CONFIG.modules.exptabs = {
         fullpath: EXPONENT.JS_RELATIVE+'exp-tabs.js',
         requires: ['history','tabview','event-custom']
     };
 
-	YUI(EXPONENT.YUI3_CONFIG).use('exptabs', function(Y) {
+	YUI(EXPONENT.YUI3_CONFIG).use('*', function(Y) {
         Y.expTabs({srcNode: '#editfile-tabs'});
 		Y.one('#editfile-tabs').removeClass('hide');
 		Y.one('.loadingdiv').remove();
@@ -100,7 +127,7 @@
 
 {script unique="file-type" yui3mods="node,node-event-simulate"}
 {literal}
-YUI(EXPONENT.YUI3_CONFIG).use('node','node-event-simulate', function(Y) {
+YUI(EXPONENT.YUI3_CONFIG).use('*', function(Y) {
     var radioSwitchers = Y.all('#alt-control input[type="radio"]');
     radioSwitchers.on('click',function(e){
         Y.all(".alt-item").setStyle('display','none');

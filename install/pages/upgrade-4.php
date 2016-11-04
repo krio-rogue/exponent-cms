@@ -2,7 +2,7 @@
 
 ##################################################
 #
-# Copyright (c) 2004-2014 OIC Group, Inc.
+# Copyright (c) 2004-2016 OIC Group, Inc.
 #
 # This file is part of Exponent
 #
@@ -38,7 +38,7 @@ $db_version = expVersion::dbVersion();
     if (is_readable('upgrades')) {
         $i = 0;
         if (is_readable('include/upgradescript.php')) {
-            include_once('include/upgradescript.php');
+            include('include/upgradescript.php');
         }
         echo '<form role="form" method="post" action="' . (isset($_REQUEST['run']) ? '../' : '') . 'index.php">';
         if (isset($_REQUEST['run'])) {
@@ -92,21 +92,21 @@ $db_version = expVersion::dbVersion();
             if ($upgradescript->checkVersion($db_version) && $upgradescript->needed()) {
                 echo '<li>';
                 if (isset($_REQUEST['run'])) {
-                    echo '<h3>' . $upgradescript->name() . '</h3>';
-                    if (!$upgradescript->optional || ($upgradescript->optional && !empty($_POST[$classname]))) {
-                        echo '<p class="success">' . $upgradescript->upgrade();
+                    echo '<h3>', $upgradescript->name(), '</h3>';
+                    if (!$upgradescript->optional || ($upgradescript->optional && !empty($_REQUEST[get_class($upgradescript)]))) {
+                        echo '<p class="success">', $upgradescript->upgrade();
                     } else {
-                        echo '<p class="failed"> ' . gt('Not Selected to Run');
+                        echo '<p class="failed"> ', gt('Not Selected to Run');
                     }
                 } else {
                     if ($upgradescript->optional) {
-                        echo '<input type="checkbox" name="' . $classname . '" value="1" class="checkbox" style="margin-top: 7px;"><label class="label "><h3>' . $upgradescript->name(
-                            ) . '</h3></label>';
+                        echo '<input type="checkbox" name="', get_class($upgradescript), '" value="1" class="checkbox" style="margin-top: 7px;"><label class="label "><h3>', $upgradescript->name(
+                            ), '</h3></label>';
                     } else {
-                        echo '<input type="checkbox" name="' . $classname . '" value="1" checked="1" disabled="1" class="checkbox" style="margin-top: 7px;"><label class="label "><h3>' . $upgradescript->name(
-                            ) . '</h3></label>';
+                        echo '<input type="checkbox" name="', get_class($upgradescript), '" value="1" checked="1" disabled="1" class="checkbox" style="margin-top: 7px;"><label class="label "><h3>', $upgradescript->name(
+                            ), '</h3></label>';
                     }
-                    echo '<p>' . $upgradescript->description();
+                    echo '<p>', $upgradescript->description();
                 }
                 echo "</p></li>\n";
                 $i++;
@@ -120,9 +120,11 @@ $db_version = expVersion::dbVersion();
         }
         echo '</ol>';
         if (isset($_REQUEST['run']) || $i == 0) {
+            expSession::set('force_less_compile', 1);
             echo '<button class="awesome large green">';
             echo gt('Finish Upgrade');
             echo '</button>';
+            echo '<blockquote><strong>' . gt('Please be patient as we refresh the theme stylesheets') . '</strong></blockquote>';
         } else {
             echo '<button class="awesome large green">';
             echo gt('Run Upgrades');

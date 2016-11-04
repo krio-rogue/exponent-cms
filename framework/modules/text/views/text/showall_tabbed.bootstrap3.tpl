@@ -1,5 +1,5 @@
 {*
- * Copyright (c) 2004-2014 OIC Group, Inc.
+ * Copyright (c) 2004-2016 OIC Group, Inc.
  *
  * This file is part of Exponent
  *
@@ -38,19 +38,19 @@
     {*{/if}*}
     {*{else}*}
     <div id="text-{$id}" class="">
-        <ul class="nav nav-tabs">
+        <ul class="nav nav-tabs" role="tablist">
             {foreach from=$items item=tab name=tabs}
-                <li{if $smarty.foreach.tabs.iteration == 0} class="active"{/if}><a href="#tab{$smarty.foreach.tabs.iteration}" data-toggle="tab">{if $tab->title ==""}&#160;{else}{$tab->title}{/if}</a></li>
+                <li role="presentation"{if $smarty.foreach.tabs.iteration == 1} class="active"{/if}><a href="#tab{$smarty.foreach.tabs.iteration}-{$id}" role="tab" data-toggle="tab">{if $tab->title ==""}&#160;{else}{$tab->title}{/if}</a></li>
             {/foreach}
             {permissions}
                 {if ($permissions.create)}
-                    <li{if $smarty.foreach.tabs.iteration != 0} class="active">{/if}<a href="#tab{$smarty.foreach.tabs.iteration+1}" data-toggle="tab"><em>({'Add New'|gettext})</em></a></li>
+                    <li role="presentation"{if $smarty.foreach.tabs.iteration == 0} class="active"{/if}><a href="#tab{$smarty.foreach.tabs.iteration+1}-{$id}" role="tab" data-toggle="tab"><em>({'Add New'|gettext})</em></a></li>
                 {/if}
             {/permissions}
         </ul>
         <div class="tab-content">
             {foreach from=$items item=item name=items}
-                <div id="tab{$smarty.foreach.items.iteration}" class="item{if !$item->approved && $smarty.const.ENABLE_WORKFLOW} unapproved{/if} tab-pane fade{if $smarty.foreach.items.first} in active{/if}">
+                <div id="tab{$smarty.foreach.items.iteration}-{$id}" role="tabpanel" class="item{if !$item->approved && $smarty.const.ENABLE_WORKFLOW} unapproved{/if} tab-pane fade{if $smarty.foreach.items.first} in active{/if}">
                     {permissions}
 						<div class="item-actions">
 						    {if $permissions.edit || ($permissions.create && $item->poster == $user->id)}
@@ -86,37 +86,16 @@
             {/foreach}
             {permissions}
                 {if $permissions.create}
-                    <div id="tab{$smarty.foreach.tabs.iteration+1}" tab-pane fade{if $smarty.foreach.tabs.iteration != 0} in active{/if}">
-                        {icon class=add action=edit rank=$item->rank+1 text="Add more text here"|gettext}
+                    <div id="tab{$smarty.foreach.tabs.iteration+1}-{$id}" role="tabpanel" class="tab-pane fade{if $smarty.foreach.tabs.iteration == 0} in active{/if}">
+                        {icon class=add action=edit rank=$item->rank+1 text="Add new text tab"|gettext}
                     </div>
                 {/if}
             {/permissions}
         </div>
     </div>
-    <div class="loadingdiv">{'Loading'|gettext}</div>
+    {*<div class="loadingdiv">{'Loading'|gettext}</div>*}
+    {loading}
 </div>
-
-{*{script unique="text-`$id`" yui3mods="1"}*}
-{*{literal}*}
-    {*EXPONENT.YUI3_CONFIG.modules.exptabs = {*}
-        {*fullpath: EXPONENT.JS_RELATIVE+'exp-tabs.js',*}
-        {*requires: ['history','tabview','event-custom']*}
-    {*};*}
-
-	{*YUI(EXPONENT.YUI3_CONFIG).use('exptabs', function(Y) {*}
-        {*Y.expTabs({srcNode: '#text-{/literal}{$id}{literal}'});*}
-		{*Y.one('#text-{/literal}{$id}{literal}').removeClass('hide');*}
-		{*Y.one('.loadingdiv').remove();*}
-	{*});*}
-{*{/literal}*}
-{*{/script}*}
-
-    {*{script unique="text-`$id`" jquery="jqueryui"}*}
-    {*{literal}*}
-        {*$('#text-{/literal}{$id}{literal}').tabs().next().remove();*}
-    {*{/literal}*}
-    {*{/script}*}
-{*{/if}*}
 
 {script unique="tabload" jquery=1 bootstrap="tab,transition"}
 {literal}

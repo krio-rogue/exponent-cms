@@ -2,7 +2,7 @@
 
 ##################################################
 #
-# Copyright (c) 2004-2014 OIC Group, Inc.
+# Copyright (c) 2004-2016 OIC Group, Inc.
 #
 # This file is part of Exponent
 #
@@ -16,15 +16,13 @@
 #
 ##################################################
 
-if (!defined('EXPONENT')) {
+if (!defined('EXPONENT'))
     exit('');
-}
 
 global $user, $db;
 
-if ($user->globalPerm('hide_exp_menu')) {
-    return array();
-}
+if ($user->globalPerm('hide_exp_menu'))
+    return false;
 
 $my_version = gt("Exponent Version") . " : " . expVersion::getVersion(true, false, false) . "<br />";
 if (EXPONENT_VERSION_TYPE != '') {
@@ -34,13 +32,14 @@ if (EXPONENT_VERSION_TYPE != '') {
 }
 $my_releasedate = gt("Release date") . " : " . date("F-d-Y", EXPONENT_VERSION_BUILDDATE);
 
-if (expSession::get('framework') == 'bootstrap3' || (NEWUI && expSession::get('framework') != 'bootstrap')) {
+if (bs3()) {
     $admin_text = 'Admin';
     $admin_icon = 'fa-star';
 } else {
-    $admin_text = '<img src="' . $this->asset_path . 'images/admintoolbar/expbar.png">';
+    $admin_text = '<img src="' . $this->asset_path . 'images/admintoolbar/expbar.png" alt="' . gt('Exponent') . '">';
     $admin_icon = '';
 }
+
 if ($user->isAdmin()) {
     $expAdminMenu = array(
         'text'      => $admin_text,
@@ -318,7 +317,7 @@ if ($user->isAdmin() || !empty($groups)) {
                     'url'       => makeLink(
                         array(
                             'controller' => 'users',
-                            'action'     => 'import_users'
+                            'action'     => 'import'
                         )
                     ),
                 )

@@ -1,5 +1,5 @@
 {*
- * Copyright (c) 2004-2014 OIC Group, Inc.
+ * Copyright (c) 2004-2016 OIC Group, Inc.
  *
  * This file is part of Exponent
  *
@@ -45,19 +45,19 @@
     	{/if}
     {/permissions}
     <div id="{$id}" class="">
-        <ul class="nav nav-tabs">
+        <ul class="nav nav-tabs" role="tablist">
             {if !empty($page)}
-                <li class="active"><a href="#tab0" data-toggle="tab">{$page->model|capitalize} {'Items'|gettext}</a></li>
+                <li role="presentation" class="active"><a href="#tab0" role="tab" data-toggle="tab">{$page->model|capitalize} {'Items'|gettext}</a></li>
             {/if}
             {foreach name=tabs from=$cats->modules key=moduleid item=module}
-                <li{if $smarty.foreach.tabs.first && empty($page)} class="active"{/if}><a href="#tab{$smarty.foreach.tabs.iteration}" data-toggle="tab">{$moduleid|capitalize} {$catnames}</a></li>
+                <li role="presentation"{if $smarty.foreach.tabs.first && empty($page)} class="active"{/if}><a href="#tab{$smarty.foreach.tabs.iteration}" role="tab" data-toggle="tab">{$moduleid|capitalize} {$catnames}</a></li>
             {foreachelse}
-                <li class="active"><a href="#tab0" data-toggle="tab">{if $model == 'file'}{'No Folders Defined'|gettext}{else}{'No Categories Defined'|gettext}{/if}</a></li>
+                <li role="presentation" class="active"><a href="#tab0" role="tab" data-toggle="tab">{if $model == 'file'}{'No Folders Defined'|gettext}{else}{'No Categories Defined'|gettext}{/if}</a></li>
             {/foreach}
         </ul>
         <div class="tab-content">
             {if !empty($page)}
-                <div id="tab0" class="tab-pane fade in active">
+                <div id="tab0" role="tabpanel" class="tab-pane fade in active">
                     <h3>{'Change'|gettext} {if $model == 'file'}{'File Folders'|gettext}{else}{$page->model|capitalize} {'Item Categories'|gettext}{/if}</h3>
                     {form action=change_cats}
                         {control type=hidden name=mod value=$page->model}
@@ -100,7 +100,7 @@
                 </div>
             {/if}
             {foreach name=items from=$cats->modules key=moduleid item=module}
-                <div id="tab{$smarty.foreach.items.iteration}" class="tab-pane fade{if $smarty.foreach.items.first && empty($page)} in active{/if}">
+                <div id="tab{$smarty.foreach.items.iteration}" role="tabpanel" class="tab-pane fade{if $smarty.foreach.items.first && empty($page)} in active{/if}">
                     {if $permissions.manage}
                         {*{ddrerank id=$moduleid items=$cats->records model="expCat" module=$moduleid label=$moduleid|cat:' '|cat:"Categories"|gettext}*}
                         {ddrerank id=$moduleid items=$module model="expCat" module=$moduleid label=$moduleid|cat:' '|cat:$catnames}
@@ -147,37 +147,16 @@
                     {*{$cats->links}*}
                 </div>
             {foreachelse}
-                <div id="tab0" class="tab-pane fade in active">
+                <div id="tab0" role="tabpanel" class="tab-pane fade in active">
                     {if $model == 'file'}{'No Folders Defined'|gettext}{else}{'No Categories Defined'|gettext}{/if}
                 </div>
             {/foreach}
         </div>
     </div>
-    <div class="loadingdiv">{'Loading'|gettext}</div>
+    {*<div class="loadingdiv">{'Loading'|gettext}</div>*}
+    {loading}
 </div>
 {clear}
-
-{*{script unique="`$id`" yui3mods="1"}*}
-{*{literal}*}
-    {*EXPONENT.YUI3_CONFIG.modules.exptabs = {*}
-        {*fullpath: EXPONENT.JS_RELATIVE+'exp-tabs.js',*}
-        {*requires: ['history','tabview','event-custom']*}
-    {*};*}
-
-    {*YUI(EXPONENT.YUI3_CONFIG).use('exptabs', function(Y) {*}
-        {*Y.expTabs({srcNode: '#{/literal}{$id}{literal}'});*}
-        {*Y.one('#{/literal}{$id}{literal}').removeClass('hide');*}
-        {*Y.one('.loadingdiv').remove();*}
-    {*});*}
-
-    {*function selectAllp(val) {*}
-        {*var checks = document.getElementsByName("change_cat[]");*}
-        {*for (var i = 0; i < checks.length; i++) {*}
-          {*checks[i].checked = val;*}
-        {*}*}
-    {*}*}
-{*{/literal}*}
-{*{/script}*}
 
 {script unique="managecats" jquery=1 bootstrap="tab,transition"}
 {literal}

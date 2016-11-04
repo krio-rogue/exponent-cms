@@ -2,7 +2,7 @@
 
 ##################################################
 #
-# Copyright (c) 2004-2014 OIC Group, Inc.
+# Copyright (c) 2004-2016 OIC Group, Inc.
 #
 # This file is part of Exponent
 #
@@ -19,5 +19,6 @@
 if (!defined('FORCE_ECOM')) define('FORCE_ECOM','0');
 if (!defined('DISABLE_SSL_WARNING')) define('DISABLE_SSL_WARNING','0');
 if (!defined('ECOM_CURRENCY')) define('ECOM_CURRENCY','USD');
+if (!defined('ECOM_LARGE_DB')) define('ECOM_LARGE_DB','0');
 
 ?>

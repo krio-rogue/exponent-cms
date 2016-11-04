@@ -1,5 +1,5 @@
 {*
- * Copyright (c) 2004-2014 OIC Group, Inc.
+ * Copyright (c) 2004-2016 OIC Group, Inc.
  *
  * This file is part of Exponent
  *
@@ -35,7 +35,7 @@
 	            <li><a href="#tab4"><em>{"Comment Policies"|gettext}</em></a></li>
 	            <li><a href="#tab5"><em>{"Display"|gettext}</em></a></li>
                 <li><a href="#tab6"><em>{"File Manager"|gettext}</em></a></li>
-	            {if $user->isAdmin()}
+	            {if $user->isSuperAdmin()}
 					<li><a href="#tab7"><em>{"Mail Server"|gettext}</em></a></li>
 		            <li><a href="#tab8"><em>{"Maintenance"|gettext}</em></a></li>
 		            <li><a href="#tab9"><em>{"Security"|gettext}</em></a></li>
@@ -48,7 +48,7 @@
                     <li><a href="#tab16"><em>{"e-Commerce"|gettext}</em></a></li>
                     <li><a href="#tab17"><em>{"Profiles"|gettext}</em></a></li>
 	            {/if}
-            </ul>            
+            </ul>
             <div class="yui-content">
                 <div id="tab1">
 	                <div class="info-header">
@@ -64,8 +64,8 @@
 					{control type="checkbox" postfalse=1 name="sc[ADVERTISE_RSS]" label="Advertise RSS Feeds to Web Browsers?"|gettext checked=$smarty.const.ADVERTISE_RSS value=1}
                     {control type="checkbox" postfalse=1 name="sc[SKIP_VERSION_CHECK]" label="Skip Automatic Online Version Update Check?"|gettext checked=$smarty.const.SKIP_VERSION_CHECK value=1 description='You can still check for an updated version using the Exponent, Super-Admin Tools menu'|gettext}
                     {control type="dropdown" name="sc[SITE_DEFAULT_SECTION]" label="Default Section (Home Page)"|gettext items=$section_dropdown default=$smarty.const.SITE_DEFAULT_SECTION}
-                    {control type="textarea" name="sc[SITE_KEYWORDS]" label='('|cat:('Meta'|gettext)|cat:') '|cat:('Keywords'|gettext) value=$smarty.const.SITE_KEYWORDS description='Comma separated phrases'|gettext}
-	                {control type="textarea" name="sc[SITE_DESCRIPTION]" label='('|cat:('Meta'|gettext)|cat:') '|cat:('Description'|gettext) value=$smarty.const.SITE_DESCRIPTION}
+                    {control type="textarea" name="sc[SITE_KEYWORDS]" label='Meta Keywords'|gettext value=$smarty.const.SITE_KEYWORDS description='Comma separated phrases'|gettext}
+	                {control type="textarea" name="sc[SITE_DESCRIPTION]" label='Meta Description'|gettext value=$smarty.const.SITE_DESCRIPTION}
                 </div>
                 <div id="tab2">
 	                <div class="info-header">
@@ -74,15 +74,19 @@
                         </div>
 		                <h2>{"Anti-Spam Measures"|gettext}</h2>
                     </div>
-                    {control type="checkbox" postfalse=1 name="sc[SITE_USE_ANTI_SPAM]" label="Use Anti-Spam measures?"|gettext checked=$smarty.const.SITE_USE_ANTI_SPAM value=1}
+                    {control type="checkbox" postfalse=1 name="sc[SITE_USE_ANTI_SPAM]" id=use_antispam label="Use Anti-Spam measures?"|gettext checked=$smarty.const.SITE_USE_ANTI_SPAM value=1}
+                    <span id="antispam">
                     {control type="checkbox" postfalse=1 name="sc[ANTI_SPAM_USERS_SKIP]" label="Skip using Anti-Spam measures for Logged-In Users?"|gettext checked=$smarty.const.ANTI_SPAM_USERS_SKIP value=1}
                     {control type="dropdown" name="sc[ANTI_SPAM_CONTROL]" label="Anti-Spam Method"|gettext items=$as_types default=$smarty.const.ANTI_SPAM_CONTROL}
-                    <blockquote>
-	                {'To obtain the reCAPTCHA \'keys\', you\'ll need to first have a'|gettext} <a href="http://www.google.com/" target="_blank">{"Google account"|gettext}</a> {"to log in, then setup up a reCAPTCHA account for your domain(s)"|gettext} <a href="http://www.google.com/recaptcha/whyrecaptcha" target="_blank">{"here"|gettext}</a>
-                    </blockquote>
-                    {control type="dropdown" name="sc[RECAPTCHA_THEME]" label="re-Captcha Theme"|gettext items=$as_themes default=$smarty.const.RECAPTCHA_THEME}
-                    {control type="text" name="sc[RECAPTCHA_PUB_KEY]" label="reCAPTCHA Public Key"|gettext value=$smarty.const.RECAPTCHA_PUB_KEY}
-                    {control type="text" name="sc[RECAPTCHA_PRIVATE_KEY]" label="reCAPTCHA Private Key"|gettext value=$smarty.const.RECAPTCHA_PRIVATE_KEY}
+                    {group label="reCAPTCHA Settings"|gettext}
+                        <blockquote>
+                        {'To obtain the reCAPTCHA \'keys\', you\'ll need to first have a'|gettext} <a href="http://www.google.com/" target="_blank">{"Google account"|gettext}</a> {"to log in, then setup up a reCAPTCHA account for your domain(s)"|gettext} <a href="http://www.google.com/recaptcha/admin" target="_blank">{"here"|gettext}</a>
+                        </blockquote>
+                        {control type="dropdown" name="sc[RECAPTCHA_THEME]" label="reCaptcha Theme"|gettext items=$as_themes default=$smarty.const.RECAPTCHA_THEME}
+                        {control type="text" name="sc[RECAPTCHA_PUB_KEY]" label="reCAPTCHA Site Key"|gettext value=$smarty.const.RECAPTCHA_PUB_KEY}
+                        {control type="text" name="sc[RECAPTCHA_PRIVATE_KEY]" label="reCAPTCHA Secret Key"|gettext value=$smarty.const.RECAPTCHA_PRIVATE_KEY}
+                    {/group}
+                    </span>
                 </div>
                 <div id="tab3">
 	                <div class="info-header">
@@ -106,12 +110,14 @@
                     {/group}
                     {if function_exists('ldap_connect')}
                     {group label="LDAP Authentication"|gettext}
-                        {control type="checkbox" postfalse=1 name="sc[USE_LDAP]" label="Turn on LDAP Authentication?"|gettext checked=$smarty.const.USE_LDAP value=1 description=gt('Checking this option will cause Exponent to try to authenticate to the ldap server listed below.')}
-                        {control type="text" name="sc[LDAP_SERVER]" label="LDAP Server"|gettext value=$smarty.const.LDAP_SERVER description=gt('Enter the hostname or IP of the LDAP server.')}
-                        {control type="text" name="sc[LDAP_BASE_CONTEXT]" label="Base Context"|gettext value=$smarty.const.LDAP_BASE_CONTEXT description=gt('Enter the Base Context for this LDAP connection. (e.g., ou=users, dc=mycompanysite, dc=local)')}
-                        {control type="text" name="sc[LDAP_BASE_DN]" label="Base Domain"|gettext value=$smarty.const.LDAP_BASE_DN description=gt('Enter the Base Domain for this LDAP connection. (e.g., mycompanysite.local)')}
-                        {control type="text" name="sc[LDAP_BIND_USER]" label="LDAP Bind User"|gettext value=$smarty.const.LDAP_BIND_USER description=gt('The username or context for the binding to the LDAP Server to perform administration tasks.')}
-                        {control type="password" name="sc[LDAP_BIND_PASS]" label="LDAP Bind Password"|gettext value=$smarty.const.LDAP_BIND_PASS description=gt('Enter the password for the username/context listed above.')}
+                        {control type="checkbox" postfalse=1 name="sc[USE_LDAP]" id=use_ldap label="Turn on LDAP Authentication?"|gettext checked=$smarty.const.USE_LDAP value=1 description='Checking this option will cause Exponent to try to authenticate to the ldap server listed below.'|gettext}
+                        <span id="ldap">
+                        {control type="text" name="sc[LDAP_SERVER]" label="LDAP Server"|gettext value=$smarty.const.LDAP_SERVER description='Enter the hostname or IP of the LDAP server.'|gettext}
+                        {control type="text" name="sc[LDAP_BASE_CONTEXT]" label="Base Context"|gettext value=$smarty.const.LDAP_BASE_CONTEXT description='Enter the Base Context for this LDAP connection. (e.g., ou=users, dc=mycompanysite, dc=local)'|gettext}
+                        {control type="text" name="sc[LDAP_BASE_DN]" label="Base Domain"|gettext value=$smarty.const.LDAP_BASE_DN description='Enter the Base Domain for this LDAP connection. (e.g., mycompanysite.local)'|gettext}
+                        {control type="text" name="sc[LDAP_BIND_USER]" label="LDAP Bind User"|gettext value=$smarty.const.LDAP_BIND_USER description='The username or context for the binding to the LDAP Server to perform administration tasks.'|gettext}
+                        {control type="password" name="sc[LDAP_BIND_PASS]" label="LDAP Bind Password"|gettext value=$smarty.const.LDAP_BIND_PASS description='Enter the password for the username/context listed above.'|gettext}
+                        </span>
                     {/group}
                     {/if}
                 </div>
@@ -126,7 +132,8 @@
                     {control type="checkbox" postfalse=1 name="sc[COMMENTS_REQUIRE_APPROVAL]" label="All Comments Must be Approved?"|gettext checked=$smarty.const.COMMENTS_REQUIRE_APPROVAL value=1}
                     {group label="New Comment Notification Email"|gettext}
                         {control type="checkbox" postfalse=1 name="sc[COMMENTS_REQUIRE_NOTIFICATION]" label="Notify a site administrator of New Comments?"|gettext checked=$smarty.const.COMMENTS_REQUIRE_NOTIFICATION value=1}
-                        {control type=email multiple="1" name="sc[COMMENTS_NOTIFICATION_EMAIL]" label="Email address(es) that should be notified of New Comments"|gettext description="Enter multiple addresses by using a comma to separate them"|gettext value=$smarty.const.COMMENTS_NOTIFICATION_EMAIL}
+                        {*{control type=text multiple="1" name="sc[COMMENTS_NOTIFICATION_EMAIL]" label="Email address(es) that should be notified of New Comments"|gettext description="Enter multiple addresses by using a comma to separate them"|gettext value=$smarty.const.COMMENTS_NOTIFICATION_EMAIL}*}
+                    {control type=email multiple="1" name="sc[COMMENTS_NOTIFICATION_EMAIL]" label="Email address(es) that should be notified of New Comments"|gettext description="Enter multiple addresses by using a comma to separate them"|gettext value=$smarty.const.COMMENTS_NOTIFICATION_EMAIL}
                     {/group}
                 </div>
                 <div id="tab5">
@@ -156,9 +163,10 @@
                         {control type="dropdown" name="sc[DISPLAY_TIME_FORMAT]" label="Time Format"|gettext items=$time_format default=$smarty.const.DISPLAY_TIME_FORMAT}
                         {control type="dropdown" name="sc[DISPLAY_START_OF_WEEK]" label="Start of Week"|gettext items=$start_of_week default=$smarty.const.DISPLAY_START_OF_WEEK}
                     {/group}
-	                {control type="dropdown" name="sc[DISPLAY_DEFAULT_TIMEZONE]" label="Default timezone for this site"|gettext|cat:(' <br />'|cat:("CAUTION: Changes may affect calendars and other features using date functions."|gettext)) items=$timezones default=$smarty.const.DISPLAY_DEFAULT_TIMEZONE}
-                    {control type="radiogroup" name="sc[SLINGBAR_TOP]" label="Default Admin Slingbar Position" items="Top of Viewport,Bottom of Viewport"|gettxtlist values="1,0" default=$smarty.const.SLINGBAR_TOP}
+	                {control type="dropdown" name="sc[DISPLAY_DEFAULT_TIMEZONE]" label="Default time zone for this site"|gettext|cat:(' <br />'|cat:("CAUTION: Changes may affect calendars and other features using date functions."|gettext)) items=$timezones default=$smarty.const.DISPLAY_DEFAULT_TIMEZONE}
+                    {control type="radiogroup" name="sc[SLINGBAR_TOP]" label="Default Admin Slingbar Position"|gettext items="Top of Viewport,Bottom of Viewport"|gettxtlist values="1,0" default=$smarty.const.SLINGBAR_TOP}
 					{control type="text" name="sc[THUMB_QUALITY]" label="Thumbnail JPEG Quality"|gettext|cat:" (0 - 95)" value=$smarty.const.THUMB_QUALITY|default:75 size="2"}
+                    {control type="checkbox" name="sc[AJAX_PAGING]" label="Use ajax paging if available"|gettext value=1 checked=$smarty.const.AJAX_PAGING description='Can decrease paging loading time'|gettext}
                 </div>
                 <div id="tab6">
 	                <div class="info-header">
@@ -167,11 +175,12 @@
                         </div>
 		                <h2>{"File Manager/Uploader Settings"|gettext}</h2>
                     </div>
-                    {control type="dropdown" name="sc[SITE_FILE_MANAGER]" label="File Manager"|gettext items="Traditional,elFinder (test)"|gettxtlist values="picker,elfinder" default=$smarty.const.SITE_FILE_MANAGER}
+                    {control type="dropdown" name="sc[SITE_FILE_MANAGER]" label="File Manager"|gettext items="Traditional,elFinder"|gettxtlist values="picker,elfinder" default=$smarty.const.SITE_FILE_MANAGER}
+                    {control type="dropdown" name="sc[ELFINDER_THEME]" label="elFinder Theme"|gettext items=$elf_themes default=$smarty.const.ELFINDER_THEME}
                     {control type="text" name="sc[FM_WIDTH]" label="Popup Window Width"|gettext value=$smarty.const.FM_WIDTH|default:1024 size="4"}
-                    {control type="text" name="sc[FM_HEIGHT]" label="Popup Window Height" value=$smarty.const.FM_HEIGHT|default:600 size="4"}
-                    {control type="text" name="sc[FM_LIMIT]" label="Number of Files per Page" value=$smarty.const.FM_LIMIT|default:25 size="4"}
-                    {control type="text" name="sc[FM_SIMLIMIT]" label="Number of Simultaneous Uploads" value=$smarty.const.FM_SIMLIMIT|default:3 size="2"}
+                    {control type="text" name="sc[FM_HEIGHT]" label="Popup Window Height"|gettext value=$smarty.const.FM_HEIGHT|default:600 size="4"}
+                    {control type="text" name="sc[FM_LIMIT]" label="Number of Files per Page"|gettext value=$smarty.const.FM_LIMIT|default:25 size="4"}
+                    {control type="text" name="sc[FM_SIMLIMIT]" label="Number of Simultaneous Uploads"|gettext value=$smarty.const.FM_SIMLIMIT|default:3 size="2"}
                     {control type="checkbox" postfalse=1 name="sc[FM_THUMBNAILS]" label="Show Image Thumbnails?"|gettext checked=$smarty.const.FM_THUMBNAILS value=1}
                     {control type="text" name="sc[FM_THUMB_SIZE]" label="Thumbnail Size"|gettext value=$smarty.const.FM_THUMB_SIZE|default:48 size="4"}
                     {control type="text" name="sc[UPLOAD_WIDTH]" label="Uploader Default Max Width/Height to Downsize Graphics"|gettext value=$smarty.const.UPLOAD_WIDTH|default:400 size="4"}
@@ -184,7 +193,7 @@
                         {/if}
                     {/group}
                 </div>
-                {if $user->is_admin==1}
+                {if $user->isSuperAdmin()}
                 <div id="tab7">
 	                <div class="info-header">
                         <div class="related-actions">
@@ -193,8 +202,9 @@
 		                <h2>{"Mail Server Settings"|gettext}</h2>
                     </div>
                     {control type=email name="sc[SMTP_FROMADDRESS]" label="From Address"|gettext value=$smarty.const.SMTP_FROMADDRESS description='This MUST be in a valid email address format or sending mail may fail!'|gettext}
-                    {control type="checkbox" postfalse=1 name="sc[SMTP_USE_PHP_MAIL]" label='Use simplified php mail() function instead of SMTP?'|gettext checked=$smarty.const.SMTP_USE_PHP_MAIL value=1}
-	                ({"or"|gettext})
+                    {control type="checkbox" postfalse=1 name="sc[SMTP_USE_PHP_MAIL]" id=no_smtp label='Use simplified php mail() function instead of SMTP?'|gettext checked=$smarty.const.SMTP_USE_PHP_MAIL value=1}
+	                <span id="smtp">
+                   ({"or"|gettext})
                     {group label="SMTP Server Settings"|gettext}
                         {control type="text" name="sc[SMTP_SERVER]" label="SMTP Server"|gettext value=$smarty.const.SMTP_SERVER}
                         {control type="text" name="sc[SMTP_PORT]" label="SMTP Port"|gettext value=$smarty.const.SMTP_PORT}
@@ -203,6 +213,7 @@
                         {control type="password" name="sc[SMTP_PASSWORD]" label="SMTP Password"|gettext value=$smarty.const.SMTP_PASSWORD}
                         {control type="checkbox" postfalse=1 name="sc[SMTP_DEBUGGING]" label="Turn On SMTP Debugging?"|gettext checked=$smarty.const.SMTP_DEBUGGING value=1}
                     {/group}
+                    </span>
                 </div>
                 <div id="tab8">
 	                <div class="info-header">
@@ -213,6 +224,11 @@
                     </div>
                     {control type="checkbox" postfalse=1 name="sc[MAINTENANCE_MODE]" label="Place Site in Maintenance Mode?"|gettext checked=$smarty.const.MAINTENANCE_MODE value=1}
                     {control type="html" name="sc[MAINTENANCE_MSG_HTML]" label="Maintenance Mode Message"|gettext value=$smarty.const.MAINTENANCE_MSG_HTML}
+                    {control type="checkbox" postfalse=1 name="sc[MAINTENANCE_USE_RETURN_TIME]" label="Display a countdown clock until site returns?"|gettext checked=$smarty.const.MAINTENANCE_USE_RETURN_TIME value=1}
+                    {group label="Maintenance Countdown Settings"|gettext}
+                        {control type="text" name="sc[MAINTENANCE_RETURN_TEXT]" label="Site will return message"|gettext value=$smarty.const.MAINTENANCE_RETURN_TEXT}
+                        {control type="yuicalendar" name="sc[MAINTENANCE_RETURN_TIME]" label="Site will return time"|gettext value=$smarty.const.MAINTENANCE_RETURN_TIME}
+                    {/group}
                 </div>
                 <div id="tab9">
 	                <div class="info-header">
@@ -221,14 +237,27 @@
                         </div>
 		                <h2>{"Security Settings"|gettext}</h2>
                     </div>
-                    {control type="checkbox" postfalse=1 name="sc[SESSION_TIMEOUT_ENABLE]" label="Enable Session Timeout?"|gettext checked=$smarty.const.SESSION_TIMEOUT_ENABLE value=1}
-                    {control type="text" name="sc[SESSION_TIMEOUT]" label="Session Timeout in seconds"|gettext value=$smarty.const.SESSION_TIMEOUT}
+                    {group label='Account Password Strength'|gettext}
+                        {control type="number" name="sc[NEW_PASSWORD]" label="Password Crypto Depth"|gettext min=0 value=$smarty.const.NEW_PASSWORD|default:0 description='Enter \'0\' to use old md5 method'|gettext}
+                        {control type="number" name="sc[MIN_PWD_LEN]" label="Minimum Password Length"|gettext min=6 value=$smarty.const.MIN_PWD_LEN|default:8}
+                        {control type="number" name="sc[MIN_UPPER]" label="Password Uppercase Letters Required"|gettext min=0 value=$smarty.const.MIN_UPPER|default:0 description='Must new passwords include upper case letters?'|gettext}
+                        {control type="number" name="sc[MIN_DIGITS]" label="Password Digits Required"|gettext min=0 value=$smarty.const.MIN_DIGITS|default:0 description='Must new passwords include numeric characters?'|gettext}
+                        {control type="number" name="sc[MIN_SYMBOL]" label="Password Symbols Required"|gettext min=0 value=$smarty.const.MIN_SYMBOL|default:0 description='Must new passwords include symbols?'|gettext}
+                    {/group}
+                    {group label='Session Timeout'|gettext}
+                        {control type="checkbox" postfalse=1 name="sc[SESSION_TIMEOUT_ENABLE]" label="Enable Session Timeout?"|gettext checked=$smarty.const.SESSION_TIMEOUT_ENABLE value=1}
+                        {control type="text" name="sc[SESSION_TIMEOUT]" label="Session Timeout in seconds"|gettext value=$smarty.const.SESSION_TIMEOUT}
+                    {/group}
                     {control type="dropdown" name="sc[FILE_DEFAULT_MODE_STR]" label="Default File Permissions"|gettext items=$file_permisions default=$smarty.const.FILE_DEFAULT_MODE_STR}
                     {control type="dropdown" name="sc[DIR_DEFAULT_MODE_STR]" label="Default Directory Permissions"|gettext items=$dir_permissions default=$smarty.const.DIR_DEFAULT_MODE_STR}
                     {control type="checkbox" postfalse=1 name="sc[ENABLE_SSL]" label="Enable SSL (https://) Support?"|gettext checked=$smarty.const.ENABLE_SSL value=1}
                     {*{control type="text" name="sc[NONSSL_URL]" label="Non-SSL URL Base"|gettext value=$smarty.const.NONSSL_URL}*}
                     {*{control type="text" name="sc[SSL_URL]" label="SSL URL Base"|gettext value=$smarty.const.SSL_URL}*}
                     {control type="checkbox" postfalse=1 name="sc[DISABLE_PRIVACY]" label="Disable Privacy Check?"|gettext checked=$smarty.const.DISABLE_PRIVACY value=1 description='Exponent protects private page and module content; but this can prevent display of content in some scenarios'|gettext}
+                    {group label='XMLRPC'}
+                        {control type="checkbox" postfalse=1 name="sc[USE_XMLRPC]" label="Activate Remote Blog Editing?"|gettext checked=$smarty.const.USE_XMLRPC value=1 description='Allows access to xmlrpc.php to create and edit blog posts on an external application'|gettext}
+                        {control type="checkbox" postfalse=1 name="sc[NO_XMLRPC_DESC]" label="MS Word Remote Blog Editing Fix?"|gettext checked=$smarty.const.NO_XMLRPC_DESC value=1 description='MS Word won\'t display recent posts list if it\'s too long, so we truncate the descriptions'|gettext}
+                    {/group}
                 </div>
                 <div id="tab10">
 	                <div class="info-header">
@@ -247,26 +276,21 @@
                         </div>
 		                <h2>{"WYSIWYG Editor Settings"|gettext}</h2>
                     </div>
-                    {assocarray}
-                        paramc: [
-                            editor: "ckeditor"
-                        ]
-                        paramt: [
-                            editor: "tinymce"
-                        ]
-                    {/assocarray}
-                    <div id="alt-controlw" class="alt-control">
+                    {$paramc = ["editor" => "ckeditor"]}
+                    {$paramt = ["editor" => "tinymce"]}
+                    <div id="alt-control-wysiwyg" class="alt-control">
                         <div class="control"><label class="label">{'WYSIWYG Editor'|gettext}</label></div>
                         <div class="alt-body">
-                            {control type=radiogroup columns=2 name="sc[SITE_WYSIWYG_EDITOR]" items="CKEditor,TinyMCE (test)"|gettxtlist values="ckeditor,tinymce" default=$smarty.const.SITE_WYSIWYG_EDITOR|default:"ckeditor"}
+                            {control type=radiogroup columns=2 name="sc[SITE_WYSIWYG_EDITOR]" items="CKEditor,TinyMCE"|gettxtlist values="ckeditor,tinymce" default=$smarty.const.SITE_WYSIWYG_EDITOR|default:"ckeditor"}
                             <div id="ckeditor-div" class="alt-item" style="display:none;">
-                                {showmodule module=expHTMLEditor action=manage params=$paramc}
+                                {showmodule controller=expHTMLEditor action=manage params=$paramc}
                             </div>
                             <div id="tinymce-div" class="alt-item" style="display:none;">
-                                {showmodule module=expHTMLEditor action=manage params=$paramt}
+                                {showmodule controller=expHTMLEditor action=manage params=$paramt}
                             </div>
                         </div>
                     </div>
+                    {control type="checkbox" postfalse=1 name="sc[EDITOR_FAST_SAVE]" label="Always Save Inline Editing Changes w/o Prompt?"|gettext checked=$smarty.const.EDITOR_FAST_SAVE value=1}
                 </div>
                 <div id="tab12">
 	                <div class="info-header">
@@ -277,7 +301,10 @@
                     </div>
                     {control type="text" name="sc[SITE_404_TITLE]" label='Page Title For \'Not Found\' (404) Error'|gettext value=$smarty.const.SITE_404_TITLE}
                     {control type="html" name="sc[SITE_404_HTML]" label='\'Not Found\' (404) Error Message'|gettext value=$smarty.const.SITE_404_HTML}
+                    {control type="text" name="sc[SITE_404_FILE]" label='Server Default Page For \'Not Found\' (404) Error'|gettext value=$smarty.const.SITE_404_FILE description='If your server sends 404 errors to a default page, enter it here (missing.html, etc...)'|gettext}
                     {control type="html" name="sc[SITE_403_REAL_HTML]" label='\'Access Denied\' (403) Error Message'|gettext value=$smarty.const.SITE_403_REAL_HTML}
+                    {control type="text" name="sc[SITE_403_FILE]" label='Server Default Page For \'Access Denied\' (403) Error'|gettext value=$smarty.const.SITE_403_FILE description='If your server sends 403 errors to a default page, enter it here (forbidden.html, etc...)'|gettext}
+                    {control type="text" name="sc[SITE_500_FILE]" label='Server Default Page For \'Server Internal Error\' (500) Error'|gettext value=$smarty.const.SITE_500_FILE description='If your server sends 500 errors to a default page, enter it here (internal_error.html, etc...)'|gettext}
                     {control type="html" name="sc[SESSION_TIMEOUT_HTML]" label='\'Session Expired\' Error  Message'|gettext value=$smarty.const.SESSION_TIMEOUT_HTML}
                 </div>
                 <div id="tab13">
@@ -287,10 +314,10 @@
                         </div>
 		                <h2>{"PDF Generation"|gettext}</h2>
                     </div>
-                    <div id="alt-control" class="alt-control">
+                    <div id="alt-control-pdf" class="alt-control">
                         <div class="control"><label class="label">{'PDF Generation Engine'|gettext}</label></div>
                         <div class="alt-body">
-                            {control type=radiogroup columns=4 name="sc[HTMLTOPDF_ENGINE]" items="None,mPDF,dompdf,WKHTMLtoPDF"|gettxtlist values="none,expMPDF,expDOMPDF,expWKPDF" default=$smarty.const.HTMLTOPDF_ENGINE|default:"none"}
+                            {control type=radiogroup columns=4 name="sc[HTMLTOPDF_ENGINE]" items="None,mPDF v5,mPDF v6,dompdf v0.6,HTML2PDF,WKHTMLtoPDF"|gettxtlist values="none,expMPDF,expMPDF6,expDOMPDF,expHTML2PDF,expWKPDF" default=$smarty.const.HTMLTOPDF_ENGINE|default:"none"}
                             <div id="none-div" class="alt-item" style="display:none;">
                                 <blockquote>
                                 {'Export as PDF will be unavailable since there is no PDF Generation Engine installed and configured.'|gettext}
@@ -299,35 +326,103 @@
                             <div id="expMPDF-div" class="alt-item" style="display:none;">
                                 {if !file_exists("`$smarty.const.BASE`external/MPDF57/mpdf.php")}
                                     <div style="color:#ff0000;font-weight:bold;">
-                                        {'mPDF is NOT installed!'|gettext}
+                                        {'mPDF v5 is NOT installed!'|gettext}
                                     </div>
                                 {else}
                                     <div>
-                                        {'mPDF is installed!'|gettext}
+                                        {'mPDF v5 is installed!'|gettext}
                                     </div>
                                 {/if}
                                 <blockquote>
-                                    {'MPDF is an optional package, but the preferred generator.  To obtain it, you must first download, then install it using one of the methods below.'|gettext}
+                                    {'MPDF v5 is an optional package, but a preferred generator. To obtain it, you must first download, then install it using one of the methods below.'|gettext}
                                     <ol>
-                                        <li>{'Download the basic libary'|gettext} <a href="http://mpdf1.com/repos/MPDF57.zip" target="_blank">MPDF57.zip</a>
-                                            {'and then extract it on your server into the \'external\' folder.'|gettext} {'You should also download any updates and extract them to that same folder.'|gettext} <a href="http://www.mpdf1.com/mpdf/download" target="_blank">{'mPDF Downloads'|gettext}</a></li>
-                                        <li>{'(or) Download the Exponent Extension package'|gettext} <a href="https://github.com/downloads/exponentcms/exponent-cms/mpdf.zip" target="_blank">mpdf.zip</a>.
+                                        <li>{'Download the basic library'|gettext} <a href="https://github.com/mpdf/mpdf/archive/v5.7.4a.zip" target="_blank">v5.7.4a.zip</a>
+                                            {'and then extract it on your server into the \'external\' folder.'|gettext}</li>
+                                        <li>{'(or) Download the Exponent Extension package'|gettext} <a href="http://sourceforge.net/projects/exponentcms/files/Add-ons/mpdf57a.zip/download" target="_blank">mpdf57a.zip</a>.
                                             {'and then'|gettext} <a href="install_extension">{'Install New Extension'|gettext}</a> {'on your server with \'Patch Exponent CMS\' checked.'|gettext}</li>
+                                    </ol>
+                                </blockquote>
+                            </div>
+                            <div id="expMPDF6-div" class="alt-item" style="display:none;">
+                                {if !file_exists("`$smarty.const.BASE`external/mpdf60/mpdf.php")}
+                                    <div style="color:#ff0000;font-weight:bold;">
+                                        {'mPDF v6 is NOT installed!'|gettext}
+                                    </div>
+                                {else}
+                                    <div>
+                                        {'mPDF v6 is installed!'|gettext}
+                                    </div>
+                                {/if}
+                                <blockquote>
+                                    {'MPDF v6 is an optional package, but the preferred generator.  To obtain it, you must first download, then install it using the method below.'|gettext}
+                                    <ol>
+                                        <li>{'Download the basic library'|gettext} <a href="https://github.com/mpdf/mpdf/archive/v6.0.0.zip" target="_blank">MPDF60.zip</a>
+                                            {'and then extract it on your server into the \'external\' folder.'|gettext}</li>
+                                        <li>{'(or) Download the Exponent Extension package'|gettext} <a href="http://sourceforge.net/projects/exponentcms/files/Add-ons/mpdf60a.zip/download" target="_blank">mpdf60a.zip</a>.
+                                            {'and then'|gettext} <a href="install_extension">{'Install New Extension'|gettext}</a> {'on your server with \'Patch Exponent CMS\' checked.'|gettext}</li>
+                                    </ol>
+                                </blockquote>
+                            </div>
+                            <div id="expMPDF61-div" class="alt-item" style="display:none;">
+                                {if !file_exists("`$smarty.const.BASE`external/mpdf-6.1.1/mpdf.php")}
+                                    <div style="color:#ff0000;font-weight:bold;">
+                                        {'mPDF v6.1 is NOT installed!'|gettext}
+                                    </div>
+                                {else}
+                                    <div>
+                                        {'mPDF v6.1 is installed!'|gettext}
+                                    </div>
+                                {/if}
+                                <blockquote>
+                                    {'MPDF v6.1 is an optional package, but the preferred generator.  To obtain it, you must first download, then install it using the method below.'|gettext}
+                                    <ol>
+                                        <li>{'Download the basic library'|gettext} <a href="https://github.com/mpdf/mpdf/archive/v6.1.1.zip" target="_blank">MPDF6.1.1.zip</a>
+                                            {'and then extract it on your server into the \'external\' folder.'|gettext}</li>
                                     </ol>
                                 </blockquote>
                             </div>
                             <div id="expDOMPDF-div" class="alt-item" style="display:none;">
                                 {if !file_exists("`$smarty.const.BASE`external/dompdf/dompdf.php")}
                                     <div style="color:#ff0000;font-weight:bold;">
-                                        {'dompdf is NOT installed!'|gettext}
+                                        {'dompdf v0.6 is NOT installed!'|gettext}
                                     </div>
                                 {else}
                                     <div>
-                                        {'dompdf is installed!'|gettext}
+                                        {'dompdf v0.6 is installed!'|gettext}
                                     </div>
                                 {/if}
                                 <blockquote>
-                                    {'DOMPDF is an optional package.  To obtain it, you must first download our customized version of the library'|gettext} <a href="https://github.com/downloads/exponentcms/exponent-cms/dompdf.zip" target="_blank">dompdf.zip</a>.
+                                    {'DOMPDF v0.6 is an optional package.  To obtain it, you must first download our customized version of the library'|gettext} <a href="https://sourceforge.net/projects/exponentcms/files/Add-ons/dompdf062a.zip/download" target="_blank">dompdf062a.zip</a>.
+                                    {'and then'|gettext} <a href="install_extension">{'Install New Extension'|gettext}</a> {'on your server with \'Patch Exponent CMS\' checked.'|gettext}
+                                </blockquote>
+                            </div>
+                            <div id="expDOMPDF070-div" class="alt-item" style="display:none;">
+                                {if !file_exists("`$smarty.const.BASE`external/dompdf/dompdf.php")}
+                                    <div style="color:#ff0000;font-weight:bold;">
+                                        {'dompdf v0.7 is NOT installed!'|gettext}
+                                    </div>
+                                {else}
+                                    <div>
+                                        {'dompdf v0.7 is installed!'|gettext}
+                                    </div>
+                                {/if}
+                                <blockquote>
+                                    {'DOMPDF v0.7 is an optional package.  To obtain it, you must first download our customized version of the library'|gettext} <a href="https://sourceforge.net/projects/exponentcms/files/Add-ons/dompdf070.zip/download" target="_blank">dompdf070.zip</a>.
+                                    {'and then'|gettext} <a href="install_extension">{'Install New Extension'|gettext}</a> {'on your server with \'Patch Exponent CMS\' checked.'|gettext}
+                                </blockquote>
+                            </div>
+                            <div id="expHTML2PDF-div" class="alt-item" style="display:none;">
+                                {if !file_exists("`$smarty.const.BASE`external/html2pdf/html2pdf.class.php") || !file_exists("`$smarty.const.BASE`external/TCPDF/tcpdf.php")}
+                                    <div style="color:#ff0000;font-weight:bold;">
+                                        {'HTML2PDF/TCPDF is NOT installed!'|gettext}
+                                    </div>
+                                {else}
+                                    <div>
+                                        {'HTML2PDF/TCPDF is installed!'|gettext}
+                                    </div>
+                                {/if}
+                                <blockquote>
+                                    {'HTML2PDF is an optional package.  To obtain it, you must first download our customized version of the library'|gettext} <a href="http://sourceforge.net/projects/exponentcms/files/Add-ons/html2pdf.zip/download" target="_blank">html2pdf.zip</a>.
                                     {'and then'|gettext} <a href="install_extension">{'Install New Extension'|gettext}</a> {'on your server with \'Patch Exponent CMS\' checked.'|gettext}
                                 </blockquote>
                             </div>
@@ -344,7 +439,7 @@
                                 {control type="text" name="sc[HTMLTOPDF_PATH]" label="Full Path to the WKHTMLtoPDF Binary Utility"|gettext value=$smarty.const.HTMLTOPDF_PATH}
                                 {control type="text" name="sc[HTMLTOPDF_PATH_TMP]" label="Full Path to the WKHTMLtoPDF Temp Directory"|gettext value=$smarty.const.HTMLTOPDF_PATH_TMP}
                                 <blockquote>
-                                    {'To obtain the WKHTMLtoPDF, you\'ll need to first download the appropriate binary application from'|gettext} <a href="http://code.google.com/p/wkhtmltopdf/downloads/list" target="_blank">{"wkhtmltopdf site"|gettext}</a>.
+                                    {'To obtain the WKHTMLtoPDF, you\'ll need to first download the appropriate binary application from'|gettext} <a href="http://wkhtmltopdf.org/downloads.html" target="_blank">{"wkhtmltopdf site"|gettext}</a>.
                                     {"and then install it on your server."|gettext}
                                 </blockquote>
                             </div>
@@ -393,6 +488,7 @@
                         <h2>{"e-Commerce Configuration"|gettext}</h2>
                     </div>
                     {control type="checkbox" postfalse=1 name="sc[FORCE_ECOM]" label="Activate e-Commerce?"|gettext checked=$smarty.const.FORCE_ECOM value=1}
+                    {control type="checkbox" postfalse=1 name="sc[ECOM_LARGE_DB]" label="Allow Large e-Commerce Tables?"|gettext checked=$smarty.const.ECOM_LARGE_DB value=1 description='This will prevent manage product/order problems, but disable the filter/search features'|gettext}
                     {control type="checkbox" postfalse=1 name="sc[DISABLE_SSL_WARNING]" label="Disable Unsecure Checkout Warning?"|gettext checked=$smarty.const.DISABLE_SSL_WARNING value=1 description='Normally a warning is displayed when attempting to checkout on an unsecured site.'|gettext}
                     {control type="dropdown" name="sc[ECOM_CURRENCY]" label="Default Currency"|gettext items=$currency default=$smarty.const.ECOM_CURRENCY}
                     {group label="Getting e-Commerce up and running"|gettext}
@@ -441,7 +537,7 @@
                                 <ul>
                                     <li>{'Create a Store Category'|gettext} <a href="{link controller=storeCategory action=manage}" title={'Manage Store Categories'|gettext}>{'here'|gettext}</a></li>
                                     <li>{'Create a Manufacturer'|gettext} <a href="{link controller=company action=showall}" title={'Manage Manufacturers'|gettext}>{'here'|gettext}</a></li>
-                                    <li>{'Create a Tax Class/Zone for applicable sales tax(es)'|gettext} <a href="{link controller=tax action=manage}" title={'Manage Tax Classes'|gettext}>{'here'|gettext}</a></li>
+                                    <li>{'Create a Tax Class/Zone/Rate for applicable sales tax(es)'|gettext} <a href="{link controller=tax action=manage}" title={'Manage Taxes'|gettext}>{'here'|gettext}</a></li>
                                     <li>{'Create the Product (product, donation, event, or gift card) and assign a category'|gettext} <a href="{link controller=store action=edit}" title={'Add a Product'|gettext}>{'here'|gettext}</a></li>
                                 </ul>
                             </ul>
@@ -463,31 +559,34 @@
                     {control type="dropdown" name="profiles" label="Load configuration profile"|gettext items=$profiles default=$smarty.const.CURRENTCONFIGNAME onchange="changeProfile(this.value)"}
                     {control type="text" name="profile_name" label="New Profile Name"|gettext value=$smarty.const.CURRENTCONFIGNAME}
                     {*<a class="{button_style}" href="#" onclick="saveProfile()"><strong>{'Save New Profile'|gettext}</strong></a>*}
-                    {icon button=true action=scriptaction onclick="saveProfile()" text='Save New Profile'|gettext}
+                    {icon button=true class=save action=scriptaction onclick="saveProfile()" text='Save New Profile'|gettext}
+                    {br}{br}
                 </div>
                 {/if}
             </div>
         </div>
-	    <div class="loadingdiv">{"Loading Site Configuration"|gettext}</div>
+	    {*<div class="loadingdiv">{"Loading Site Configuration"|gettext}</div>*}
+        {loading title="Loading Site Configuration"|gettext}
         {control type="buttongroup" submit="Save Website Configuration"|gettext cancel="Cancel"|gettext returntype="viewable"}
     {/form}
 </div>
 
-{script unique="`$config`" yui3mods=1}
+{script unique="`$config`" yui3mods="exptabs"}
 {literal}
     EXPONENT.YUI3_CONFIG.modules.exptabs = {
         fullpath: EXPONENT.JS_RELATIVE+'exp-tabs.js',
         requires: ['history','tabview','event-custom']
     };
 
-	YUI(EXPONENT.YUI3_CONFIG).use('exptabs', function(Y) {
+	YUI(EXPONENT.YUI3_CONFIG).use('*', function(Y) {
         Y.expTabs({srcNode: '#{/literal}{$config}{literal}'});
         Y.one('#{/literal}{$config}{literal}').removeClass('hide');
         Y.one('.loadingdiv').remove();
 	});
 
     function changeProfile(val) {
-        if (confirm('{/literal}{'Are you sure you want to load a new profile?'|gettext}{literal}')) {
+        var configname = document.getElementById("profiles").value;
+        if (confirm('{/literal}{'Are you sure you want to load a new profile?'|gettext}{literal}'+' ('+configname+')')) {
             window.location = EXPONENT.PATH_RELATIVE+"administration/change_profile/profile/" + val;
         } else {
             document.getElementById("profiles").value = '';
@@ -504,17 +603,51 @@
 {/literal}
 {/script}
 
+{script unique="editchecks" jquery=1}
+{literal}
+$('#use_antispam').change(function() {
+    if ($('#use_antispam').is(':checked') == false)
+        $("#antispam").hide("slow");
+    else {
+        $("#antispam").show("slow");
+    }
+});
+if ($('#use_antispam').is(':checked') == false)
+    $("#antispam").hide("slow");
+
+$('#use_ldap').change(function() {
+    if ($('#use_ldap').is(':checked') == false)
+        $("#ldap").hide("slow");
+    else {
+        $("#ldap").show("slow");
+    }
+});
+if ($('#use_ldap').is(':checked') == false)
+    $("#ldap").hide("slow");
+
+$('#no_smtp').change(function() {
+    if ($('#no_smtp').is(':checked') == true)
+        $("#smtp").hide("slow");
+    else {
+        $("#smtp").show("slow");
+    }
+});
+if ($('#no_smtp').is(':checked') == true)
+    $("#smtp").hide("slow");
+{/literal}
+{/script}
+
 {script unique="wysiwyg-type" yui3mods="node,node-event-simulate"}
 {literal}
-YUI(EXPONENT.YUI3_CONFIG).use('node','node-event-simulate', function(Y) {
-    var radioSwitchersw = Y.all('#alt-controlw input[type="radio"]');
-    radioSwitchersw.on('click',function(e){
-        Y.all("#alt-controlw .alt-item").setStyle('display','none');
+YUI(EXPONENT.YUI3_CONFIG).use('*', function(Y) {
+    var radioSwitchers_wysiwyg = Y.all('#alt-control-wysiwyg input[type="radio"]');
+    radioSwitchers_wysiwyg.on('click',function(e){
+        Y.all("#alt-control-wysiwyg .alt-item").setStyle('display', 'none');
         var curdiv = Y.one("#" + e.target.get('value') + "-div");
-        curdiv.setStyle('display','block');
+        curdiv.setStyle('display', 'block');
     });
 
-    radioSwitchersw.each(function(node,k){
+    radioSwitchers_wysiwyg.each(function(node, k){
         if(node.get('checked')==true){
             node.simulate('click');
         }
@@ -525,15 +658,15 @@ YUI(EXPONENT.YUI3_CONFIG).use('node','node-event-simulate', function(Y) {
 
 {script unique="pdf-type" yui3mods="node,node-event-simulate"}
 {literal}
-YUI(EXPONENT.YUI3_CONFIG).use('node','node-event-simulate', function(Y) {
-    var radioSwitchers = Y.all('#alt-control input[type="radio"]');
-    radioSwitchers.on('click',function(e){
-        Y.all("#alt-control .alt-item").setStyle('display','none');
+YUI(EXPONENT.YUI3_CONFIG).use('*', function(Y) {
+    var radioSwitchers_pdf = Y.all('#alt-control-pdf input[type="radio"]');
+    radioSwitchers_pdf.on('click',function(e){
+        Y.all("#alt-control-pdf .alt-item").setStyle('display', 'none');
         var curdiv = Y.one("#" + e.target.get('value') + "-div");
-        curdiv.setStyle('display','block');
+        curdiv.setStyle('display', 'block');
     });
 
-    radioSwitchers.each(function(node,k){
+    radioSwitchers_pdf.each(function(node, k){
         if(node.get('checked')==true){
             node.simulate('click');
         }

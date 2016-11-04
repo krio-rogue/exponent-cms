@@ -1,5 +1,5 @@
 {*
- * Copyright (c) 2004-2014 OIC Group, Inc.
+ * Copyright (c) 2004-2016 OIC Group, Inc.
  *
  * This file is part of Exponent
  *
@@ -31,7 +31,7 @@
     {/if}
     {$myloc=serialize($__loc)}
 
-    {form action=search_by_model_old}
+    {form action=searchByModelForm}
         {control type="text" name="search_string" label=" "}
         {control type="buttongroup" submit="Search"|gettext}
     {/form}

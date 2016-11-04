@@ -1,5 +1,5 @@
 {*
- * Copyright (c) 2004-2014 OIC Group, Inc.
+ * Copyright (c) 2004-2016 OIC Group, Inc.
  *
  * This file is part of Exponent
  *
@@ -70,18 +70,18 @@
                     {$prepend = ''}
                     {if !$config.displayauthor}
                         <span class="label posted">{'Posted by'|gettext}</span>
-                        <a href="{link action=showall_by_author author=$record->poster|username}">{attribution user_id=$record->poster}</a>
-                        {$prepend = '&#160;&#160;|&#160;&#160;'}
+                        <a href="{link action=showall_by_author author=$item->poster|username}">{attribution user_id=$item->poster}</a>
+                        {$prepend = '&#160;&#160;|&#160;&#160;'|not_bs}
                     {/if}
                     {if !$config.datetag}
-                        {'on'|gettext} <span class="date">{$record->publish_date|format_date}</span>
+                        {'on'|gettext} <span class="date">{$item->publish_date|format_date}</span>
                     {/if}
-                    {if $record->publish_date > $smarty.now}
+                    {if $item->publish_date > $smarty.now}
                         </strong>&#160;
                     {/if}
                 </span>
-                {comments_count record=$record show=1 prepend=$prepend}
-                {tags_assigned record=$record prepend='&#160;&#160;|&#160;&#160;'}
+                {comments_count record=$item prepend=$prepend}
+                {tags_assigned record=$item prepend='&#160;&#160;|&#160;&#160;'|not_bs}
             </div>
             {permissions}
                 <div class="item-actions">
@@ -109,17 +109,18 @@
                     {if $config.ffloat != "Below"}
                         {filedisplayer view="`$config.filedisplay`" files=$item->expFile record=$item is_listing=1}
                     {/if}
+                    {$link = '<a href="'|cat:makeLink([controller=>blog, action=>show, title=>$item->sef_url])|cat:'"><em>'|cat:'(read more)'|gettext|cat:'</em></a>'}
                     {if $config.usebody==1}
                         {*<p>{$item->body|summarize:"html":"paralinks"}</p>*}
-                        <p>{$item->body|summarize:"html":"parahtml"}</p>
+                        <p>{$item->body|summarize:"html":"parahtml":$link}</p>
                     {elseif $config.usebody==3}
-                        {$item->body|summarize:"html":"parapaged"}
+                        {$item->body|summarize:"html":"parapaged":$link}
                     {elseif $config.usebody==2}
                     {else}
                         {$item->body}
                     {/if}
                     {if !$config.displayauthor}
-                        {$record->poster|signature}
+                        {$item->poster|signature}
                     {/if}
                     {if $config.ffloat == "Below"}
                         {filedisplayer view="`$config.filedisplay`" files=$item->expFile record=$item is_listing=1}

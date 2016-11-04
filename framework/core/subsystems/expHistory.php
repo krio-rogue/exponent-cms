@@ -1,7 +1,7 @@
 <?php
 ##################################################
 #
-# Copyright (c) 2004-2014 OIC Group, Inc.
+# Copyright (c) 2004-2016 OIC Group, Inc.
 #
 # This file is part of Exponent
 #
@@ -192,6 +192,8 @@ class expHistory {
   	public static function set($url_type, $params) {
   	    global $history;
 
+        if (expJavascript::inAjaxAction()) return;  // don't set history on an ajax call
+
   	    $history->setHistory($url_type, $params);
 	}
 	
@@ -258,9 +260,12 @@ class expHistory {
     }
     
     public static function getLastNotEditable() {
-        global $history;
+        global $history, $router;
 
-        return $history->lastUrl($history->history['lasts']['not_editable']);
+		if (empty($history->history['lasts']['not_editable'])) {
+			return $router->makeLink(array('section'=>SITE_DEFAULT_SECTION));
+		} else
+	        return $history->lastUrl($history->history['lasts']['not_editable']);
     }
     
     public function lastUrl($url_type=null) {
@@ -288,6 +293,26 @@ class expHistory {
     	$redirecturl = empty($redirecturl) ? self::getLastNotEditable() : $redirecturl;
         expSession::set('redirecturl',$redirecturl);
     	redirect_to(array('controller'=>'login', 'action'=>'loginredirect'));
+	}
+
+	public static function print_history() {
+		global $history;
+
+		$types = array('viewable', 'editable', 'manageable');
+		$ret = "<h2>Current expHistory</h2>";
+		foreach ($types as $type) {
+			$ret .= "<strong>" . $type . ":</strong><br>";
+			$hist_type = array_reverse($history->history[$type], true);
+			foreach ($hist_type as $index=>$hist) {
+				$ret .= "&#160;&#160;" . $index ." - " . $hist['url_type'] . ' : ';
+				foreach ($hist['params'] as $key=>$value) {
+					$ret .= $key . '=>' . $value .", ";
+				}
+				$ret .= "<br>";
+			}
+		}
+		$ret .= "<strong>expHistory Lasts:</strong> (not editable) " . $history->history['lasts']['not_editable'] . ' - (type) ' . $history->history['lasts']['type'];
+		return $ret;
 	}
 
 }

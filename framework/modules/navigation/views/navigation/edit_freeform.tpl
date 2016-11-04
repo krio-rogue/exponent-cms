@@ -1,5 +1,5 @@
 {*
- * Copyright (c) 2004-2014 OIC Group, Inc.
+ * Copyright (c) 2004-2016 OIC Group, Inc.
  *
  * This file is part of Exponent
  *
@@ -40,25 +40,32 @@
                 <div id="tab1">
                     {control type=text name=name label="Name"|gettext value=$section->name focus=1}
                     {control type=text name=sef_name label="SEF Name"|gettext value=$section->sef_name description='If you don\'t put in an SEF Name one will be generated based on the title provided. SEF names can only contain alpha-numeric characters, hyphens and underscores.'|gettext}
-                    {control type=text name="internal_id" label="Width in Columns"|gettext value=$section->internal_id default=3 description="Enter 1 to 5"|gettext description='The width of this top-level dropdown area'|gettext}
+                    {control type=number min=1 max=5 name="internal_id" label="Width in Columns"|gettext value=$section->internal_id default=3 description="Enter 1 to 5"|gettext description='The width of this top-level dropdown area'|gettext}
                     {*{control type="dropdown" name="external_link" label="Dropdown Alignment"|gettext items="Left,Right"|gettxtlist values="left,right" value=$section->external_link}*}
                     {control type="radiogroup" name="external_link" label="Dropdown Alignment"|gettext items="Left,Right"|gettxtlist values="left,right" value=$section->external_link|default:"left"}
                     {control type="checkbox" name="public" label="Public"|gettext|cat:"?" checked=$section->public|default:1 value=1 description='Should this page and menu item be visible to all users regardless of permissions?'|gettext}
-                    {control type="files" name="files" label="Icon"|gettext accept="image/*" value=$section->expFile limit=1 description='Select an icon to use for this menu item'|gettext}
+                    {group label='Menu Item Icon'|gettext}
+                        {control type="files" name="files" label="Graphic Icon"|gettext accept="image/*" value=$section->expFile limit=1 description='Select an icon to use with this menu item'|gettext}
+                        {if bs2()}
+                            {control type="dropdown" name="glyph" label="Font Icon"|gettext items=$glyphs includeblank='No Font Icon'|gettext style="font-family: 'FontAwesome', Helvetica;" value=$section->glyph description='or Select a font icon to use with this menu item'|gettext}
+                        {/if}
+                        {control type="checkbox" name="glyph_only" label="Display Icon Alone"|gettext checked=$section->glyph_only value=1 description='Should the menu only display the icon without the page name?'|gettext}
+                    {/group}
                 </div>
             </div>
         </div>
-        <div class="loadingdiv">{'Loading Pages'|gettext}</div>
+        {*<div class="loadingdiv">{'Loading Pages'|gettext}</div>*}
+        {loading title='Loading Pages'|gettext}
         {control type=buttongroup submit="Save"|gettext cancel="Cancel"|gettext}
     {/form}
-{script unique="configure" yui3mods=1}
+{script unique="configure" yui3mods="exptabs"}
 {literal}
     EXPONENT.YUI3_CONFIG.modules.exptabs = {
         fullpath: EXPONENT.JS_RELATIVE+'exp-tabs.js',
         requires: ['history','tabview','event-custom']
     };
 
-    YUI(EXPONENT.YUI3_CONFIG).use('exptabs', function(Y) {
+    YUI(EXPONENT.YUI3_CONFIG).use('*', function(Y) {
         Y.expTabs({srcNode: '#configure-tabs'});
         Y.one('#configure-tabs').removeClass('hide');
         Y.one('.loadingdiv').remove();

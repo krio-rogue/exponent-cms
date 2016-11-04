@@ -1,5 +1,5 @@
 {*
- * Copyright (c) 2004-2014 OIC Group, Inc.
+ * Copyright (c) 2004-2016 OIC Group, Inc.
  *
  * This file is part of Exponent
  *
@@ -91,7 +91,9 @@
             {/if}
         {/permissions}
 
-                    {$container->output}
+        <div class="{module_style style=$container->config.mstyle}"> {* module styling output *}
+        {$container->output}
+        </div>
 
         {permissions}
                 {if ($permissions.manage || $permissions.edit || $permissions.delete || $permissions.create || $permissions.configure

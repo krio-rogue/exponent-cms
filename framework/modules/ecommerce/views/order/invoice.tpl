@@ -1,5 +1,5 @@
 {*
- * Copyright (c) 2004-2014 OIC Group, Inc.
+ * Copyright (c) 2004-2016 OIC Group, Inc.
  *
  * This file is part of Exponent
  *
@@ -34,7 +34,7 @@
     </div>
     {if $pf && ecomconfig::getConfig('enable_barcode')}
     <div id="barcode">
-        <img style="margin:10px" src="{$smarty.const.PATH_RELATIVE}external/barcode.php?barcode={$order->invoice_id}&amp;width=400&amp;height=50" alt="">
+        <img style="margin:10px" src="{$smarty.const.PATH_RELATIVE}external/barcode.php?barcode={$order->invoice_id}&amp;width=400&amp;height=50" alt="{'Barcode'|gettext}">
     </div>
     {/if}
     <div id="invoice-data">
@@ -85,9 +85,15 @@
                                 {'No Shipping Required'|gettext}
                             {else}
                                 {$order->shipped|format_date:"%A, %B %e, %Y":"Not Shipped Yet"}
+                                {if $shipping->shippingmethod->delivery}
+                                    {br}{'Estimated Delivery Date'|gettext}: {$shipping->shippingmethod->delivery|date_format}
+                                {/if}
                             {/if}
                         {else}
                             {"Not Shipped Yet"|gettext}
+                            {if $shipping->shippingmethod->delivery}
+                                {br}{'Estimated Delivery Date'|gettext}: {$shipping->shippingmethod->delivery|date_format}
+                            {/if}
                         {/if}
                     </td>
                 </tr>
@@ -131,10 +137,16 @@
                                     {icon class="edit" action=edit_address id=$order->id type='s' title='Edit Shipping Address'|gettext}
                                 {/if}
                             </div>
-                        {/permissions}   
+                        {/permissions}
                         {br}
                         <table style="width: 100%; border: 0px; text-align: left; padding: 0px; margin:0px;">
                             <tr style="border: 0px; padding: 0px; margin:0px;">
+                                <td style="border: 0px; text-align: left; padding: 0px; padding-right: 5px; margin:0px;">
+                                    {if $shipping->shippingmethod->carrier != ''}
+                                    <strong>{"Carrier"|gettext}:</strong>{br}
+                                    {$shipping->shippingmethod->carrier}
+                                    {/if}
+                                </td>
                                 <td style="border: 0px; text-align: left; padding: 0px; margin:0px;">
                                     <strong>{"Shipping Method"|gettext}:</strong>{br}
                                     {$shipping->shippingmethod->option_title}
@@ -146,18 +158,15 @@
                                         </div>
                                     {/permissions}
                                 </td>
-                                <td style="border: 0px; text-align: left; padding: 0px; padding-right: 5px; margin:0px;">
-                                    {if $shipping->shippingmethod->carrier != ''}
-                                    <strong>{"Carrier"|gettext}:</strong>{br}
-                                    {$shipping->shippingmethod->carrier}
-                                    {/if}
-                                </td>
                             </tr>
                         </table>
                         {else}
                         {/if}
                     </td>
                     <td class="div-rows" style="width:46%;">
+                        {if !$permissions.edit_shipping_method || $pf}
+                            {$billinginfo}
+                        {else}
                         <div class="odd">
                             <span class="pmt-label">
                                 {"Payment Method"|gettext}
@@ -198,12 +207,12 @@
                             </span>
                             <span class="pmt-value">
                                 {if $billing->calculator != null}
-                                    {$billing->calculator->getPaymentReferenceNumber($billing->billingmethod->billing_options)}
+                                    {$billing->calculator->getPaymentReferenceNumber($billing->billingmethod)}
                                 {/if}
                             </span>
                         </div>
                         {if $billing->calculator != null}
-                        {$data = $billing->calculator->getAVSAddressVerified($billing->billingmethod)|cat:$billing->calculator->getAVSZipVerified($billing->billingmethod)|cat:$billing->calculator->getCVVMatched($billing->billingmethod)|cat:$billing->calculator->getCVVMatched($billing->billingmethod)}
+                        {$data = $billing->calculator->getAVSAddressVerified($billing->billingmethod)|cat:$billing->calculator->getAVSZipVerified($billing->billingmethod)|cat:$billing->calculator->getCVVMatched($billing->billingmethod)}
                         {if  !empty($data)}
                         <div class="odd">
                             <span class="pmt-label">
@@ -243,7 +252,8 @@
                                     {icon class="edit" action=edit_payment_info id=$order->id title='Edit Payment Method'|gettext}
                                 </div>
                             {/if}
-                        {/permissions}                                  
+                        {/permissions}
+                        {/if}
                     </td>
                 </tr>
             </tbody>
@@ -283,9 +293,9 @@
                     <th>
                         {"Description"|gettext}
                     </th>
-                    <th>
-                        {"Location"|gettext}
-                    </th>
+                    {*<th>*}
+                        {*{"Location"|gettext}*}
+                    {*</th>*}
                     <th>
                         {"Status"|gettext}
                     </th>
@@ -298,7 +308,7 @@
                     {permissions}
                         <div class="item-permissions">
                             {if $permissions.edit_order_item && !$pf}
-                                <th style="text-align:right;"></th>     
+                                <th style="text-align:right;"></th>
                             {/if}
                         </div>
                    {/permissions}
@@ -316,21 +326,21 @@
                     <td>
                         {$oi->getProductsName()}
                         {if $oi->opts[0]}
-                            {br}                             
+                            {br}
                             {foreach from=$oi->opts item=options}
                                 {$oi->getOption($options)}{br}
-                            {/foreach}                            
+                            {/foreach}
                         {/if}
-                        {$oi->getUserInputFields('br')} 
+                        {$oi->getUserInputFields('br')}
 						{*{if $oi->product_type == "product" || $oi->product_type == "childProduct"}*}
 							{$oi->getExtraData()}
 						{*{else}*}
 							{*{$oi->getFormattedExtraData('list')}*}
 						{*{/if}*}
                     </td>
-                    <td>
-                        {$oi->products_warehouse_location}
-                    </td>
+                    {*<td>*}
+                        {*{$oi->products_warehouse_location}*}
+                    {*</td>*}
                     <td>
                         {$oi->products_status}
                     </td>
@@ -357,78 +367,71 @@
                 {if $permissions.add_order_item && !$pf}
                     <tr>
                         <td colspan="8"><!--a href="{link action=add_order_item id=$order->id}">[+]</a-->
-                        {capture assign="callbacks"}
-                        {literal}                       
-                        
-                        // the text box for the title
-                        var tagInput = Y.one('#add_new_item');
+                            {capture assign="callbacks"}
+                            {literal}
+                            // the text box for the title
+                            var tagInput = Y.one('#add_new_item_autoc');
 
-                        // the UL to append to
-                        var tagUL = Y.one('#new_items');
+                            // the UL to append to
+                            var tagUL = Y.one('#new_items');
 
-                        // the Add Link
-                        var tagAddToList = Y.one('#addToRelProdList');
+                            var appendToList = function(e) {
+                                var val = e.result.raw.id;
+                                tagUL.appendChild(createHTML(val));
+                                return true;
+                            }
 
+                            var removeLI = function(e) {
+                                e.target.set('value', '');
+                                tagUL.get('children').remove();
+                            }
 
-                        var onRequestData = function( oSelf , sQuery , oRequest) {
-                            tagInput.setStyles({'border':'1px solid green','background':'#fff url('+EXPONENT.PATH_RELATIVE+'framework/core/forms/controls/assets/autocomplete/loader.gif) no-repeat 100% 50%'});
-                        }
-                        
-                        var onRGetDataBack = function( oSelf , sQuery , oRequest) {
-                            tagInput.setStyles({'border':'1px solid #000','backgroundImage':'none'});
-                        }
-                        
-                        var appendToList = function(e,args) {
-                            tagUL.appendChild(createHTML(args[2]));
-                            return true;
-                        }
-                        
-                        var removeLI = function(e) {
-                            var t = e.target;
-                            if (t.test('a')) tagUL.removeChild(t.get('parentNode'));
-                        }
+                            var createHTML = function(val) {
+                                var f = '<form role="form" id=addItem method=post>';
+                                    f += '<input type=hidden name=orderid id=orderid value={/literal}{$order->id}{literal}>';
+                                    f += '<input type=hidden name=controller id=controller value=order>';
+                                    f += '<input type=hidden name=action id=action value=add_order_item>';
+                                    f += '<input type=hidden name=product_id id=product_id value=' + val + '>';
+                                    f += '<input type=submit class="add {/literal}{expTheme::buttonStyle('green')}{literal}" name=submit value="{/literal}{'Add This Item'|gettext}{literal}">';
+                                    f += '</form>';
+                                var newLI = Y.Node.create(f);
+                                return newLI;
+                            }
 
-                        var createHTML = function(val) {                        
-                            var f = '<form role="form" id=addItem method=post>';
-                                f += '<input type=hidden name=orderid id=orderid value={/literal}{$order->id}{literal}>';
-                                f += '<input type=hidden name=module id=module value=order>';
-                                f += '<input type=hidden name=action id=action value=add_order_item>';
-                                f += '<input type=hidden name=product_id id=product_id value=' + val.id + '>';
-                                f += '<input type=submit class="add" name=submit value="Add This Item">';
-                                f += '</form>';
-                            var newLI = Y.Node.create(f);
-                            return newLI;   
-                        }
+                            tagInput.on('click',removeLI);
 
-                        //tagAddToList.on('click',appendToList);
-                        tagUL.on('click',removeLI);
+                            // format the results coming back in from the query
+                            autocomplete.ac.set('resultFormatter', function(query, results) {
+                                return Y.Array.map(results, function (result) {
+                                    var result = result.raw;
 
-                        // makes formatResult work mo betta
-                        oAC.resultTypeList = false;
-                        
-                        //AC.useShadow = true;
-                        //oAC.autoHighlight  = true;
-                        //oAC.typeAhead = true;
-    
-                        oAC.maxResultsDisplayed   = 30;
+                                    var template;
+                                    // image
+                                    if (result.fileid) {
+                                        template = '<pre><img width="30" height="30" class="srch-img" src="'+EXPONENT.PATH_RELATIVE+'thumb.php?id='+result.fileid+'&w=30&h=30&zc=1" />';
+                                    } else {
+                                        template = '<pre><img width="30" height="30" class="srch-img" src="'+EXPONENT.PATH_RELATIVE+'framework/modules/ecommerce/assets/images/no-image.jpg" />';
+                                    }
+                                    // title
+                                    template += ' <strong class="title">'+result.title+'</strong>';
+                                    // model/SKU
+                                    if (result.model) template += ' <em class="title">SKU: '+result.model+'</em>';
+                                    //template += '<div style="clear:both;">';
+                                    template += '</pre>';
 
-                        // when we start typing...?
-                        oAC.dataRequestEvent.subscribe(onRequestData);
-                        oAC.dataReturnEvent.subscribe(onRGetDataBack);
+                                    return template;
+                                });
+                            })
 
-                        // format the results coming back in from the query
-                        oAC.formatResult = function(oResultData, sQuery, sResultMatch) {
-                            return '(' + oResultData.model + ') ' + oResultData.title;
-                        }
-
-                        // what should happen when the user selects an item?
-                        oAC.itemSelectEvent.subscribe(appendToList);
-
-                        {/literal}
-                        {/capture}
-                        {control type="autocomplete" controller="store" action="search" name="add_new_item" label="Add a new item"|gettext value="Search title or SKU to add an item" schema="title,id,sef_url,expFile,model" searchmodel="product" searchoncol="title,model" jsinject=$callbacks}
-                        <div id="new_items">                        
-                        </div>
+                            // what should happen when the user selects an item?
+                            autocomplete.ac.on('select', function (e) {
+                                appendToList(e);
+                            });
+                            {/literal}
+                            {/capture}
+                            {control type="autocomplete" controller="store" action="search" name="add_new_item" label="Add a new item"|gettext placeholder="Search title or SKU to add an item" schema="title,id,sef_url,expFile,model" searchmodel="product" searchoncol="title,model" maxresults=30 jsinject=$callbacks}
+                            <div id="new_items">
+                            </div>
                         </td>
                     </tr>
                 {/if}
@@ -440,18 +443,18 @@
         <table class="totals-info" border="0" cellspacing="0" cellpadding="0">
             <thead>
                 <tr>
-                    {if !$pf}                         
+                    {if !$pf}
                     <th>
                     {else}
                     <th  colspan=3>
-                    {/if} 
+                    {/if}
                         {"Totals"|gettext}
                     </th>
-                    {if !$pf}<th colspan="2"></th>{/if}                              
+                    {if !$pf}<th colspan="2"></th>{/if}
                </tr>
             </thead>
             <tbody>
-                <tr class="even">
+                <tr class="{cycle values="odd, even"}">
                     <td>
                         {"Subtotal"|gettext}
                     </td>
@@ -461,16 +464,16 @@
                     <td  style="text-align:right; border-left:0px;">{$order->subtotal|number_format:2}
                     </td>
                 </tr>
-                
-                 {if (isset($order->order_discounts[0]) && $order->order_discounts[0]->isCartDiscount()) || $order->total_discounts > 0} 
-                 <tr class="odd">
+
+                 {if (isset($order->order_discounts[0]) && $order->order_discounts[0]->isCartDiscount()) || $order->total_discounts > 0}
+                 <tr class="{cycle values="odd, even"}">
                     <td>
                     {if isset($order->order_discounts[0]) && $order->order_discounts[0]->isCartDiscount()}
                         {"Total Cart Discounts (Code"|gettext}: {$order->order_discounts[0]->coupon_code})
                     {else}
                         {"Total Cart Discounts"|gettext}
                     {/if}
-                    
+
                     </td>
                     <td style="border-right:0px">
                         {currency_symbol}
@@ -478,7 +481,7 @@
                     <td style="text-align:right; border-left:0px;">-{$order->total_discounts|number_format:2}
                     </td>
                 </tr>
-                <tr class="even">
+                <tr class="{cycle values="odd, even"}">
                     <td>
                         {"Total"|gettext}
                     </td>
@@ -487,9 +490,10 @@
                     </td>
                     <td style="text-align:right; border-left:0px;">{$order->total|number_format:2}
                     </td>
-                </tr>   
+                </tr>
                  {/if}
-                  <tr class="odd">
+                 {if !$order->shipping_taxed}
+                  <tr class="{cycle values="odd, even"}">
                     <td width="90%">
                         {"Tax"|gettext|cat:" - "}
                     {foreach from=$order->taxzones item=zone}
@@ -503,15 +507,16 @@
                     </td>
                     <td style="text-align:right; border-left:0px;">{$order->tax|number_format:2}
                     </td>
-                </tr>   
-                <tr class="even">
+                </tr>
+                {/if}
+                <tr class="{cycle values="odd, even"}">
                     <td>
-                    {if isset($order->order_discounts[0]) && $order->order_discounts[0]->isShippingDiscount()} 
+                    {if isset($order->order_discounts[0]) && $order->order_discounts[0]->isShippingDiscount()}
                         {"Shipping & Handling (Discount Code"|gettext}: {$order->order_discounts[0]->coupon_code})
                     {else}
                         {"Shipping & Handling"|gettext}
                     {/if}
-                    
+
                     </td>
                     <td style="border-right:0px;">
                         {currency_symbol}
@@ -520,7 +525,7 @@
                     </td>
                 </tr>
                 {if $order->surcharge_total != 0}
-                    <tr class="even">
+                    <tr class="{cycle values="odd, even"}">
                         <td>
                             {"Freight Surcharge"|gettext}
                         </td>
@@ -531,7 +536,24 @@
                         </td>
                     </tr>
                 {/if}
-                <tr class="odd">
+                {if $order->shipping_taxed}
+                 <tr class="{cycle values="odd, even"}">
+                   <td width="90%">
+                       {"Tax"|gettext|cat:" - "}
+                   {foreach from=$order->taxzones item=zone}
+                       {$zone->name} ({$zone->rate}%)
+                   {foreachelse}
+                       ({'Not Required'|gettext})
+                   {/foreach}
+                   </td>
+                   <td style="border-right:0px;">
+                       {currency_symbol}
+                   </td>
+                   <td style="text-align:right; border-left:0px;">{$order->tax|number_format:2}
+                   </td>
+                </tr>
+                {/if}
+                <tr class="{cycle values="odd, even"}">
                     <td>
                         {"Order Total"|gettext}
                     </td>
@@ -540,11 +562,11 @@
                     </td>
                     <td style="text-align:right; border-left:0px;">{$order->grand_total|number_format:2}
                     </td>
-                </tr>                                                                        
+                </tr>
                 {permissions}
                     <div class="item-permissions">
                         {if $permissions.edit_totals && !$pf}
-                            <tr class="even">                   
+                            <tr class="{cycle values="odd, even"}">
                                 <td style="text-align:right; border-left:0px;" colspan='3'>
                                     {icon class="edit" action=edit_totals orderid=$order->id title='Edit Totals'|gettext}
                                 </td>

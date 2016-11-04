@@ -2,7 +2,7 @@
 
 ##################################################
 #
-# Copyright (c) 2004-2014 OIC Group, Inc.
+# Copyright (c) 2004-2016 OIC Group, Inc.
 #
 # This file is part of Exponent
 #
@@ -18,7 +18,6 @@
 
 if (!defined('EXPONENT')) exit('');
 
-//FIXME this is NOT a bootstrap control, but jQuery
 /**
  * Tag Picker Control using jQuery tag-it
  *
@@ -27,9 +26,8 @@ if (!defined('EXPONENT')) exit('');
  */
 class tagpickercontrol extends formcontrol {
 
-    var $flip = false;
-    var $jsHooks = array();
     var $record = array();
+    var $subtype = '';
     var $taglist = '';
 
     static function name() {
@@ -84,9 +82,10 @@ class tagpickercontrol extends formcontrol {
         foreach ($this->record->expTag as $tag) {
             $selectedtags .= $tag->title . ', ';
         }
-        $textbox = new genericcontrol('text');
-        $textbox->id = 'expTag';
-        $textbox->name = 'expTag';
+//        $textbox = new genericcontrol('text');
+        $textbox = new textcontrol();
+        $textbox->id = $this->id;
+        $textbox->name = $this->id;
         $textbox->default = $selectedtags;
         $textbox->size = 45;
         $textbox->flip    = $this->flip;
@@ -99,8 +98,8 @@ class tagpickercontrol extends formcontrol {
             "jquery"=> 'jqueryui,tag-it',
         ));
         $script = "
-            $('#expTag').tagit({
-                availableTags: [".$this->taglist."],
+            $('#" . $this->id . "').tagit({
+                availableTags: [" . $this->taglist . "],
                 allowSpaces: true
             });
         ";

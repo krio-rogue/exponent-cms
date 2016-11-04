@@ -2,7 +2,7 @@
 
 ##################################################
 #
-# Copyright (c) 2004-2014 OIC Group, Inc.
+# Copyright (c) 2004-2016 OIC Group, Inc.
 #
 # This file is part of Exponent
 #
@@ -28,26 +28,32 @@ class instorepickupcalculator extends shippingcalculator {
 	//overridden methods:
 	public function name() { return gt('In Store Pickup'); }
 	public function description() { return gt('In store pickup calculator'); }
-	public function hasUserForm() { return false; }
-	public function hasConfig() { return true; }
 	public function addressRequired() { return false; }
-	public function isSelectable() { return true; }
 
     public $shippingmethods = array("01"=>"In Store Pickup");
 
     public function getRates($order) {
         $rate = !empty($this->configdata['rate']) ? $this->configdata['rate'] : '';
-	    $rates = array('01'=>array('id'=>'01','title'=>$this->shippingmethods['01'],'cost'=>$rate));
+	    $rates = array(
+            '01'=>array(
+                'id'=>'01',
+                'title'=>$this->shippingmethods['01'],
+                'cost'=>$rate
+            )
+        );
 	    return $rates;
     }	
     
-   	public function configForm() { 
-   	    return BASE.'framework/modules/ecommerce/shippingcalculators/views/instorepickupcalculator/configure.tpl';
-   	}
+//   	public function configForm() {
+//   	    return BASE.'framework/modules/ecommerce/shippingcalculators/views/instorepickupcalculator/configure.tpl';
+//   	}
 	
 	//process config form
 	function parseConfig($values) {
-	    $config_vars = array('rate');
+	    $config_vars = array(
+            'rate'
+        );
+        $config = array();
 	    foreach ($config_vars as $varname) {
 	        if ($varname == 'rate') {
 	            $config[$varname] = isset($values[$varname]) ? expUtil::currency_to_float($values[$varname]) : null;
@@ -63,6 +69,7 @@ class instorepickupcalculator extends shippingcalculator {
 	function availableMethods() {
 	    return $this->shippingmethods;
 	}
+
 }
 
 ?>

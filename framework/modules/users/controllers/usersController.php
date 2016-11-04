@@ -2,7 +2,7 @@
 
 ##################################################
 #
-# Copyright (c) 2004-2014 OIC Group, Inc.
+# Copyright (c) 2004-2016 OIC Group, Inc.
 #
 # This file is part of Exponent
 #
@@ -24,7 +24,11 @@
 
 class usersController extends expController {
     public $basemodel_name = 'user';
-    protected $add_permissions = array(
+//    protected $remove_permissions = array(
+//        'create',
+//        'edit'
+//    );
+    protected $manage_permissions = array(
         'toggle_extension' => 'Activate Extensions',
         'kill_session'     => 'End Sessions',
         'boot_user'        => 'Boot Users',
@@ -32,10 +36,9 @@ class usersController extends expController {
         'groupperms'       => 'Group Permissions',
         'import'           => 'Import Users',
         'export'           => 'Export Users',
-    );
-    protected $remove_permissions = array(
-        'create',
-        'edit'
+        'update'           => 'Update Users',
+        'show'             => 'Show User',
+        'showall'          => 'Show Users',
     );
 
     static function displayname() {
@@ -114,6 +117,10 @@ class usersController extends expController {
         // check to see if we should be editing.  You either need to be an admin, or editing own account.
         if ($user->isAdmin() || ($user->id == $id && !$user->globalPerm('prevent_profile_change'))) {
             $u = new user($id);
+            if ($u->isSuperAdmin() && $user->isActingAdmin()) {  // prevent regular admin's from editing super-admins
+                flash('error', gt('You do not have the proper permissions to edit this user'));
+                expHistory::back();
+            }
         } else {
             flash('error', gt('You do not have the proper permissions to edit this user'));
             expHistory::back();
@@ -162,12 +169,12 @@ class usersController extends expController {
         if (!$user->isLoggedIn() && SITE_ALLOW_REGISTRATION == 0) {
             flash('error', gt('This site does not allow user registrations'));
             expHistory::back();
-        } elseif (!$user->isAdmin() && ($user->isLoggedIn() && $user->id != $id)) {
+        } elseif (!$user->isAdmin() && ($user->isLoggedIn() && $user->id != $id) && !$user->globalPerm('prevent_profile_change')) {
             flash('error', gt('You do not have permission to edit this user account'));
             expHistory::back();
         }
 
-        // if this is a new user account we need to check the password.  
+        // if this is a new user account we need to check the password.
         // the password fields wont come thru on an edit. Otherwise we will
         // just update the existing account.
         if (!empty($id)) {
@@ -226,10 +233,10 @@ class usersController extends expController {
                 }
                 $db->insertObject($memb, 'groupmembership');
             }
-            if ($u->id == $user->id) expPermissions::triggerRefresh();
+            if ($u->id == $user->id) expSession::triggerRefresh();
         }
 
-        // if this is a new account then we will check to see if we need to send 
+        // if this is a new account then we will check to see if we need to send
         // a welcome message or admin notification of new accounts.
         if (empty($id)) {
             // Calculate Group Memberships for newly created users.  Any groups that
@@ -261,9 +268,8 @@ class usersController extends expController {
                 $mail = new expMail();
                 $mail->quickSend(array(
                     'text_message' => $msg,
-                    'to'           => trim($u->email),
-                    'from'         => SMTP_FROMADDRESS,
-                    //'from_name'=>ecomconfig::getConfig('from_name'),
+                    'to'           => array(trim($u->email) => trim(user::getUserAttribution($u->id))),
+                    'from'         => array(trim(SMTP_FROMADDRESS) => trim(ORGANIZATION_NAME)),
                     'subject'      => USER_REGISTRATION_WELCOME_SUBJECT,
                 ));
 
@@ -279,8 +285,7 @@ class usersController extends expController {
                 $mail->quickSend(array(
                     'text_message' => $msg,
                     'to'           => trim(USER_REGISTRATION_ADMIN_EMAIL),
-                    'from'         => SMTP_FROMADDRESS,
-                    //'from_name'=>ecomconfig::getConfig('from_name'),
+                    'from'         => array(trim(SMTP_FROMADDRESS) => trim(ORGANIZATION_NAME)),
                     'subject'      => USER_REGISTRATION_NOTIF_SUBJECT,
                 ));
             }
@@ -339,8 +344,8 @@ class usersController extends expController {
         //cleans up any old sessions
         if (SESSION_TIMEOUT_ENABLE == true) {
             $db->delete('sessionticket', 'last_active < ' . (time() - SESSION_TIMEOUT));
-        } else {
-            $db->delete('sessionticket', '1');
+//        } else {
+//            $db->delete('sessionticket', '1');
         }
 
         if (isset($this->params['id']) && $this->params['id'] == 0) {
@@ -352,7 +357,7 @@ class usersController extends expController {
         }
 
 //	    $sessions = $db->selectObjects('sessionticket');
-        for ($i = 0; $i < count($sessions); $i++) {
+        for ($i = 0, $iMax = count($sessions); $i < $iMax; $i++) {
             $sessions[$i]->user = new user($sessions[$i]->uid);
             if ($sessions[$i]->uid == 0) {
                 $sessions[$i]->user->id = 0;
@@ -489,6 +494,7 @@ class usersController extends expController {
         global $db;
 
         // find the user
+        $this->params['username'] = expString::escape($this->params['username']);
         $u = user::getUserByName($this->params['username']);
         if (empty($u)) {
             $u = user::getUserByEmail($this->params['username']);
@@ -520,8 +526,9 @@ class usersController extends expController {
         $mail = new expMail();
         $mail->quickSend(array(
             'html_message' => $msg,
-            'to'           => trim($u->email),
-            'from'         => SMTP_FROMADDRESS,
+            'text_message' => expString::html2text($msg),
+            'to'           => array(trim($u->email) => trim(user::getUserAttribution($u->id))),
+            'from'         => array(trim(SMTP_FROMADDRESS) => trim(ORGANIZATION_NAME)),
             'subject'      => gt('Password Reset Requested'),
         ));
 
@@ -537,7 +544,7 @@ class usersController extends expController {
         global $db;
 
         $db->delete('passreset_token', 'expires < ' . time());
-        $tok = $db->selectObject('passreset_token', 'uid=' . $this->params['uid'] . " AND token='" . preg_replace('/[^A-Za-z0-9]/', '', $this->params['token']) . "'");
+        $tok = $db->selectObject('passreset_token', 'uid=' . intval($this->params['uid']) . " AND token='" . preg_replace('/[^A-Za-z0-9]/', '', expString::escape($this->params['token'])) . "'");
         if ($tok == null) {
             flash('error', gt('Your password reset request has expired.  Please try again.'));
             expHistory::back();
@@ -545,8 +552,8 @@ class usersController extends expController {
 
         // create the password
         $newpass = '';
-        for ($i = 0; $i < rand(12, 20); $i++) {
-            $num = rand(48, 122);
+        for ($i = 0, $iMax = mt_rand(12, 20); $i < $iMax; $i++) {
+            $num = mt_rand(48, 122);
             if (($num > 97 && $num < 122) || ($num > 65 && $num < 90) || ($num > 48 && $num < 57)) $newpass .= chr($num);
             else $i--;
         }
@@ -564,13 +571,14 @@ class usersController extends expController {
         $mail = new expMail();
         $mail->quickSend(array(
             'html_message' => $msg,
-            'to'           => trim($u->email),
-            'from'         => SMTP_FROMADDRESS,
+            'text_message' => expString::html2text($msg),
+            'to'           => array(trim($u->email) => trim(user::getUserAttribution($u->id))),
+            'from'         => array(trim(SMTP_FROMADDRESS) => trim(ORGANIZATION_NAME)),
             'subject'      => gt('The account password for') . ' ' . HOSTNAME . ' ' . gt('was reset'),
         ));
 
         // Save new password
-        $u->update(array('password' => md5($newpass)));
+        $u->update(array('password' => user::encryptPassword($newpass)));
 
         // cleanup the reset token
         $db->delete('passreset_token', 'uid=' . $tok->uid);
@@ -603,17 +611,19 @@ class usersController extends expController {
     public function save_change_password() {
         global $user;
 
-        if (!$user->isAdmin() && ($this->params['uid'] != $user->id)) {
+        $isuser = ($this->params['uid'] == $user->id) ? 1 : 0;
+
+        if (!$user->isAdmin() && !$isuser) {
             flash('error', gt('You do not have permissions to change this users password.'));
             expHistory::back();
         }
 
-        if (!$user->isAdmin() && (empty($this->params['password']) || $user->password != md5($this->params['password']))) {
+        if (($isuser && empty($this->params['password'])) || (!empty($this->params['password']) && $user->password != user::encryptPassword($this->params['password']))) {
             flash('error', gt('The current password you entered is not correct.'));
             expHistory::returnTo('editable');
         }
         //eDebug($user);
-        $u = new user($this->params['uid']);
+        $u = new user(intval($this->params['uid']));
 
         $ret = $u->setPassword($this->params['new_password1'], $this->params['new_password2']);
         //eDebug($u, true);
@@ -627,7 +637,7 @@ class usersController extends expController {
             $u->update($params);
         }
 
-        if ($this->params['uid'] != $user->id) {
+        if (!$isuser) {
             flash('message', gt('The password for') . ' ' . $u->username . ' ' . gt('has been changed.'));
         } else {
             $user->password = $u->password;
@@ -650,6 +660,13 @@ class usersController extends expController {
     }
 
     public function update_userpassword() {
+        global $user;
+
+        if (!$user->isAdmin() && $this->params['id'] != $user->id) {
+            flash('error', gt('You do not have permissions to change this users password.'));
+            expHistory::back();
+        }
+
         if (empty($this->params['id'])) {
             expValidator::failAndReturnToForm(gt('You must specify the user whose password you want to change'), $this->params);
         }
@@ -714,7 +731,7 @@ class usersController extends expController {
             }
         }
 
-        for ($i = 0; $i < count($users); $i++) {
+        for ($i = 0, $iMax = count($users); $i < $iMax; $i++) {
             if (in_array($users[$i]->id, $members)) {
                 $users[$i]->is_member = 1;
             } else {
@@ -815,7 +832,7 @@ class usersController extends expController {
                 $db->insertObject($memb, 'groupmembership');
             }
         }
-        expPermissions::triggerRefresh();
+        expSession::triggerRefresh();
         expHistory::back();
     }
 
@@ -829,17 +846,17 @@ class usersController extends expController {
 
         // How many records to get?
         if (strlen($this->params['results']) > 0) {
-            $results = $this->params['results'];
+            $results = intval($this->params['results']);
         }
 
         // Start at which record?
         if (strlen($this->params['startIndex']) > 0) {
-            $startIndex = $this->params['startIndex'];
+            $startIndex = intval($this->params['startIndex']);
         }
 
         // Sorted?
         if (strlen($this->params['sort']) > 0) {
-            $sort = $this->params['sort'];
+            $sort = expString::escape($this->params['sort']);
             if ($sort = 'id') $sort = 'username';
         }
 
@@ -880,12 +897,11 @@ class usersController extends expController {
 
         if (!empty($this->params['query'])) {
 
-//            $this->params['query'] = $this->params['query'];
+            $this->params['query'] = expString::escape($this->params['query']);
             $totalrecords = $this->$modelname->find('count', (empty($filter) ? '' : $filter . " AND ") . "(username LIKE '%" . $this->params['query'] . "%' OR firstname LIKE '%" . $this->params['query'] . "%' OR lastname LIKE '%" . $this->params['query'] . "%' OR email LIKE '%" . $this->params['query'] . "%')");
 
             $users = $this->$modelname->find('all', (empty($filter) ? '' : $filter . " AND ") . "(username LIKE '%" . $this->params['query'] . "%' OR firstname LIKE '%" . $this->params['query'] . "%' OR lastname LIKE '%" . $this->params['query'] . "%' OR email LIKE '%" . $this->params['query'] . "%')", $sort . ' ' . $dir, $results, $startIndex);
-
-            for ($i = 0; $i < count($users); $i++) {
+            for ($i = 0, $iMax = count($users); $i < $iMax; $i++) {
                 if (ECOM == 1) {
                     $users[$i]->usernamelabel = "<a href='viewuser/{$users[$i]->id}'  class='fileinfo'>{$users[$i]->username}</a>";
                 } else {
@@ -908,7 +924,7 @@ class usersController extends expController {
 
             $users = $this->$modelname->find('all', $filter, $sort . ' ' . $dir, $results, $startIndex);
 
-            for ($i = 0; $i < count($users); $i++) {
+            for ($i = 0, $iMax = count($users); $i < $iMax; $i++) {
                 if (ECOM == 1) {
                     $users[$i]->usernamelabel = "<a href='viewuser/{$users[$i]->id}'  class='fileinfo'>{$users[$i]->username}</a>";
                 } else {
@@ -934,7 +950,7 @@ class usersController extends expController {
     public function viewuser() {
         global $user;
 
-        if (!empty($this->params['id'])) {
+        if (!empty($this->params['id']) && $user->isAdmin()) {
             $u = new user($this->params['id']);
         } elseif (!empty($user->id)) {
             $u = $user;
@@ -969,7 +985,7 @@ class usersController extends expController {
                 gt('Order #')        => 'invoice_id',
                 gt('Total')          => 'total',
                 gt('Date Purchased') => 'purchased',
-                gt('Type')           => 'order_type_id',
+//                gt('Type')           => 'order_type_id',
                 gt('Status')         => 'order_status_id',
                 gt('Ref')            => 'orig_referrer',
             ),
@@ -991,7 +1007,6 @@ class usersController extends expController {
         if (!empty($this->params['mod']) && $user->isAdmin()) {
             $loc = expCore::makeLocation($this->params['mod'], isset($this->params['src']) ? $this->params['src'] : null, isset($this->params['int']) ? $this->params['int'] : null);
             $users = array();
-//        	$modclass = expModules::controllerExists($loc->mod) ? expModules::getControllerClassName($loc->mod) : $loc->mod;  //FIXME long controller name
             $modclass = expModules::getModuleClassName(($loc->mod));
             $mod = new $modclass();
             $perms = $mod->permissions($loc->int);
@@ -1073,7 +1088,7 @@ class usersController extends expController {
         foreach ($this->params['permdata'] as $k => $user_str) {
             $perms = array_keys($user_str);
             $u = user::getUserById($k);
-            for ($i = 0; $i < count($perms); $i++) {
+            for ($i = 0, $iMax = count($perms); $i < $iMax; $i++) {
                 expPermissions::grant($u, $perms[$i], $loc);
             }
 
@@ -1081,7 +1096,7 @@ class usersController extends expController {
                 expPermissions::load($user);
             }
         }
-        expPermissions::triggerRefresh();
+        expSession::triggerRefresh();
         expHistory::back();
     }
 
@@ -1091,7 +1106,6 @@ class usersController extends expController {
         if (!empty($this->params['mod']) && $user->isAdmin()) {
             $loc = expCore::makeLocation($this->params['mod'], isset($this->params['src']) ? $this->params['src'] : null, isset($this->params['int']) ? $this->params['int'] : null);
             $users = array(); // users = groups
-//        	$modclass = expModules::controllerExists($loc->mod) ? expModules::getControllerClassName($loc->mod) : $loc->mod;  //FIXME long controller name
             $modclass = expModules::getModuleClassName($loc->mod);
             $mod = new $modclass();
             $perms = $mod->permissions($loc->int);
@@ -1169,11 +1183,11 @@ class usersController extends expController {
         foreach ($this->params['permdata'] as $k => $group_str) {
             $perms = array_keys($group_str);
             $g = group::getGroupById($k);
-            for ($i = 0; $i < count($perms); $i++) {
+            for ($i = 0, $iMax = count($perms); $i < $iMax; $i++) {
                 expPermissions::grantGroup($g, $perms[$i], $loc);
             }
         }
-        expPermissions::triggerRefresh();
+        expSession::triggerRefresh();
         expHistory::back();
     }
 
@@ -1213,7 +1227,7 @@ class usersController extends expController {
         //Check to make sure the user filled out the required input.
         //FIXME needs to be the newer fail form
         if (!is_numeric($this->params["rowstart"])) {
-            unset($this->params['rowstart']);
+            unset($this->params["rowstart"]);
             $this->params['_formError'] = gt('The starting row must be a number.');
             expSession::set("last_POST", $this->params);
             header("Location: " . $_SERVER['HTTP_REFERER']);
@@ -1259,7 +1273,10 @@ class usersController extends expController {
 
         //split the line into its columns
         $headerinfo = null;
+        $line_end = ini_get('auto_detect_line_endings');
+        ini_set('auto_detect_line_endings',TRUE);
         $fh = fopen(BASE . $directory . "/" . $file->filename, "r");
+        if (!empty($this->params["use_header"])) $this->params["rowstart"]++;
         for ($x = 0; $x < $this->params["rowstart"]; $x++) {
             $lineInfo = fgetcsv($fh, 2000, $this->params["delimiter"]);
             if ($x == 0 && !empty($this->params["use_header"])) $headerinfo = $lineInfo;
@@ -1289,13 +1306,19 @@ class usersController extends expController {
             $form->meta("use_header", $this->params["use_header"]);
             $form->meta("filename", $directory . "/" . $file->filename);
             $form->meta("delimiter", $this->params["delimiter"]);
-            for ($i = 0; $i < count($lineInfo); $i++) {
+            for ($i = 0, $iMax = count($lineInfo); $i < $iMax; $i++) {
                 if ($headerinfo != null) {
                     $title = $headerinfo[$i] . ' (' . $lineInfo[$i] .')';
+                    if (array_key_exists($headerinfo[$i], $colNames)) {
+                        $default = $headerinfo[$i];
+                    } else {
+                        $default = "none";
+                    }
                 } else {
                     $title = $lineInfo[$i];
+                    $default = "none";
                 }
-                $form->register("column[$i]", $title, new dropdowncontrol("none", $colNames));
+                $form->register("column[$i]", $title, new dropdowncontrol($default, $colNames));
             }
             $form->register("submit", "", new buttongroupcontrol(gt('Next'), "", gt('Cancel')));
 
@@ -1349,10 +1372,13 @@ class usersController extends expController {
             'uname_options' => $unameOptions,
             'pword_options' => $pwordOptions,
             'pword_disabled' => $disabled,
+            'params' => $this->params
         ));
     }
 
     public function import_users_display() {
+        $line_end = ini_get('auto_detect_line_endings');
+        ini_set('auto_detect_line_endings',TRUE);
         $file = fopen(BASE . $this->params["filename"], "r");
         $userinfo = array();
         $userarray = array();
@@ -1395,7 +1421,7 @@ class usersController extends expController {
                         break;
                     case "FILNNUM":
                         if (($userinfo['firstname'] != "") && ($userinfo['lastname'] != "")) {
-                            $userinfo['username'] = str_replace(" ", "", strtolower($userinfo['firstname']{0} . $userinfo['lastname'] . rand(100, 999)));
+                            $userinfo['username'] = str_replace(" ", "", strtolower($userinfo['firstname']{0} . $userinfo['lastname'] . mt_rand(100, 999)));
                         } else {
                             $userinfo['username'] = "";
 //                            $userinfo['clearpassword'] = "";
@@ -1435,8 +1461,8 @@ class usersController extends expController {
 //                    switch ($this->params["pwordOptions"]) {
 //                        case "RAND":
 //                            $newpass = "";
-//                            for ($i = 0; $i < rand(12, 20); $i++) {
-//                                $num = rand(48, 122);
+//                            for ($i = 0; $i < mt_rand(12, 20); $i++) {
+//                                $num = mt_rand(48, 122);
 //                                if (($num > 97 && $num < 122) || ($num > 65 && $num < 90) || ($num > 48 && $num < 57)) $newpass .= chr($num);
 //                                else $i--;
 //                            }
@@ -1447,13 +1473,13 @@ class usersController extends expController {
 //                            break;
 //                    }
 //
-//                    $userinfo['password'] = md5($userinfo['clearpassword']);
+//                    $userinfo['password'] = user::encryptPassword($userinfo['clearpassword']);
 
                     $suffix = "";
                     while (user::getUserByName($userinfo['username'] . $suffix) != null) { //username already exists
                         if (!empty($this->params["update"])) {
                             if (in_array($userinfo['username'], $usersdone)) {
-                                $suffix = '-rand-' . rand(100, 999);
+                                $suffix = '-rand-' . mt_rand(100, 999);
                             } else {
                                 $tmp = user::getUserByName($userinfo['username'] . $suffix);
                                 $userinfo['id'] = $tmp->id;
@@ -1461,7 +1487,7 @@ class usersController extends expController {
                                 break;
                             }
                         } else {
-                            $suffix = '-rand-' . rand(100, 999);
+                            $suffix = '-rand-' . mt_rand(100, 999);
                         }
                     }
 
@@ -1480,10 +1506,15 @@ class usersController extends expController {
             "userarray" => $userarray,
             "params" => $this->params,
         ));
-//        unlink(BASE . $this->params["filename"]);
     }
 
     public function import_users_add() {
+        if (!empty($this->params['filename']) && (strpos($this->params['filename'], 'tmp/') === false || strpos($this->params['folder'], '..') !== false)) {
+            header('Location: ' . URL_FULL);
+            exit();  // attempt to hack the site
+        }
+        $line_end = ini_get('auto_detect_line_endings');
+        ini_set('auto_detect_line_endings',TRUE);
         $file = fopen(BASE . $this->params["filename"], "r");
         $userinfo = array();
         $userarray = array();
@@ -1524,7 +1555,7 @@ class usersController extends expController {
                         break;
                     case "FILNNUM":
                         if (($userinfo['firstname'] != "") && ($userinfo['lastname'] != "")) {
-                            $userinfo['username'] = str_replace(" ", "", strtolower($userinfo['firstname']{0} . $userinfo['lastname'] . rand(100, 999)));
+                            $userinfo['username'] = str_replace(" ", "", strtolower($userinfo['firstname']{0} . $userinfo['lastname'] . mt_rand(100, 999)));
                         } else {
                             $userinfo['username'] = "";
                             $userinfo['clearpassword'] = "";
@@ -1564,8 +1595,8 @@ class usersController extends expController {
                     switch ($this->params["pwordOptions"]) {
                         case "RAND":
                             $newpass = "";
-                            for ($i = 0; $i < rand(12, 20); $i++) {
-                                $num = rand(48, 122);
+                            for ($i = 0, $iMax = mt_rand(12, 20); $i < $iMax; $i++) {
+                                $num = mt_rand(48, 122);
                                 if (($num > 97 && $num < 122) || ($num > 65 && $num < 90) || ($num > 48 && $num < 57)) $newpass .= chr($num);
                                 else $i--;
                             }
@@ -1576,13 +1607,13 @@ class usersController extends expController {
                             break;
                     }
 
-                    $userinfo['password'] = md5($userinfo['clearpassword']);
+                    $userinfo['password'] = user::encryptPassword($userinfo['clearpassword']);
 
                     $suffix = "";
                     while (user::getUserByName($userinfo['username'] . $suffix) != null) { //username already exists
                         if (!empty($this->params["update"])) {
                             if (in_array($userinfo['username'], $usersdone)) {  // username exists because we already created it
-                                $suffix = rand(100, 999);
+                                $suffix = mt_rand(100, 999);
                             } else {
                                 $tmp = user::getUserByName($userinfo['username'] . $suffix);
                                 $userinfo['id'] = $tmp->id;
@@ -1590,7 +1621,7 @@ class usersController extends expController {
                                 break;
                             }
                         } else {
-                            $suffix = rand(100, 999);
+                            $suffix = mt_rand(100, 999);
                         }
                     }
 
@@ -1607,9 +1638,8 @@ class usersController extends expController {
                         $mail = new expMail();
                         $mail->quickSend(array(
                             'text_message' => $msg,
-                            'to'           => trim($newuser->email),
-                            'from'         => SMTP_FROMADDRESS,
-                            //'from_name'=>ecomconfig::getConfig('from_name'),
+                            'to'           => array(trim($newuser->email) => trim(user::getUserAttribution($newuser->id))),
+                            'from'         => array(trim(SMTP_FROMADDRESS) => trim(ORGANIZATION_NAME)),
                             'subject'      => USER_REGISTRATION_WELCOME_SUBJECT,
                         ));
                     }
@@ -1620,6 +1650,8 @@ class usersController extends expController {
             }
             $linenum++;
         }
+        fclose($file);
+        ini_set('auto_detect_line_endings',$line_end);
         assign_to_template(array(
             "userarray" => $userarray,
         ));

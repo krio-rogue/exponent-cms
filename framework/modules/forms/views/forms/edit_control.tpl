@@ -1,5 +1,5 @@
 {*
- * Copyright (c) 2004-2014 OIC Group, Inc.
+ * Copyright (c) 2004-2016 OIC Group, Inc.
  *
  * This file is part of Exponent
  *
@@ -18,7 +18,7 @@
         <h1>{if $is_edit == 1}{'Edit Control'|gettext}{else}{'Create a New Control'|gettext}{/if} - {$type}</h1>
     </div>
     {$form_html}
-    {if $is_edit != 1 && $type != "htmlcontrol" && $type != "pagecontrol"}{br}<em>
+    {if $is_edit != 1 && $type != "htmlcontrol" && $type != "pagecontrol" && $type != "static"}{br}<em>
         <strong>** {'Adding this control will reset the default report to all fields'|gettext} **</strong></em>
     {/if}
 </div>

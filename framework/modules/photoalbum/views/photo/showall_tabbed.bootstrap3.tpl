@@ -1,5 +1,5 @@
 {*
- * Copyright (c) 2004-2014 OIC Group, Inc.
+ * Copyright (c) 2004-2016 OIC Group, Inc.
  *
  * This file is part of Exponent
  *
@@ -29,6 +29,9 @@
 				{icon class=add action=edit rank=1 title="Add to the Top"|gettext text="Add Image"|gettext}
                 {icon class=add action=multi_add title="Quickly Add Many Images"|gettext text="Add Multiple Images"|gettext}
 			{/if}
+            {if $permissions.delete}
+                {icon class=delete action=delete_multi title="Delete Many Images"|gettext text="Delete Multiple Images"|gettext onclick='null;'}
+            {/if}
             {if $permissions.manage}
                 {if !$config.disabletags}
                     {icon controller=expTag class="manage" action=manage_module model='photo' text="Manage Tags"|gettext}
@@ -48,14 +51,14 @@
     {$myloc=serialize($__loc)}
     {$quality=$config.quality|default:$smarty.const.THUMB_QUALITY}
     <div id="photos-{$id}" class="">
-        <ul class="nav nav-tabs">
+        <ul class="nav nav-tabs" role="tablist">
             {foreach name=tabs from=$page->cats key=catid item=cat}
-                <li{if $smarty.foreach.tabs.first} class="active"{/if}><a href="#tab{$smarty.foreach.tabs.iteration}" data-toggle="tab">{$cat->name}</a></li>
+                <li role="presentation"{if $smarty.foreach.tabs.first} class="active"{/if}><a href="#tab{$smarty.foreach.tabs.iteration}-{$id}" role="tab" data-toggle="tab">{$cat->name}</a></li>
             {/foreach}
         </ul>
         <div class="tab-content">
             {foreach name=items from=$page->cats key=catid item=cat}
-                <div id="tab{$smarty.foreach.items.iteration}" class="tab-pane fade{if $smarty.foreach.items.first} in active{/if}">
+                <div id="tab{$smarty.foreach.items.iteration}-{$id}" role="tabpanel" class="tab-pane fade{if $smarty.foreach.items.first} in active{/if}">
                     <ul class="image-list">
                         {foreach from=$cat->records item=item}
                             <li style="width:{$config.pa_showall_thumbbox|default:"150"}px;height:{$config.pa_showall_thumbbox|default:"150"}px;">
@@ -68,11 +71,11 @@
                                         {$group = 'Uncategorized'|gettext}
                                     {/if}
                                     {if $item->expFile[0]->image_width >= $item->expFile[0]->image_height}{$x="w"}{else}{$x="w"}{/if}
-                                    <a rel="lightbox[{$name}-{$group}]" href="{$smarty.const.PATH_RELATIVE}thumb.php?id={$item->expFile[0]->id}&{$x}={$config.pa_showall_enlarged}" title="{$item->alt|default:$item->title}">
+                                    <a class="colorbox" rel="lightbox[{$name}-{$group}]" href="{$smarty.const.PATH_RELATIVE}thumb.php?id={$item->expFile[0]->id}&{$x}={$config.pa_showall_enlarged}" title="{$item->alt|default:$item->title}">
                                 {else}
                                     <a href="{link action=show title=$item->sef_url}" title="{$item->alt|default:$item->title}">
                                 {/if}
-                                    {img class="img-small" alt=$item->alt|default:$item->expFile[0]->alt file_id=$item->expFile[0]->id w=$config.pa_showall_thumbbox|default:"150" h=$config.pa_showall_thumbbox|default:"150" far=TL f=jpeg q=$quality|default:75}
+                                    {img class="img-small" alt=$item->alt file_id=$item->expFile[0]->id w=$config.pa_showall_thumbbox|default:"150" h=$config.pa_showall_thumbbox|default:"150" far=TL f=jpeg q=$quality|default:75}
                                 </a>
                                 {permissions}
                                     <div class="item-actions">
@@ -101,41 +104,22 @@
             {/foreach}
         </div>
     </div>
-    <div class="loadingdiv">{'Loading'|gettext}</div>
+    {loading}
 </div>
 
-{script unique="`$id`" yui3mods="1"}
+{script unique="shadowbox-`$__loc->src`" jquery='jquery.colorbox'}
 {literal}
-//    EXPONENT.YUI3_CONFIG.modules.exptabs = {
-//        fullpath: EXPONENT.JS_RELATIVE+'exp-tabs.js',
-//        requires: ['history','tabview','event-custom']
-//    };
-
-    EXPONENT.YUI3_CONFIG.modules = {
-       'gallery-lightbox' : {
-           fullpath: EXPONENT.PATH_RELATIVE+'framework/modules/common/assets/js/gallery-lightbox.js',
-           requires : ['base','node','anim','selector-css3','lightbox-css']
-       },
-       'lightbox-css': {
-           fullpath: EXPONENT.PATH_RELATIVE+'framework/modules/common/assets/css/gallery-lightbox.css',
-           type: 'css'
-       }
-    }
-
-	YUI(EXPONENT.YUI3_CONFIG).use('exptabs','gallery-lightbox', function(Y) {
-//        Y.expTabs({srcNode: '#{/literal}{$id}{literal}'});
-//		Y.one('#{/literal}{$id}{literal}').removeClass('hide');
-//		Y.one('.loadingdiv').remove();
-        Y.Lightbox.init();
-	});
+    $('a.colorbox').colorbox({
+        href: $(this).href,
+        ref: $(this).rel,
+        photo: true,
+        maxWidth: "100%",
+        close:'<i class="fa fa-close" aria-label="close modal"></i>',
+        previous:'<i class="fa fa-chevron-left" aria-label="previous photo"></i>',
+        next:'<i class="fa fa-chevron-right" aria-label="next photo"></i>',
+    });
 {/literal}
 {/script}
-
-{*{script unique="photos-`$id`" jquery="jqueryui"}*}
-{*{literal}*}
-    {*$('#photos-{/literal}{$id}{literal}').tabs().next().remove();*}
-{*{/literal}*}
-{*{/script}*}
 
 {script unique="tabload" jquery=1 bootstrap="tab,transition"}
 {literal}

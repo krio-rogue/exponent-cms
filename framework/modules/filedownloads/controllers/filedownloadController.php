@@ -2,7 +2,7 @@
 
 ##################################################
 #
-# Copyright (c) 2004-2014 OIC Group, Inc.
+# Copyright (c) 2004-2016 OIC Group, Inc.
 #
 # This file is part of Exponent
 #
@@ -33,11 +33,14 @@ class filedownloadController extends expController {
         'rss', // because we do this as a custom tab within the module
     );  // all options: ('aggregation','categories','comments','ealerts','facebook','files','pagination','rss','tags','twitter',)
 
+    public $rss_is_podcast = true;
+
     static function displayname() { return gt("File Downloads"); }
     static function description() { return gt("Place files on your website for users to download or use as a podcast."); }
     static function isSearchable() { return true; }
-	
+
     function showall() {
+        expHistory::set('viewable', $this->params);
         $limit = (isset($this->config['limit']) && $this->config['limit'] != '') ? $this->config['limit'] : 10;
         if (!empty($this->params['view']) && ($this->params['view'] == 'showall_accordion' || $this->params['view'] == 'showall_tabbed')) {
             $limit = '0';
@@ -77,7 +80,8 @@ class filedownloadController extends expController {
 		assign_to_template(array(
             'page'=>$page,
             'items'=>$page->records,
-            'rank'=>($order==='rank')?1:0
+            'rank'=>($order==='rank')?1:0,
+            'params'=>$this->params,
         ));
     }
 
@@ -86,21 +90,21 @@ class filedownloadController extends expController {
             flash('error', gt('There was an error while trying to download your file.  No File Specified.'));
             expHistory::back();
         }
-        
-        $fd = new filedownload($this->params['fileid']); 
+
+        $fd = new filedownload(intval($this->params['fileid']));
         if (empty($this->params['filenum'])) $this->params['filenum'] = 0;
 
         if (empty($fd->expFile['downloadable'][$this->params['filenum']]->id)) {
             flash('error', gt('There was an error while trying to download your file.  The file you were looking for could not be found.'));
             expHistory::back();
-        }        
-        
-        $fd->downloads += 1;
+        }
+
+        $fd->downloads++;
         $fd->save();
-        
+
         // this will set the id to the id of the actual file..makes the download go right.
         $this->params['id'] = $fd->expFile['downloadable'][$this->params['filenum']]->id;
-        parent::downloadfile();        
+        parent::downloadfile();
     }
 
     /**
@@ -126,40 +130,119 @@ class filedownloadController extends expController {
         }
     }
 
-    function getRSSContent() {
+    /**
+     * Returns Facebook og: meta data
+     *
+     * @param $request
+     * @param $object
+     *
+     * @return null
+     */
+    public function meta_fb($request, $object, $canonical)
+    {
+        $metainfo = array();
+        $metainfo['type'] = 'article';
+        if (!empty($object->body)) {
+            $desc = str_replace('"', "'", expString::summarize($object->body, 'html', 'para'));
+        } else {
+            $desc = SITE_DESCRIPTION;
+        }
+        $metainfo['title'] = substr(empty($object->meta_fb['title']) ? $object->title : $object->meta_fb['title'], 0, 87);
+        $metainfo['description'] = substr(empty($object->meta_fb['description']) ? $desc : $object->meta_fb['description'], 0, 199);
+        $metainfo['url'] = empty($object->meta_fb['url']) ? $canonical : $object->meta_fb['url'];
+        $metainfo['image'] = empty($object->meta_fb['fbimage'][0]) ? '' : $object->meta_fb['fbimage'][0]->url;
+        if (empty($metainfo['image'])) {
+            if (!empty($object->expFile['downloadable'][0]->is_image)) {
+                $metainfo['image'] = $object->expFile['downloadable'][0]->url;
+            } else {
+                $config = expConfig::getConfig($object->location_data);
+                if (!empty($config['expFile']['fbimage'][0])) {
+                    $file = new expFile($config['expFile']['fbimage'][0]);
+                }
+                if (!empty($file->id)) {
+                    $metainfo['image'] = $file->url;
+                }
+                if (empty($metainfo['image'])) {
+                    $metainfo['image'] = URL_BASE . MIMEICON_RELATIVE . 'generic_22x22.png';
+                }
+            }
+        }
+        $mt = explode('/', $object->expFile['downloadable'][0]->mimetype);
+        if ($mt[0] == 'audio' || $mt[0] == 'video')  // add an audio/video attachment
+            $metainfo[$mt[0]] = $object->expFile['downloadable'][0]->url;
+
+        return $metainfo;
+    }
+
+    /**
+     * Returns Twitter twitter: meta data
+     *
+     * @param $request
+     * @param $object
+     *
+     * @return null
+     */
+    public function meta_tw($request, $object, $canonical) {
+        $metainfo = array();
+        $metainfo['card'] = 'summary';
+        if (!empty($object->body)) {
+            $desc = str_replace('"',"'",expString::summarize($object->body,'html','para'));
+        } else {
+            $desc = SITE_DESCRIPTION;
+        }
+        $config = expConfig::getConfig($object->location_data);
+        if (!empty($object->meta_tw['twsite'])) {
+            $metainfo['site'] = $object->meta_tw['twsite'];
+        } elseif (!empty($config['twsite'])) {
+            $metainfo['site'] = $config['twsite'];
+        }
+        $metainfo['title'] = substr(empty($object->meta_tw['title']) ? $object->title : $object->meta_tw['title'], 0, 87);
+        $metainfo['description'] = substr(empty($object->meta_tw['description']) ? $desc : $object->meta_tw['description'], 0, 199);
+        $metainfo['image'] = empty($object->meta_tw['twimage'][0]) ? '' : $object->meta_tw['twimage'][0]->url;
+        if (empty($metainfo['image'])) {
+            if (!empty($object->expFile['images'][0]->is_image)) {
+                $metainfo['image'] = $object->expFile['images'][0]->url;
+            } else {
+                if (!empty($config['expFile']['twimage'][0]))
+                    $file = new expFile($config['expFile']['twimage'][0]);
+                if (!empty($file->id))
+                    $metainfo['image'] = $file->url;
+                if (empty($metainfo['image']))
+                    $metainfo['image'] = URL_BASE . MIMEICON_RELATIVE . 'generic_22x22.png';
+            }
+        }
+        return $metainfo;
+    }
+
+    function getRSSContent($limit = 0) {
         include_once(BASE.'external/mp3file.php');
 
-//        global $db;
-    
-        // setup the where clause for looking up records.
-        $where = $this->aggregateWhereClause();
-
-        $order = isset($this->config['order']) ? $this->config['order'] : 'created_at DESC';
-
         $fd = new filedownload();
-        $items = $fd->find('all',$where, $order);
-        
+        $items = $fd->find('all',$this->aggregateWhereClause(), isset($this->config['order']) ? $this->config['order'] : 'created_at DESC', $limit);
+
         //Convert the items to rss items
         $rssitems = array();
-        foreach ($items as $key => $item) { 
+        foreach ($items as $key => $item) {
             $rss_item = new FeedItem();
 
             // Add the basic data
             $rss_item->title = expString::convertSmartQuotes($item->title);
-            $rss_item->link = makeLink(array('controller'=>$this->baseclassname, 'action'=>'show', 'title'=>$item->sef_url));
+            $rss_item->link = $rss_item->guid = makeLink(array('controller'=>$this->baseclassname, 'action'=>'show', 'title'=>$item->sef_url));
             $rss_item->description = expString::convertSmartQuotes($item->body);
             $rss_item->author = user::getUserById($item->poster)->firstname.' '.user::getUserById($item->poster)->lastname;
             $rss_item->authorEmail = user::getEmailById($item->poster);
 //            $rss_item->date = isset($item->publish_date) ? date(DATE_RSS,$item->publish_date) : date(DATE_RSS, $item->created_at);
             $rss_item->date = isset($item->publish_date) ? $item->publish_date : $item->created_at;
-            if (!empty($item->expCat[0]->title)) $rss_item->category = array($item->expCat[0]->title);
+            if (!empty($item->expCat[0]->title))
+                $rss_item->category = array($item->expCat[0]->title);
 
             // Add the attachment/enclosure info
             $rss_item->enclosure = new Enclosure();
             $rss_item->enclosure->url = !empty($item->expFile['downloadable'][0]->url) ? $item->expFile['downloadable'][0]->url : '';
             $rss_item->enclosure->length = !empty($item->expFile['downloadable'][0]->filesize) ? $item->expFile['downloadable'][0]->filesize : '';
             $rss_item->enclosure->type = !empty($item->expFile['downloadable'][0]->mimetype) ? $item->expFile['downloadable'][0]->mimetype : '';
-            if ($rss_item->enclosure->type == 'audio/mpeg') $rss_item->enclosure->type = 'audio/mpg';
+            if ($rss_item->enclosure->type == 'audio/mpeg')
+                $rss_item->enclosure->type = 'audio/mpg';
 
             // Add iTunes info
             $rss_item->itunes = new iTunes();
@@ -179,6 +262,13 @@ class filedownloadController extends expController {
                 if (($id3['Encoding']=='VBR') || ($id3['Encoding']=='CBR')) {
                     $rss_item->itunes->duration = $id3['Length mm:ss'];
                 }
+                if (!empty($id3['artist'])) {
+                    $rss_item->author = $id3['artist'];
+                    $rss_item->itunes->author = $id3['artist'];
+                }
+                if (!empty($id3['comment'])) {
+                    $rss_item->itunes->subtitle = $id3['comment'];
+                }
             } else {
                 $rss_item->itunes->duration = 'Unknown';
             }
@@ -186,10 +276,12 @@ class filedownloadController extends expController {
             // Add the item to the array.
             $rssitems[$key] = $rss_item;
 
+            if ($limit && count($rssitems) >= $limit)
+                break;
         }
         return $rssitems;
     }
-	
+
 }
 
 ?>

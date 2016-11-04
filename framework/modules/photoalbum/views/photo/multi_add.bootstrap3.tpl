@@ -1,5 +1,5 @@
 {*
- * Copyright (c) 2004-2014 OIC Group, Inc.
+ * Copyright (c) 2004-2016 OIC Group, Inc.
  *
  * This file is part of Exponent
  *
@@ -21,11 +21,11 @@
     </blockquote>
     {form action=multi_update}
         <div id="editgallery-tabs" class="">
-            <ul class="nav nav-tabs">
-                <li class="active"><a href="#tab1"><em>{"General"|gettext}</em></a></li>
+            <ul class="nav nav-tabs" role="tablist">
+                <li role="presentation" class="active"><a href="#tab1" role="tab" data-toggle="tab"><em>{"General"|gettext}</em></a></li>
             </ul>
             <div class="tab-content yui3-skin-sam">
-                <div id="tab1" class="tab-pane fade in active">
+                <div id="tab1" role="tabpanel" class="tab-pane fade in active">
                     <h2>{'Photo Items'|gettext}</h2>
                     {control type=text name=title label="Base Title"|gettext value=$record->title description="(Optional) This will become the root title used for these photo album items."|gettext focus=1}
                     {control type="files" name="files" label="Files"|gettext accept="image/*" value=$record->expFile limit=64 folder=$config.upload_folder}
@@ -38,25 +38,11 @@
                 </div>
             </div>
         </div>
-	    <div class="loadingdiv">{"Loading Multi-Photo Uploader"|gettext}</div>
+	    {*<div class="loadingdiv">{"Loading Multi-Photo Uploader"|gettext}</div>*}
+        {loading title="Loading Multi-Photo Uploader"|gettext}
         {control type=buttongroup submit="Add Photos to Album"|gettext cancel="Cancel"|gettext}
     {/form}   
 </div>
-
-{*{script unique="editform" yui3mods=1}*}
-{*{literal}*}
-    {*EXPONENT.YUI3_CONFIG.modules.exptabs = {*}
-        {*fullpath: EXPONENT.JS_RELATIVE+'exp-tabs.js',*}
-        {*requires: ['history','tabview','event-custom']*}
-    {*};*}
-
-	{*YUI(EXPONENT.YUI3_CONFIG).use('exptabs', function(Y) {*}
-        {*Y.expTabs({srcNode: '#editgallery-tabs'});*}
-		{*Y.one('#editgallery-tabs').removeClass('hide');*}
-		{*Y.one('.loadingdiv').remove();*}
-    {*});*}
-{*{/literal}*}
-{*{/script}*}
 
 {script unique="tabload" jquery=1 bootstrap="tab,transition"}
 {literal}

@@ -2,7 +2,7 @@
 
 ##################################################
 #
-# Copyright (c) 2004-2014 OIC Group, Inc.
+# Copyright (c) 2004-2016 OIC Group, Inc.
 #
 # This file is part of Exponent
 #
@@ -26,9 +26,8 @@ if (!defined('EXPONENT')) exit('');
  */
 class tagpickercontrol extends formcontrol {
 
-    var $flip = false;
-    var $jsHooks = array();
     var $record = array();
+    var $subtype = '';
     var $taglist = '';
 
     static function name() {
@@ -83,9 +82,10 @@ class tagpickercontrol extends formcontrol {
         foreach ($this->record->expTag as $tag) {
             $selectedtags .= $tag->title . ', ';
         }
-        $textbox = new genericcontrol('text');
-        $textbox->id = 'expTag';
-        $textbox->name = 'expTag';
+//        $textbox = new genericcontrol('text');
+        $textbox = new textcontrol();
+        $textbox->id = $this->id;
+        $textbox->name = $this->id;
         $textbox->default = $selectedtags;
         $textbox->size = 45;
         $textbox->flip    = $this->flip;
@@ -94,9 +94,9 @@ class tagpickercontrol extends formcontrol {
         $textbox->class    = $this->class;
 
         $script = "
-            YUI(EXPONENT.YUI3_CONFIG).use('autocomplete','autocomplete-filters','autocomplete-highlighters',function(Y) {
-                var inputNode = Y.one('#expTag');
-                var tags = [".$this->taglist."];
+            YUI(EXPONENT.YUI3_CONFIG).use('*',function(Y) {
+                var inputNode = Y.one('#" . $this->id . "');
+                var tags = [" . $this->taglist . "];
 
                 inputNode.plug(Y.Plugin.AutoComplete, {
                   activateFirstItem: true,
@@ -144,7 +144,7 @@ class tagpickercontrol extends formcontrol {
 
         expJavascript::pushToFoot(array(
             "unique"  => 'exptag-' . $name,
-            "yui3mods"=> 1,
+            "yui3mods"=> "autocomplete,autocomplete-filters,autocomplete-highlighters",
             "content" => $script,
         ));
 

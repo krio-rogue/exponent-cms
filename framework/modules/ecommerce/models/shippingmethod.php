@@ -2,7 +2,7 @@
 
 ##################################################
 #
-# Copyright (c) 2004-2014 OIC Group, Inc.
+# Copyright (c) 2004-2016 OIC Group, Inc.
 #
 # This file is part of Exponent
 #
@@ -18,17 +18,26 @@
 
 /**
  * @subpackage Models
- * @package Core
+ * @package Modules
  */
 class shippingmethod extends expRecord {
 	public $table = 'shippingmethods';
 
-	public static function getCurrentShippingMethod() {
-        global $order;
+    public $has_many = array('orderitem');  //FIXME does this fix the situation??
 
-        $smid = empty($order->orderitem[0]->shippingmethods_id) ? null : $order->orderitem[0]->shippingmethods_id;
-        return new shippingmethod($smid);
+    function __construct($params=null, $get_assoc=true, $get_attached=true) {
+        parent::__construct($params, $get_assoc, $get_attached);
+
+        // unpack the shipping_options data
+        $this->shipping_options = empty($this->shipping_options) ? array() : expUnserialize($this->shipping_options);
     }
+
+//	public static function getCurrentShippingMethod() {
+//        global $order;
+//
+//        $smid = empty($order->orderitem[0]->shippingmethods_id) ? null : $order->orderitem[0]->shippingmethods_id;
+//        return new shippingmethod($smid);
+//    }
 
 	public function setAddress($address) {
 		$address = is_object($address) ? $address : new address($address);
@@ -38,11 +47,11 @@ class shippingmethod extends expRecord {
 	}	
 	
 	function afterSave() {
-		$this->updateOrderitems($this->id);
+		$this->updateOrderitems($this->id);  //FIXME this has a global $order
 	}
 	
 	function updateOrderitems() {
-		global $order;
+		global $order; //FIXME we do NOT want the global $order
 
 		//FIXME update the shippingmethod id for each orderitem..again, this is only here until we implement split shipping.
         // once we have that we'll need to figure out which orderitems get which shippingmethod id.     
@@ -64,6 +73,15 @@ class shippingmethod extends expRecord {
         }
         return false;
 	}
+
+    function attachCalculator() {
+        global $db;
+
+        $calcname = $db->selectValue('shippingcalculator', 'calculator_name', 'id='.$this->shippingcalculator_id);
+        if (!empty($calcname))
+            $this->calculator = new $calcname($this->shippingcalculator_id);
+    }
+
 }
 
 ?>

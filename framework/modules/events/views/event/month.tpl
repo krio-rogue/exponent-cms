@@ -1,5 +1,5 @@
 {*
- * Copyright (c) 2004-2014 OIC Group, Inc.
+ * Copyright (c) 2004-2016 OIC Group, Inc.
  *
  * This file is part of Exponent
  *
@@ -16,28 +16,29 @@
     {$myloc=serialize($__loc)}
 	<table id="calendar" summary="{$moduletitle|default:'Calendar'|gettext}">
         <div class="caption">
-            &laquo;&#160;
-            <a class="evnav module-actions" href="{link action=showall time=$prevmonth3}" rel="{$prevmonth3}" title="{$prevmonth3|format_date:"%B %Y"}">{$prevmonth3|format_date:"%b"}</a>&#160;&#160;&laquo;&#160;
-            <a class="evnav module-actions" href="{link action=showall time=$prevmonth2}" rel="{$prevmonth2}" title="{$prevmonth2|format_date:"%B %Y"}">{$prevmonth2|format_date:"%b"}</a>&#160;&#160;&laquo;&#160;
-            <a class="evnav module-actions" href="{link action=showall time=$prevmonth}" rel="{$prevmonth}" title="{$prevmonth|format_date:"%B %Y"}">{$prevmonth|format_date:"%b"}</a>&#160;&#160;&laquo;&#160;&#160;&#160;&#160;&#160;
-            <strong>{$time|format_date:"%B %Y"}</strong>&#160;&#160;{printer_friendly_link view='showall' text=''|gettext}{export_pdf_link view='showall' text=''|gettext}&#160;&#160;&#160;&#160;&raquo;&#160;&#160;
-            <a class="evnav module-actions" href="{link action=showall time=$nextmonth}" rel="{$nextmonth}" title="{$nextmonth|format_date:"%B %Y"}">{$nextmonth|format_date:"%b"}</a>&#160;&#160;&raquo;&#160;
-            <a class="evnav module-actions" href="{link action=showall time=$nextmonth2}" rel="{$nextmonth2}" title="{$nextmonth2|format_date:"%B %Y"}">{$nextmonth2|format_date:"%b"}</a>&#160;&#160;&raquo;&#160;
-            <a class="evnav module-actions" href="{link action=showall time=$nextmonth3}" rel="{$nextmonth3}" title="{$nextmonth3|format_date:"%B %Y"}">{$nextmonth3|format_date:"%b"}</a>&#160;&#160;&raquo;
+            <span class="hidden-xs">&laquo;</span>&#160;
+            <a class="evnav module-actions" href="{link action=showall time=$prevmonth3}" rel="{$prevmonth3}" title="{$prevmonth3|format_date:"%B %Y"}">{$prevmonth3|format_date:"%b"}</a><span class="hidden-xs">&#160;</span>&#160;&laquo;&#160;
+            <a class="evnav module-actions" href="{link action=showall time=$prevmonth2}" rel="{$prevmonth2}" title="{$prevmonth2|format_date:"%B %Y"}">{$prevmonth2|format_date:"%b"}</a><span class="hidden-xs">&#160;</span>&#160;&laquo;&#160;
+            <a class="evnav module-actions" href="{link action=showall time=$prevmonth}" rel="{$prevmonth}" title="{$prevmonth|format_date:"%B %Y"}">{$prevmonth|format_date:"%b"}</a><span class="hidden-xs">&#160;</span>&#160;&laquo;&#160;<span class="hidden-xs">&#160;&#160;&#160;&#160;</span>
+            <strong><span class="hidden-xs">{$time|format_date:"%B %Y"}</span><span class="visible-xs-inline">{$time|format_date:"%b %Y"}</span></strong><span class="hidden-xs">&#160;</span>&#160;{printer_friendly_link view='showall' text=''}{export_pdf_link view='showall' text=''}<span class="hidden-xs">&#160;&#160;&#160;</span>&#160;&raquo;<span class="hidden-xs">&#160;&#160;</span>
+            <input type='hidden' id='month{$__loc->src|replace:'@':'_'}' value="{$time|format_date:"%Y%m%d"}"/>
+            <a class="evnav module-actions" href="{link action=showall time=$nextmonth}" rel="{$nextmonth}" title="{$nextmonth|format_date:"%B %Y"}">{$nextmonth|format_date:"%b"}</a><span class="hidden-xs">&#160;</span>&#160;&raquo;&#160;
+            <a class="evnav module-actions" href="{link action=showall time=$nextmonth2}" rel="{$nextmonth2}" title="{$nextmonth2|format_date:"%B %Y"}">{$nextmonth2|format_date:"%b"}</a><span class="hidden-xs">&#160;</span>&#160;&raquo;&#160;
+            <a class="evnav module-actions" href="{link action=showall time=$nextmonth3}" rel="{$nextmonth3}" title="{$nextmonth3|format_date:"%B %Y"}">{$nextmonth3|format_date:"%b"}</a>&#160;<span class="hidden-xs">&#160;&raquo;</span>
         </div>
 		<tr class="daysoftheweek">
             {if $config.show_weeks}<th></th>{/if}
 			{if $smarty.const.DISPLAY_START_OF_WEEK == 0}
-			<th scope="col" abbr="{'Sun'|gettext}" title="'Sunday'|gettext}">{'Sunday'|gettext}</th>
+			<th scope="col" abbr="{$daynames.med.0}" title="{$daynames.long.0}"><span class="hidden-xs">{$daynames.long.0}</span><span class="visible-xs-inline">{$daynames.med.0}</span></th>
 			{/if}
-			<th scope="col" abbr="{'Mon'|gettext}" title="{'Monday'|gettext}">{'Monday'|gettext}</th>
-			<th scope="col" abbr="{'Tue'|gettext}" title="{'Tuesday'|gettext}">{'Tuesday'|gettext}</th>
-			<th scope="col" abbr="{'Wed'|gettext}" title="{'Wednesday'|gettext}">{'Wednesday'|gettext}</th>
-			<th scope="col" abbr="{'Thu'|gettext}" title="{'Thursday'|gettext}">{'Thursday'|gettext}</th>
-			<th scope="col" abbr="{'Fri'|gettext}" title="{'Friday'|gettext}">{'Friday'|gettext}</th>
-			<th scope="col" abbr="{'Sat'|gettext}" title="{'Saturday'|gettext}">{'Saturday'|gettext}</th>
+			<th scope="col" abbr="{$daynames.med.1}" title="{$daynames.long.1}"><span class="hidden-xs">{$daynames.long.1}</span><span class="visible-xs-inline">{$daynames.med.1}</span></th>
+            <th scope="col" abbr="{$daynames.med.2}" title="{$daynames.long.2}"><span class="hidden-xs">{$daynames.long.2}</span><span class="visible-xs-inline">{$daynames.med.2}</span></th>
+            <th scope="col" abbr="{$daynames.med.3}" title="{$daynames.long.3}"><span class="hidden-xs">{$daynames.long.3}</span><span class="visible-xs-inline">{$daynames.med.3}</span></th>
+            <th scope="col" abbr="{$daynames.med.4}" title="{$daynames.long.4}"><span class="hidden-xs">{$daynames.long.4}</span><span class="visible-xs-inline">{$daynames.med.4}</span></th>
+            <th scope="col" abbr="{$daynames.med.5}" title="{$daynames.long.5}"><span class="hidden-xs">{$daynames.long.5}</span><span class="visible-xs-inline">{$daynames.med.5}</span></th>
+            <th scope="col" abbr="{$daynames.med.6}" title="{$daynames.long.6}"><span class="hidden-xs">{$daynames.long.6}</span><span class="visible-xs-inline">{$daynames.med.6}</span></th>
 			{if $smarty.const.DISPLAY_START_OF_WEEK != 0}
-			<th scope="col" abbr="{'Sun'|gettext}" title="{'Sunday'|gettext}">{'Sunday'|gettext}</th>
+            <th scope="col" abbr="{$daynames.med.0}" title="{$daynames.long.0}"><span class="hidden-xs">{$daynames.long.0}</span><span class="visible-xs-inline">{$daynames.med.0}</span></th>
 			{/if}
 		</tr>
         {$dayts=$now}
@@ -67,7 +68,7 @@
                             {/if}
                             {foreach name=e from=$items item=item}
                                 {if !empty($item->color)}
-                                    {$style = " style=\"background:`$item->color`;color:`$item->color|contrast`;\""}
+                                    {$style = " style=\"background:`$item->color`;color:`$item->color|contrast`;"}
                                 {else}
                                     {$style = ''}
                                 {/if}
@@ -77,13 +78,11 @@
                                         {$alldaystyle = ' style="'}
                                     {else}
                                         {$alldaystyle = $style}
-                                        {$style = "`$style`\""}
                                     {/if}
                                     {$alldaystyle = "`$alldaystyle` border-color:`$item->color|brightness:+150`;border-style:solid;padding-left:2px;border-top:0;border-bottom:0;border-right:0;\""}
-                                {elseif empty($style)}
+                                {/if}
+                                {if !empty($style)}
                                     {$style = "`$style`\""}
-                                {else}
-                                    {$alldaystyle = $style}
                                 {/if}
                                 {if $item->is_allday}
                                     {$title = 'All Day'|gettext}
@@ -98,20 +97,20 @@
                                 {/if}
                                 {$title = "`$title` - \n `$item->body|summarize:"html":"para"`"}
                                 {if $item->is_cancelled}{$title = 'Event Cancelled'|gettext|cat:"\n"|cat:$title}{/if}
-                                <div class="calevent{if $dayts == $today} today{/if}"{$style}>
-                                    <a class="{if $item->is_cancelled}cancelled{/if}{if $config.lightbox && $item->location_data != 'eventregistration' && substr($item->location_data,1,8) != 'calevent'} calpopevent{elseif $config.lightbox && substr($item->location_data,1,8) == 'calevent'} icalpopevent{/if}"
+                                {*<div class="calevent{if $dayts == $today} today{/if}"{$style}>*}
+                                    <a class="calevent{* if $dayts == $today} today{/if *}{if $item->is_cancelled} cancelled{/if}{if $config.lightbox && $item->location_data != 'eventregistration' && substr($item->location_data,1,8) != 'calevent'} calpopevent{elseif $config.lightbox && substr($item->location_data,1,8) == 'calevent'} icalpopevent{/if}"
                                         {$alldaystyle}
                                         {if substr($item->location_data,1,8) != 'calevent'}href="{if $item->location_data != 'eventregistration'}{link action=show date_id=$item->date_id}{else}{link controller=eventregistration action=show title=$item->title}{/if}"
                                             {if $item->date_id}id={$item->date_id}{/if}
                                         {/if}
                                         {if $config.lightbox && substr($item->location_data,1,8) == 'calevent'}rel="{$item->eventdate->date|format_date:'%A, %B %e, %Y'}"{/if}
-                                        title="{$title}">
+                                        title="{$title}"{$style}>
                                         {if $item->expFile[0]->url != ""}
                                             <div class="image">
                                                 {if $item->date_id}
-                                                    {img file_id=$item->expFile[0]->id title=$title class="large-img" id=$item->date_id w=92}
+                                                    {img file_id=$item->expFile[0]->id title=$title id=$item->date_id w=92 class="img-responsive"}
                                                 {else}
-                                                    {img file_id=$item->expFile[0]->id title=$title class="large-img" w=92}
+                                                    {img file_id=$item->expFile[0]->id title=$title w=92 class="img-responsive"}
                                                 {/if}
                                                 {clear}
                                             </div>
@@ -120,7 +119,7 @@
                                     </a>
                                     {permissions}
                                         {if substr($item->location_data,0,3) == 'O:8'}
-                                        <div class="item-actions">
+                                        <div class="calevent item-actions"{$style}>
                                                 {if $permissions.edit || ($permissions.create && $item->poster == $user->id)}
                                                     {if $myloc != $item->location_data}
                                                         {if $permissions.manage}
@@ -142,7 +141,7 @@
                                             </div>
                                         {/if}
                                     {/permissions}
-                                </div>
+                                {*</div>*}
                             {/foreach}
                             {if $number != -1}{$dayts=$dayts+86400}
                                 {if !$dst}
@@ -165,19 +164,34 @@
 {if $config.lightbox}
 {script unique="shadowbox-`$__loc->src`" jquery='jquery.colorbox'}
 {literal}
-    $('a.calpopevent').click(function(e) {
+    $('.events.default a.calpopevent').click(function(e) {
         target = e.target;
         $.colorbox({
             href: EXPONENT.PATH_RELATIVE+"index.php?controller=event&action=show&view=show&ajax_action=1&date_id="+target.id+"&src={/literal}{$__loc->src}{literal}",
-            maxWidth: 500
+            title: target.text + ' - ' + '{/literal}{'Event'|gettext}{literal}',
+            maxWidth: "100%",
+            onComplete : function() {
+                $('img').on('load', function() {
+                    $(this).colorbox.resize();
+                });
+            },
+            close:'<i class="fa fa-close" aria-label="close modal"></i>',
+            previous:'<i class="fa fa-chevron-left" aria-label="previous photo"></i>',
+            next:'<i class="fa fa-chevron-right" aria-label="next photo"></i>',
+            slideshow:'<i class="fa fa-picture-o" aria-label="slideshow"></i>',
         });
         e.preventDefault();
     });
-    $('a.icalpopevent').click(function(e) {
+    $('.events.default a.icalpopevent').click(function(e) {
         target = e.target;
         $.colorbox({
             html: '<h2>' + target.text + '</h2><p>' + target.rel +  '</p><p>'  + Linkify(target.title.replace(/\n/g,'<br />')) + '</p>',
-            maxWidth: 500
+            title: target.text + ' - ' + '{/literal}{'Event'|gettext}{literal}',
+            maxWidth: "100%",
+            close:'<i class="fa fa-close" aria-label="close modal"></i>',
+            previous:'<i class="fa fa-chevron-left" aria-label="previous photo"></i>',
+            next:'<i class="fa fa-chevron-right" aria-label="next photo"></i>',
+            slideshow:'<i class="fa fa-picture-o" aria-label="slideshow"></i>',
         });
         e.preventDefault();
     });

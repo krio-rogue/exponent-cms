@@ -1,5 +1,5 @@
 ﻿/**
- * Copyright (c) 2003-2014, CKSource - Frederico Knabben. All rights reserved.
+ * Copyright (c) 2003-2016, CKSource - Frederico Knabben. All rights reserved.
  * For licensing, see LICENSE.md or http://ckeditor.com/license
  */
 
@@ -31,6 +31,7 @@ CKEDITOR.stylesSet.add( 'default', [
 	{ name: 'Address',			element: 'address' },
 	*/
 
+	/*
 	{ name: 'Italic Title',		element: 'h2', styles: { 'font-style': 'italic' } },
 	{ name: 'Subtitle',			element: 'h3', styles: { 'color': '#aaa', 'font-style': 'italic' } },
 	{
@@ -42,6 +43,7 @@ CKEDITOR.stylesSet.add( 'default', [
 			border: '1px solid #ccc'
 		}
 	},
+	*/
 
 	/* Inline Styles */
 
@@ -57,7 +59,8 @@ CKEDITOR.stylesSet.add( 'default', [
 	{ name: 'Superscript',		element: 'sup' },
 	*/
 
-	{ name: 'Marker',			element: 'span', attributes: { 'class': 'marker' } },
+	// { name: 'Marker',			element: 'span', attributes: { 'class': 'marker' } },
+	{ name: 'Marker',			element: 'mark' },
 
 	{ name: 'Big',				element: 'big' },
 	{ name: 'Small',			element: 'small' },
@@ -74,21 +77,30 @@ CKEDITOR.stylesSet.add( 'default', [
 	{ name: 'Cited Work',		element: 'cite' },
 	{ name: 'Inline Quotation',	element: 'q' },
 
-	{ name: 'Language: RTL',	element: 'span', attributes: { 'dir': 'rtl' } },
-	{ name: 'Language: LTR',	element: 'span', attributes: { 'dir': 'ltr' } },
+	//{ name: 'Language: RTL',	element: 'span', attributes: { 'dir': 'rtl' } },
+	//{ name: 'Language: LTR',	element: 'span', attributes: { 'dir': 'ltr' } },
 
 	/* Object Styles */
 
 	{
 		name: 'Styled image (left)',
-		element: 'img',
-		attributes: { 'class': 'left' }
+		type: 'widget',
+		widget: 'image',
+		attributes: { 'class': 'image-left' }
 	},
 
 	{
 		name: 'Styled image (right)',
-		element: 'img',
-		attributes: { 'class': 'right' }
+		type: 'widget',
+		widget: 'image',
+		attributes: { 'class': 'image-right' }
+	},
+
+	{
+		name: 'Styled image (center)',
+		type: 'widget',
+		widget: 'image',
+		attributes: { 'class': 'image-center' }
 	},
 
 	{
@@ -105,7 +117,16 @@ CKEDITOR.stylesSet.add( 'default', [
 		}
 	},
 
-	{ name: 'Borderless Table',		element: 'table',	styles: { 'border-style': 'hidden', 'background-color': '#E6E6FA' } },
-	{ name: 'Square Bulleted List',	element: 'ul',		styles: { 'list-style-type': 'square' } }
+	{
+		name: 'Borderless Table',
+		element: 'table',
+		styles: { 'border-style': 'hidden', 'background-color': '#E6E6FA' }
+	},
+
+	{
+		name: 'Square Bulleted List',
+		element: 'ul',
+		styles: { 'list-style-type': 'square' }
+	}
 ] );
 

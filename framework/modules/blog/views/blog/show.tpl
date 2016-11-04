@@ -1,5 +1,5 @@
 {*
- * Copyright (c) 2004-2014 OIC Group, Inc.
+ * Copyright (c) 2004-2016 OIC Group, Inc.
  *
  * This file is part of Exponent
  *
@@ -25,39 +25,42 @@
     </div>
 </div>
 
-{if !empty($config.ajax_paging)}
-{script unique="`$name`itemajax" yui3mods="1"}
+{if $smarty.const.AJAX_PAGING}
+{script unique="`$name`itemajax" yui3mods="node,io,node-event-delegate" jquery="jquery.history"}
 {literal}
-YUI(EXPONENT.YUI3_CONFIG).use('node','io','node-event-delegate', function(Y) {
+YUI(EXPONENT.YUI3_CONFIG).use('*', function(Y) {
     var blogitem = Y.one('#{/literal}{$name}{literal}item');
+    var page_parm = '';
+    if (EXPONENT.SEF_URLS) {
+        page_parm = '/title/';
+    } else {
+        page_parm = '&title=';
+    }
+    var History = window.History;
+    History.pushState({name:'{/literal}{$name}{literal}',rel:'{/literal}{$params.title}{literal}'});
+    {/literal}
+        {$orig_params = ['controller' => 'blog', 'action' => 'show']}
+    {literal}
+    var orig_url = '{/literal}{makeLink($orig_params)}{literal}';
     var cfg = {
     			method: "POST",
     			headers: { 'X-Transaction': 'Load Blogitem'},
     			arguments : { 'X-Transaction': 'Load Blogitem'}
     		};
-
-    src = '{/literal}{$__loc->src}{literal}';
-	var sUrl = EXPONENT.PATH_RELATIVE+"index.php?controller=blog&action=show&view=blogitem&ajax_action=1&src="+src;
+	var sUrl = EXPONENT.PATH_RELATIVE+"index.php?controller=blog&action=show&view=blogitem&ajax_action=1&src={/literal}{$__loc->src}{literal}";
 
 	var handleSuccess = function(ioId, o){
-//		Y.log(o.responseText);
-		Y.log("The success handler was called.  Id: " + ioId + ".", "info", "blogitem nav");
-
         if(o.responseText){
             blogitem.setContent(o.responseText);
             blogitem.all('script').each(function(n){
                 if(!n.get('src')){
                     eval(n.get('innerHTML'));
                 } else {
-                    var url = n.get('src');
-                    if (url.indexOf("ckeditor")) {
-                        Y.Get.script(url);
-                    };
+                    Y.Get.script(n.get('src'));
                 };
             });
             blogitem.all('link').each(function(n){
-                var url = n.get('href');
-                Y.Get.css(url);
+                Y.Get.css(n.get('href'));
             });
         } else {
             blogitem.one('.loadingdiv').remove();
@@ -75,10 +78,22 @@ YUI(EXPONENT.YUI3_CONFIG).use('node','io','node-event-delegate', function(Y) {
 
     blogitem.delegate('click', function(e){
         e.halt();
+        History.pushState({name:'{/literal}{$name}{literal}',rel:e.currentTarget.get('rel')}, e.currentTarget.get('text').trim(), orig_url+page_parm+e.currentTarget.get('rel'));
         cfg.data = "title="+e.currentTarget.get('rel');
         var request = Y.io(sUrl, cfg);
-        blogitem.setContent(Y.Node.create('<div class="loadingdiv">{/literal}{"Loading Post"|gettext}{literal}</div>'));
-    }, 'a.nav');
+        blogitem.setContent(Y.Node.create('{/literal}{loading title="Loading Post"|gettext}{literal}'));
+    }, 'a.blognav');
+
+    // Watches the browser history for changes
+    window.addEventListener('popstate', function(e) {
+        state = History.getState()
+        if (state.data.name == '{/literal}{$name}{literal}') {
+            // moving to a new post
+            cfg.data = "title="+state.data.rel;
+            var request = Y.io(sUrl, cfg);
+            blogitem.setContent(Y.Node.create('{/literal}{loading title="Loading Post"|gettext}{literal}'));
+        }
+    });
 });
 {/literal}
 {/script}

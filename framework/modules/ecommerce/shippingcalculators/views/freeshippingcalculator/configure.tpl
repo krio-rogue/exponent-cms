@@ -1,5 +1,5 @@
 {*
- * Copyright (c) 2004-2014 OIC Group, Inc.
+ * Copyright (c) 2004-2016 OIC Group, Inc.
  *
  * This file is part of Exponent
  *
@@ -16,27 +16,28 @@
 <div id="freeshippingcfg">
     <div id="freeship-tabs" class="yui-navset exp-skin-tabview hide">
         <ul class="yui-nav">
-	        <li class="selected"><a href="#tab1"><em>{'Free Shipping Settings'|gettext}</em></a></li>
+	        <li class="selected"><a href="#tab1"><em>{'General Settings'|gettext}</em></a></li>
         </ul>            
         <div class="yui-content">
             <div id="tab1">
-                <blockquote>{'Offering Free Shipping implies every order ships for Free'|gettext}</blockquote>
-                {control type="text" name="free_shipping_method_default_name" label="Default Name for this Shipping Method"|gettext value=$calculator->configdata.free_shipping_method_default_name}
-                {control type="text" name="free_shipping_option_default_name" label="Default Name for the Selectable Shipping Option"|gettext value=$calculator->configdata.free_shipping_option_default_name}
-            </div>        
+                <blockquote>{'Offering Free Shipping means every order ships for Free'|gettext}</blockquote>
+                {control type="text" name="shipping_service_name" label="Default Name for Shipping Service"|gettext value=$calculator->configdata.shipping_service_name|default:'Free'|gettext}
+                {control type="text" name="free_shipping_method_default_name" label="Default Name for Shipping Method"|gettext value=$calculator->configdata.free_shipping_method_default_name}
+            </div>
         </div>
     </div>
-	<div class="loadingdiv">{'Loading'|gettext}</div>
+	{*<div class="loadingdiv">{'Loading'|gettext}</div>*}
+    {loading}
 </div>
 
-{script unique="editform" yui3mods=1}
+{script unique="editform" yui3mods="exptabs"}
 {literal}
     EXPONENT.YUI3_CONFIG.modules.exptabs = {
         fullpath: EXPONENT.JS_RELATIVE+'exp-tabs.js',
         requires: ['history','tabview','event-custom']
     };
 
-	YUI(EXPONENT.YUI3_CONFIG).use('exptabs', function(Y) {
+	YUI(EXPONENT.YUI3_CONFIG).use('*', function(Y) {
         Y.expTabs({srcNode: '#freeship-tabs'});
 		Y.one('#freeship-tabs').removeClass('hide');
 		Y.one('.loadingdiv').remove();

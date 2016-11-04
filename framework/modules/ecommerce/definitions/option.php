@@ -2,7 +2,7 @@
 
 ##################################################
 #
-# Copyright (c) 2004-2014 OIC Group, Inc.
+# Copyright (c) 2004-2016 OIC Group, Inc.
 #
 # This file is part of Exponent
 #
@@ -42,10 +42,14 @@ return array(
 		DB_FIELD_LEN=>200),
 	'amount'=>array(
 		DB_FIELD_TYPE=>DB_DEF_DECIMAL),
+    'optionweight'=>array(
+        DB_FIELD_TYPE=>DB_DEF_DECIMAL),
 	'enable'=>array(
 		DB_FIELD_TYPE=>DB_DEF_BOOLEAN),
 	'is_default'=>array(
 		DB_FIELD_TYPE=>DB_DEF_BOOLEAN),
+    'show_input'=>array(
+   		DB_FIELD_TYPE=>DB_DEF_BOOLEAN),
 );
 
 ?>

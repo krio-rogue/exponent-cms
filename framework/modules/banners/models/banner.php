@@ -2,7 +2,7 @@
 
 ##################################################
 #
-# Copyright (c) 2004-2014 OIC Group, Inc.
+# Copyright (c) 2004-2016 OIC Group, Inc.
 #
 # This file is part of Exponent
 #
@@ -34,26 +34,26 @@ class banner extends expRecord {
         ));
         
     public function increaseImpressions() {
-        $this->impressions += 1;
+        $this->impressions++;
         $this->save();
     }
     
     public function increaseClicks() {
-        $this->clicks += 1;
+        $this->clicks++;
         $this->save();
     }
 
     public static function resetImpressions() {
         global $db;
 
-//        $db->sql ('UPDATE '.DB_TABLE_PREFIX.'_banner SET impressions=0 WHERE 1');
+//        $db->sql ('UPDATE '.$db->prefix.'banner SET impressions=0 WHERE 1');
         $db->columnUpdate('banner', 'impressions', 0);
     }
 
     public static function resetClicks() {
         global $db;
 
-//        $db->sql ('UPDATE '.DB_TABLE_PREFIX.'_banner SET clicks=0 WHERE 1');
+//        $db->sql ('UPDATE '.$db->prefix.'banner SET clicks=0 WHERE 1');
         $db->columnUpdate('banner', 'clicks', 0);
     }
 

@@ -2,7 +2,7 @@
 
 ##################################################
 #
-# Copyright (c) 2004-2014 OIC Group, Inc.
+# Copyright (c) 2004-2016 OIC Group, Inc.
 #
 # This file is part of Exponent
 #
@@ -32,7 +32,6 @@ class textcontrol extends formcontrol {
     var $pattern = "";
     var $size = 40;
     var $maxlength = "";
-    var $multiple = false;
 
     static function name() { return "Text Box"; }
     static function isSimpleControl() { return true; }
@@ -55,13 +54,31 @@ class textcontrol extends formcontrol {
 
     function controlToHTML($name, $label) {
         $this->size = !empty($this->size) ? $this->size : 25;
-        $inputID  = (!empty($this->id)) ? ' id="'.$this->id.'"' : ' id="'.$name.'"';
+        $idname  = (!empty($this->id)) ? $this->id : $name;
+        $idname = createValidId($idname);
         if ($this->type != 'text') {
             $extra_class = ' ' . $this->type;
         } else {
             $extra_class = '';
         }
-        $html  = '<input' . $inputID . ' class="text form-control' . $extra_class . '" type="' . $this->type . '" name="' . $name . '"';
+        $html = ($this->horizontal) ? '<div class="col-sm-10">' : '';
+        if (!empty($this->prepend)) {
+            if (bs2()) {
+                $html .= '<div class="input-prepend">';
+                $html .= '<span class="add-on"><i class="icon-'.$this->prepend.'"></i></span>';
+            } elseif (bs3()) {
+                $html .= '<div class="input-group">';
+                $html .= '<span class="input-group-addon"><i class="fa fa-'.$this->prepend.'"></i></span>';
+            }
+        }
+        if (!empty($this->append) && bs()) {
+            if (bs2()) {
+                $html .= '<div class="input-append">';
+            } elseif (bs3()) {
+                $html .= '<div class="input-group">';
+            }
+        }
+        $html .= '<input id="' . $idname . '" class="text form-control' . $extra_class . '" type="' . $this->type . '" name="' . $name . '"';
         $html .= " value=\"" . str_replace('"', "&quot;", $this->default) . "\"";
         $html .= ($this->size ? " size=\"" . $this->size . "\"" : "");
         $html .= $this->multiple ? ' multiple="multiple"' : "";
@@ -81,7 +98,19 @@ class textcontrol extends formcontrol {
         $caption = !empty($this->caption) ? $this->caption : str_replace(array(":","*"), "", ucwords($label));
         if (!empty($this->required)) $html .= ' required="required" caption="'.$caption.'"';
         $html .= "/>";
+        if (!empty($this->prepend) && bs()) {
+            $html .= '</div>';
+        }
+        if (!empty($this->append) && bs()) {
+            if (bs2()) {
+                $html .= '<span class="add-on"><i class="icon-'.$this->append.'"></i></span>';
+            } elseif (bs3()) {
+                $html .= '<span class="input-group-addon"><i class="fa fa-'.$this->append.'"></i></span>';
+            }
+            $html .= '</div>';
+        }
         if (!empty($this->description)) $html .= "<div class=\"".(bs3()?"help-block":"control-desc")."\">".$this->description."</div>";
+        $html .= ($this->horizontal) ? '</div>' : '';
         return $html;
     }
 
@@ -109,7 +138,8 @@ class textcontrol extends formcontrol {
         $form->register("size",gt('Size'), new textcontrol((($object->size==0)?"":$object->size),4,false,3,"integer"));
         $form->register("maxlength",gt('Maximum Length'), new textcontrol((($object->maxlength==0)?"":$object->maxlength),4,false,3,"integer"));
         $form->register("required", gt('Make this a required field.'), new checkboxcontrol($object->required,false));
-        $form->register("submit","",new buttongroupcontrol(gt('Save'),'',gt('Cancel'),"",'editable'));
+        if (!expJavascript::inAjaxAction())
+            $form->register("submit","",new buttongroupcontrol(gt('Save'),'',gt('Cancel'),"",'editable'));
         return $form;
     }
 
@@ -118,7 +148,7 @@ class textcontrol extends formcontrol {
 //        if ($object == null) $object = new textcontrol();
         if ($object == null) $object = new $this_control();
         if ($values['identifier'] == "") {
-            $post = $_POST;
+            $post = expString::sanitize($_POST);
             $post['_formError'] = gt('Identifier is required.');
             expSession::set("last_POST",$post);
             return null;

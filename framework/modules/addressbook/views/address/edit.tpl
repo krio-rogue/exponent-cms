@@ -1,5 +1,5 @@
 {*
- * Copyright (c) 2004-2014 OIC Group, Inc.
+ * Copyright (c) 2004-2016 OIC Group, Inc.
  *
  * This file is part of Exponent
  *
@@ -17,9 +17,9 @@
 
 {/css}
 
-{script unique="hidePasswordFields" yui3mods=1}
+{script unique="hidePasswordFields" yui3mods="node"}
 {literal}
-YUI(EXPONENT.YUI3_CONFIG).use('node', function(Y) {
+YUI(EXPONENT.YUI3_CONFIG).use('*', function(Y) {
     // start coding
     var checkbox = Y.one('#remember_me'); //the checkbox
     if (checkbox){
@@ -37,6 +37,31 @@ YUI(EXPONENT.YUI3_CONFIG).use('node', function(Y) {
 {/literal}
 {/script}
 <div class="module address edit address-form">
+    {if $checkout}
+        {$breadcrumb = [
+            0 => [
+                "title" => "{'Summary'|gettext}",
+                "link"  => makeLink(['controller'=>'cart','action'=>'show'])
+            ],
+            1 => [
+                "title" => "{'Sign In'|gettext}",
+                "link"  => ""
+            ],
+            2 => [
+                "title" => "{'Shipping/Billing'|gettext}",
+                "link"  => ""
+            ],
+            3 => [
+                "title" => "{'Confirmation'|gettext}",
+                "link"  => ""
+            ],
+            4 => [
+                "title" => "{'Complete'|gettext}",
+                "link"  => ""
+            ]
+        ]}
+        {breadcrumb items=$breadcrumb active=1 style=flat}
+    {/if}
     {if $record->id != ""}
         <h1>{'Editing address for'|gettext} {$record->firstname} {$record->lastname}</h1>
     {else}
@@ -58,12 +83,12 @@ YUI(EXPONENT.YUI3_CONFIG).use('node', function(Y) {
         {control type=text name=address2 label="Apt/Suite #"|gettext value=$record->address2}
         {control type=text name=city label="City"|gettext required=true value=$record->city}
         {*{if ($user->is_admin || $user->is_acting_admin) && $admin_config == true}*}
-            {*{control type=state name=state label="State/Province"|gettext required=true includeblank="-- Choose a State --"|gettext value=$record->state add_other=true}*}
+            {*{control type=state name=state label="State/Province"|gettext required=true includeblank="-- Choose a State --"|gettext default=$record->state add_other=true}*}
             {*{control type=text name=non_us_state label="&#160;"|cat:"Non U.S. State/Province"|gettext value=$record->non_us_state}*}
-            {*{control type=country name=country label="Country"|gettext show_all=true value=$record->country|default:223}*}
+            {*{control type=country name=country label="Country"|gettext show_all=true default=$record->country|default:223}*}
         {*{else}*}
-            {*{control type=state name=state label="State/Province"|gettext required=true includeblank="-- Choose a State --"|gettext value=$record->state}*}
-            {*{control type=country name=country label="Country"|gettext value=$record->country}*}
+            {*{control type=state name=state label="State/Province"|gettext required=true includeblank="-- Choose a State --"|gettext default=$record->state}*}
+            {*{control type=country name=country label="Country"|gettext default=$record->country}*}
         {*{/if}*}
         {control type=countryregion name=address label="Country/State"|gettext country_default=$record->country|default:223 region_default=$record->state includeblank="-- Choose a State --"|gettext required=true}
         {control type=text name=zip label="Zip/Postal Code"|gettext required=true value=$record->zip}
@@ -80,7 +105,7 @@ YUI(EXPONENT.YUI3_CONFIG).use('node', function(Y) {
                         {"If you would like us to remember you, simply supply a password here and you may login to this site anytime to track your orders and view your order history."|gettext}&#160;&#160;
                         {'Otherwise uncheck \'Remember Me?\' and continue anonymously.'|gettext}
                     </blockquote>
-                    {control type="password" name="password" label="Password"|gettext required=true}
+                    {control type="password" name="password" meter=1 label="Password"|gettext required=true}
                     {control type="password" name="password2" label="Confirm Password"|gettext required=true}
                 </div>
             </div>

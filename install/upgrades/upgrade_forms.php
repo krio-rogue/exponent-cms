@@ -2,7 +2,7 @@
 
 ##################################################
 #
-# Copyright (c) 2004-2014 OIC Group, Inc.
+# Copyright (c) 2004-2016 OIC Group, Inc.
 #
 # This file is part of Exponent
 #
@@ -99,7 +99,7 @@ class upgrade_forms extends upgradescript {
                     }
                     $oldform_table_name = $oldform->table_name;
                     $oldform->table_name = $oldform_table_name . $i;
-                    $db->sql('RENAME TABLE '.DB_TABLE_PREFIX.'_formbuilder_'.$oldform_table_name.' TO '.DB_TABLE_PREFIX.'_forms_'.$oldform->table_name);
+                    $db->sql('RENAME TABLE '.$db->prefix.'formbuilder_'.$oldform_table_name.' TO '.$db->prefix.'forms_'.$oldform->table_name);
                     //FIXME do we want to add a forms_id field?
                 }
 
@@ -119,8 +119,10 @@ class upgrade_forms extends upgradescript {
                 $fcs = $db->selectObjects('formbuilder_control',"form_id=".$oldform->id);
                 foreach ($fcs as $fc) {
                     $fc->forms_id = $newform->id;
-                    unset ($fc->id);
-                    unset ($fc->form_id);
+                    unset (
+                        $fc->id,
+                        $fc->form_id
+                    );
                     $fc->rank++;  // 2.0 index begins at 1
                     $db->insertObject($fc,'forms_control');
                 }
@@ -166,7 +168,7 @@ class upgrade_forms extends upgradescript {
                     $newconfig->location_data = $newmodinternal;
                     $newconfig->save();
                 }
-                $modules_converted += 1;
+                $modules_converted++;
             }
 	    }
 

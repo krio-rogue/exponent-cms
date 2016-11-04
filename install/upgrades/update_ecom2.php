@@ -2,7 +2,7 @@
 
 ##################################################
 #
-# Copyright (c) 2004-2014 OIC Group, Inc.
+# Copyright (c) 2004-2016 OIC Group, Inc.
 #
 # This file is part of Exponent
 #
@@ -49,7 +49,7 @@ class update_ecom2 extends upgradescript {
 //        if (!empty($config)) {
 //            return true;
 //        } else return false;
-        if (defined('ECOM')) return true;
+        if (ecom_active()) return true;
         else return false;
 	}
 
@@ -81,10 +81,11 @@ class update_ecom2 extends upgradescript {
         foreach ($calcs as $calc) {
             $calcobj = new $calc->calculator_name();
             if ($calcobj->isSelectable() == true) {
-                if ($calcobj->name() != $calc->title || $calcobj->title != $calc->user_title || $calcobj->description() != $calc->body) $fixed++;
+//                if ($calcobj->name() != $calc->title || $calcobj->title != $calc->user_title || $calcobj->description() != $calc->body) $fixed++;
+                if ($calcobj->name() != $calc->title || $calcobj->description() != $calc->body) $fixed++;
                 $calc->update(array(
                                     'title'=>$calcobj->name(),
-                                    'user_title'=>$calcobj->title,
+//                                    'user_title'=>$calcobj->title,
                                     'body'=>$calcobj->description(),
                                 ));
             }

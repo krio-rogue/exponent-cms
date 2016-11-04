@@ -1,5 +1,5 @@
 {*
- * Copyright (c) 2004-2014 OIC Group, Inc.
+ * Copyright (c) 2004-2016 OIC Group, Inc.
  *
  * This file is part of Exponent
  *
@@ -19,17 +19,18 @@
             <hr>
             <span style="float:left">
                 {if $record->prev}
-                    <a class="nav" href="{link action=show title=$record->prev->sef_url}" rel="{$record->prev->sef_url}" title="{$record->prev->body|summarize:"html":"para"}">
-                        {icon img='page_prev.png' title='Previous Item'|gettext}
+                    <a class="newsnav" href="{link action=show title=$record->prev->sef_url}" rel="{$record->prev->sef_url}" title="{$record->prev->body|summarize:"html":"para"}">
+                        {icon img='page_prev.png' live=1 title='Previous Item'|gettext}
                         {$record->prev->title}
                     </a>
                 {/if}
             </span>
+            <span class="loader"></span>
             <span style="float:right">
                 {if $record->next}
-                    <a class="nav" href="{link action=show title=$record->next->sef_url}" rel="{$record->next->sef_url}" title="{$record->next->body|summarize:"html":"para"}">
+                    <a class="newsnav" href="{link action=show title=$record->next->sef_url}" rel="{$record->next->sef_url}" title="{$record->next->body|summarize:"html":"para"}">
                         {$record->next->title}
-                        {icon img='page_next.png' title='Next Item'|gettext}
+                        {icon img='page_next.png' live=1 title='Next Item'|gettext}
                     </a>
                 {/if}
             </span>
@@ -46,8 +47,10 @@
             </p>
         {/if}
         <{$config.heading_level|default:'h1'}>{$record->title}</{$config.heading_level|default:'h1'}>
-        {printer_friendly_link view='show'}{export_pdf_link view='show' prepend='&#160;&#160;|&#160;&#160;'}
-        {subscribe_link prepend='<br />'}
+        <div class="item-actions">
+            {printer_friendly_link view='show'}{export_pdf_link view='show' prepend='&#160;&#160;|&#160;&#160;'|not_bs}
+            {subscribe_link prepend='<br />'}
+        </div>
         {$myloc=serialize($__loc)}
         {if empty($config.datetag)}
             <span class="date">{$record->publish_date|format_date:"%A, %B %e, %Y"}</span>
@@ -65,6 +68,7 @@
                         {/if}
                     {/if}
                     {icon action=edit record=$record}
+                    {icon action=copy record=$record}
                 {/if}
                 {if $permissions.delete || ($permissions.create && $record->poster == $user->id)}
                     {icon action=delete record=$record}
@@ -107,17 +111,18 @@
             <hr>
             <span style="float:left">
                 {if $record->prev}
-                    <a class="nav" href="{link action=show title=$record->prev->sef_url}" rel="{$record->prev->sef_url}" title="{$record->prev->body|summarize:"html":"para"}">
-                        {icon img='page_prev.png' title='Previous Item'|gettext}
+                    <a class="newsnav" href="{link action=show title=$record->prev->sef_url}" rel="{$record->prev->sef_url}" title="{$record->prev->body|summarize:"html":"para"}">
+                        {icon img='page_prev.png' live=1 title='Previous Item'|gettext}
                         {$record->prev->title}
                     </a>
                 {/if}
             </span>
+            <span class="loader"></span>
             <span style="float:right">
                 {if $record->next}
-                    <a class="nav" href="{link action=show title=$record->next->sef_url}" rel="{$record->next->sef_url}" title="{$record->next->body|summarize:"html":"para"}">
+                    <a class="newsnav" href="{link action=show title=$record->next->sef_url}" rel="{$record->next->sef_url}" title="{$record->next->body|summarize:"html":"para"}">
                         {$record->next->title}
-                        {icon img='page_next.png' title='Next Item'|gettext}
+                        {icon img='page_next.png' live=1 title='Next Item'|gettext}
                     </a>
                 {/if}
             </span>

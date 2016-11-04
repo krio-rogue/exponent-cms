@@ -1,5 +1,5 @@
 {*
- * Copyright (c) 2004-2014 OIC Group, Inc.
+ * Copyright (c) 2004-2016 OIC Group, Inc.
  *
  * This file is part of Exponent
  *
@@ -16,12 +16,31 @@
 {css unique="general-ecom" link="`$asset_path`css/creditcard-form.css"}
 
 {/css}
-<div class="billing-method">
+<div class="billing-method creditcard-form">
     {if $order->total}
-        {form controller=cart action=preprocess}
-            {control type="hidden" name="billingcalculator_id" value=$calcid}
-            <input id="continue-checkout" type="image" name="submit" value="1" src="https://fpdbs.paypal.com/dynamicimageweb?cmd=_dynamic-image&locale={$smarty.const.LOCALE}">
-        {/form}
+        {get_object object=paypalExpressCheckout param=$calcid assign=calc}
+        {if !$calc->configdata.incontext}
+            {form controller=cart action=preprocess id=paypalexpress}
+                {control type="hidden" name="billingcalculator_id" value=$calcid}
+                <input id="continue-checkout" type="image" name="submit" value="1" src="https://fpdbs.paypal.com/dynamicimageweb?cmd=_dynamic-image&locale={$smarty.const.LOCALE}">
+            {/form}
+        {else}
+            {form controller=cart action=preprocess id=paypalexpressinc}
+                {control type="hidden" name="billingcalculator_id" value=$calcid}
+                {control type="hidden" name="in_context" value=1}
+            {/form}
+            {literal}
+            <script>
+                window.paypalCheckoutReady = function () {
+                    paypal.checkout.setup('<dleffler>' , {
+                        {/literal}{if $calc->configdata.testmode}environment: 'sandbox' ,{/if}{literal}
+                        container: 'paypalexpressinc'
+                    });
+                };
+            </script>
+            {/literal}
+            <script src="//www.paypalobjects.com/api/checkout.js" async></script>
+        {/if}
     {else}
         <h4>{'PayPal Express Checkout is unavailable for this transaction'|gettext}</h4>
     {/if}

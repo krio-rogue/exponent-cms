@@ -2,7 +2,7 @@
 
 ##################################################
 #
-# Copyright (c) 2004-2014 OIC Group, Inc.
+# Copyright (c) 2004-2016 OIC Group, Inc.
 #
 # This file is part of Exponent
 #
@@ -65,10 +65,10 @@ class donation extends product {
 
         $sql = "product_type='donation'";
         if (!empty($where)) $sql .= $where;
-        $sql .= empty($order) ? '' : ' ORDER BY ' . $order;
+        $sql .= empty($order) ? '' : ' ORDER BY ' . expString::escape($order);
 
         if (strcasecmp($range, 'all') == 0) {
-            $sql .= empty($limit) ? '' : ' LIMIT ' . $limitstart . ',' . $limit;
+            $sql .= empty($limit) ? '' : ' LIMIT ' . intval($limitstart) . ',' . intval($limit);
             return $db->selectExpObjects($this->tablename, $sql, $this->classname);
         } elseif (strcasecmp($range, 'first') == 0) {
             $sql .= ' LIMIT 0,1';
@@ -84,8 +84,8 @@ class donation extends product {
             foreach ($where as $id) $records[] = new $this->classname($id);
             return $records;
         } elseif (strcasecmp($range, 'bytag') == 0) {
-            $sql = 'SELECT DISTINCT m.id FROM ' . DB_TABLE_PREFIX . '_' . $this->table . ' m ';
-            $sql .= 'JOIN ' . DB_TABLE_PREFIX . '_content_expTags ct ';
+            $sql = 'SELECT DISTINCT m.id FROM ' . $db->prefix . $this->table . ' m ';
+            $sql .= 'JOIN ' . $db->prefix . 'content_expTags ct ';
             $sql .= 'ON m.id = ct.content_id WHERE ct.exptags_id=' . $where . " AND ct.content_type='" . $this->classname . "'";
             $tag_assocs = $db->selectObjectsBySql($sql);
             $records = array();
@@ -113,9 +113,11 @@ class donation extends product {
     }
 
     function addToCart($params, $orderid = null) {
-//	    if (empty($params['dollar_amount'])) {  //FIXME we don't ever pass this param
-//	        return false;
-//	    } else {
+        if (empty($params['quick']) && empty($params['options_shown'])) {  //get user input if needed
+            $this->displayForm('addToCart', $params);
+            return false;
+        }
+
         $item = new orderitem($params);
         if (empty($params['dollar_amount'])) $params['dollar_amount'] = $this->price;
         $item->products_price = expUtil::currency_to_float($params['dollar_amount']);
@@ -130,7 +132,6 @@ class donation extends product {
         $item->quantity = $this->getDefaultQuantity();
         $item->save();
         return true;
-//	    }
     }
 
     public function getSEFURL() {

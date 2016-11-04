@@ -1,5 +1,5 @@
 {*
- * Copyright (c) 2004-2014 OIC Group, Inc.
+ * Copyright (c) 2004-2016 OIC Group, Inc.
  *
  * This file is part of Exponent
  *
@@ -35,52 +35,53 @@
     </div>
     {/permissions}
 	<div id="showhelp-tabs-{$id}" class="">
-		<ul class="nav nav-tabs">
-			<li class="active"><a href="#tab1" data-toggle="tab"><em>{'General Overview'|gettext}</em></a></li>
+		<ul class="nav nav-tabs" role="tablist">
+			<li role="presentation" class="active"><a href="#tab1" role="tab" data-toggle="tab"><em>{'General Overview'|gettext}</em></a></li>
 			{if $doc->actions_views}
-				<li><a href="#tab2" data-toggle="tab"><em>{'Actions and Views'|gettext}</em></a></li>
+				<li role="presentation"><a href="#tab2" role="tab" data-toggle="tab"><em>{'Actions and Views'|gettext}</em></a></li>
 			{/if}
 			{if $doc->configuration}
-				<li><a href="#tab3" data-toggle="tab"><em>{'Configuration'|gettext}</em></a></li>
+				<li role="presentation"><a href="#tab3" role="tab" data-toggle="tab"><em>{'Configuration'|gettext}</em></a></li>
 			{/if}
 			{if $doc->youtube_vid_code}
-				<li><a href="#tab4" data-toggle="tab"><em>{'Videos'|gettext}</em></a></li>
+				<li role="presentation"><a href="#tab4" role="tab" data-toggle="tab"><em>{'Videos'|gettext}</em></a></li>
 			{/if}
 			{if $doc->additional}
-				<li><a href="#tab5" data-toggle="tab"><em>{'Additional Information'|gettext}</em></a></li>
+				<li role="presentation"><a href="#tab5" role="tab" data-toggle="tab"><em>{'Additional Information'|gettext}</em></a></li>
 			{/if}
 		</ul>
 		<div class="tab-content bodycopy">
-			<div id="tab1" class="tab-pane fade in active">
+			<div id="tab1" role="tabpanel" class="tab-pane fade in active">
 				{$doc->body|replace:"!!!version!!!":$hv}
 			</div>
 			{if $doc->actions_views}
-				<div id="tab2" class="tab-pane fade">
+				<div id="tab2" role="tabpanel" class="tab-pane fade">
 					{$doc->actions_views|replace:"!!!version!!!":$hv}
 				</div>
 			{/if}
 			{if $doc->configuration}
-				<div id="tab3" class="tab-pane fade">
+				<div id="tab3" role="tabpanel" class="tab-pane fade">
 					{$doc->configuration|replace:"!!!version!!!":$hv}
 				</div>
 			{/if}
 			{if $doc->youtube_vid_code}
-				<div id="tab4" class="tab-pane fade">
+				<div id="tab4" role="tabpanel" class="tab-pane fade">
 					{$doc->youtube_vid_code}
 				</div>
 			{/if}
 			{if $doc->additional}
-				<div id="tab5" class="tab-pane fade">
+				<div id="tab5" role="tabpanel" class="tab-pane fade">
 					{$doc->additional|replace:"!!!version!!!":$hv}
 				</div>
 			{/if}
 		</div>
 	</div>
-	<div class="loadingdiv">{"Loading Help"|gettext}</div>
+	{*<div class="loadingdiv">{"Loading Help"|gettext}</div>*}
+	{loading title="Loading Help"|gettext}
 </div>
 {if $children}
     {$params.parent = $doc->id}
-    {showmodule module=help view=childview source=$doc->loc->src params=$params}
+    {showmodule controller=help action=showall view=childview source=$doc->loc->src params=$params}
 {elseif $doc->parent}
     {get_object object=help param=$doc->parent assign=parent}
     <div class="item childview">
@@ -111,27 +112,6 @@
         </dl>
     </div>
 {/if}
-
-{*{script unique="editform" yui3mods=1}*}
-{*{literal}*}
-    {*EXPONENT.YUI3_CONFIG.modules.exptabs = {*}
-        {*fullpath: EXPONENT.JS_RELATIVE+'exp-tabs.js',*}
-        {*requires: ['history','tabview','event-custom']*}
-    {*};*}
-
-	{*YUI(EXPONENT.YUI3_CONFIG).use('exptabs', function(Y) {*}
-        {*Y.expTabs({srcNode: '#showhelp-tabs'});*}
-		{*Y.one('#showhelp-tabs').removeClass('hide');*}
-		{*Y.one('.loadingdiv').remove();*}
-    {*});*}
-{*{/literal}*}
-{*{/script}*}
-
-{*{script unique="`$id`" jquery="jqueryui"}*}
-{*{literal}*}
-    {*$('#showhelp-tabs-{/literal}{$id}{literal}').tabs().next().remove();*}
-{*{/literal}*}
-{*{/script}*}
 
 {script unique="tabload" jquery=1 bootstrap="tab,transition"}
 {literal}

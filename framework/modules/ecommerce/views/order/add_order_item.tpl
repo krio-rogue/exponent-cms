@@ -1,5 +1,5 @@
 {*
- * Copyright (c) 2004-2014 OIC Group, Inc.
+ * Copyright (c) 2004-2016 OIC Group, Inc.
  *
  * This file is part of Exponent
  *
@@ -13,6 +13,6 @@
  *
  *}
 
-<div class="module address edit address-form">        
+<div class="module product">
     {$product->displayForm('addToOrder',$params)}
 </div>

@@ -2,7 +2,7 @@
 
 ##################################################
 #
-# Copyright (c) 2004-2014 OIC Group, Inc.
+# Copyright (c) 2004-2016 OIC Group, Inc.
 #
 # This file is part of Exponent
 #
@@ -29,8 +29,6 @@ if (!defined('EXPONENT')) exit('');
  */
 class radiocontrol extends formcontrol {
 
-    var $flip = false;
-
     static function name() { return "Radio Button"; }
     
     function __construct($default = false, $value = "", $groupname="radiogroup", $flip=false, $onclick="") {
@@ -44,15 +42,15 @@ class radiocontrol extends formcontrol {
 
     function toHTML($label,$name) {
         if (!empty($this->id)) {
-		    $divID  = ' id="'.$this->id.'Control"';
-		    $for = ' for="'.$this->id.'"';
+		    $divID  = $this->id.'Control';
+		    $for = $this->id;
 		} else {
-//		    $divID  = '';
-            $divID  = ' id="'.$name.'Control"';
-//		    $for = ' for="'.$name.'"';
-            $for = ' for="'.$name.$this->value.'"';
+            $divID  = $name.'Control';
+            $for = $name.$this->value;
 		}
-        $html = '<div'.$divID.' class="radio control';  //FIXME does this mess up validation styling?
+        $divID = createValidId($divID);
+        $for = ' for="' . createValidId($for) . '"';
+        $html = '<div id="'.$divID.'" class="radio control';  //FIXME does this mess up validation styling?
         $html .= (!empty($this->required)) ? ' required">' : '">';
         $html .= "<table border=0 cellpadding=0 cellspacing=0><tr>";
 
@@ -74,7 +72,8 @@ class radiocontrol extends formcontrol {
     }
     
     function controlToHTML($name,$label=null) {
-        $html = '<input class="radiobutton form-control" type="radio" value="' . $this->value .'" id="' . $this->groupname . $this->value . '"' .'" name="' . $this->groupname . '"';
+        $idname = createValidId($this->groupname . $this->value);
+        $html = '<input class="radiobutton form-control" type="radio" value="' . $this->value .'" id="' . $idname . '" name="' . $this->groupname . '"';
         if ($this->default) $html .= ' checked="checked"';
         $html .= $this->focus ? " autofocus=\"autofocus\"" : "";
         if ($this->onclick != "") {
@@ -85,10 +84,11 @@ class radiocontrol extends formcontrol {
     }
     
     function controlToHTML_newschool($name, $label) {
-        $inputID  = (!empty($this->id)) ? ' id="'.$this->id.'"' : "";
+//        $idname  = (!empty($this->id)) ? ' id="'.$this->id.'"' : "";
         $this->name = empty($this->name) ? $name : $this->name;
         $this->id = empty($this->id) ? $name.$this->value : $this->id;
-        $html = '<input'.$inputID.' type="radio" name="' . $this->name . '" id="' . $this->id . '" value="'.$this->value.'"';
+        $idname = createValidId($this->id);
+        $html = '<input type="radio" name="' . $this->name . '" id="' . $idname . '" value="'.$this->value.'"';
         if (!empty($this->size)) $html .= ' size="' . $this->size . '"';
         if (!empty($this->checked)) $html .= ' checked="checked"';
         $this->class = !empty($this->class) ? $this->class : "";
@@ -129,8 +129,8 @@ class radiocontrol extends formcontrol {
         $form->register("caption",gt('Caption'), new textcontrol($object->caption));
         $form->register("default",gt('Default'), new checkboxcontrol($object->default,false));
         $form->register("flip",gt('Caption on Right'), new checkboxcontrol($object->flip,false));
-        
-        $form->register("submit","",new buttongroupcontrol(gt('Save'),'',gt('Cancel'),"",'editable'));
+        if (!expJavascript::inAjaxAction())
+            $form->register("submit","",new buttongroupcontrol(gt('Save'),'',gt('Cancel'),"",'editable'));
         
         return $form;
     }
@@ -138,7 +138,7 @@ class radiocontrol extends formcontrol {
     static function update($values, $object) {
         if ($object == null) $object = new radiocontrol();
         if ($values['groupname'] == "") {
-            $post = $_POST;
+            $post = expString::sanitize($_POST);
             $post['_formError'] = gt('Group name is required.');
             expSession::set("last_POST",$post);
             return null;

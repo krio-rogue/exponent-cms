@@ -1,5 +1,5 @@
 {*
- * Copyright (c) 2004-2014 OIC Group, Inc.
+ * Copyright (c) 2004-2016 OIC Group, Inc.
  *
  * This file is part of Exponent
  *
@@ -19,7 +19,7 @@
 
 <div class="module migration manage-files">
  	{*<a class="{button_style}" href="{link module=migration action=manage_content}"><strong>{'Skip to Next Step -> Migrate Content'|gettext}</strong></a>*}
-    {icon button=true module=migration action=manage_content text={'Skip to Next Step -> Migrate Content'|gettext}
+    {icon button=true module=migration action=manage_content text='Skip to Next Step -> Migrate Content'|gettext}
     {br}{br}<hr />
     <div class="info-header">
         <div class="related-actions">

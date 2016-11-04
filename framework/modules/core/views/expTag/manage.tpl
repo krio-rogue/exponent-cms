@@ -1,5 +1,5 @@
 {*
- * Copyright (c) 2004-2014 OIC Group, Inc.
+ * Copyright (c) 2004-2016 OIC Group, Inc.
  *
  * This file is part of Exponent
  *
@@ -24,6 +24,10 @@
         <div class="module-actions">
             {if $permissions.create}
                 {*<a class="add" href="{link controller=$model_name action=create}">{"Create a new Tag"|gettext}</a>*}
+            {/if}
+            {if $permissions.manage}
+                {icon action=import text="Import Tags"|gettext}
+                {icon action=export text="Export Tags"|gettext}
             {/if}
         </div>
     {/permissions}

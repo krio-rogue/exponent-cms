@@ -2,7 +2,7 @@
 
 ##################################################
 #
-# Copyright (c) 2004-2014 OIC Group, Inc.
+# Copyright (c) 2004-2016 OIC Group, Inc.
 #
 # This file is part of Exponent
 #
@@ -143,7 +143,7 @@ class simplePollController extends expController {
         global $user;
 
         if (isset($this->params['choice'])) {
-            $answer = new simplepoll_answer($this->params['choice']);
+            $answer = new simplepoll_answer(intval($this->params['choice']));
             if (empty($this->config)) {
                 $this->config['anonymous_timeout'] = 5*3600;
                 $this->config['thank_you_message'] = 'Thank you for voting.';
@@ -163,7 +163,9 @@ class simplePollController extends expController {
 //                    $timeblock = $db->selectObject('simplepoll_timeblock',"ip_hash='".md5($_SERVER['REMOTE_ADDR'])."' AND simplepoll_question_id=".$answer->simplepoll_question_id);
                 }
 
-                if ($timeblock == null || $timeblock->lock_expires < time() && $timeblock->lock_expires != 0) {
+                if ($timeblock == null || ($timeblock->lock_expires < time() && $timeblock->lock_expires != 0)) {
+                    if ($timeblock == null)
+                        $timeblock = new simplepoll_timeblock();
                     $answer->vote_count++;
                     $answer->update();
 

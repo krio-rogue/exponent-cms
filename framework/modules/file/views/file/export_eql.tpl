@@ -1,5 +1,5 @@
 {*
- * Copyright (c) 2004-2014 OIC Group, Inc.
+ * Copyright (c) 2004-2016 OIC Group, Inc.
  *
  * This file is part of Exponent
  *
@@ -33,16 +33,16 @@
 		}
 	}
 
-	function isOneSelected() {
-		var elems = document.getElementsByTagName("input");
-		for (var key in elems) {
-			if (elems[key].type == "checkbox" && elems[key].name.substr(0,7) == "tables[") {
-				if (elems[key].checked) return true;
-			}
-		}
-		alert("{/literal}{'You must select at least one table to export.'|gettext}{literal}");
-		return false;
-	}
+//	function isOneSelected() {
+//		var elems = document.getElementsByTagName("input");
+//		for (var key in elems) {
+//			if (elems[key].type == "checkbox" && elems[key].name.substr(0,7) == "tables[") {
+//				if (elems[key].checked) return true;
+//			}
+//		}
+//		alert("{/literal}{'You must select at least one table to export.'|gettext}{literal}");
+//		return false;
+//	}
 
 	{/literal}
 	{/script}
@@ -52,21 +52,21 @@
 			{section name=tid loop=$tables step=2}
 				<tr class="row {cycle values='even,odd'}">
 					<td>
-						<input type="checkbox" name="tables[{$tables[tid]}]" {if $tables[tid] != 'sessionticket' && $tables[tid] != 'search'}checked {/if}/>
+						<input type="checkbox" id="tables_{$tables[tid]}" name="tables[{$tables[tid]}]" {if $tables[tid] != 'sessionticket' && $tables[tid] != 'search'}checked {/if}/>
 					</td>
 
-					<td>{$tables[tid]}</td>
+					<td><label for="tables_{$tables[tid]}">{$tables[tid]}</label></td>
 
 					<td style="width:12px">&#160;</td>
 
                     {$nextid=$smarty.section.tid.index+1}
 					<td>
 						{if $tables[$nextid] != ""}
-                            <input type="checkbox" name="tables[{$tables[$nextid]}]" {if $tables[$nextid] != 'sessionticket' && $tables[$nextid] != 'search'}checked {/if}/>
+                            <input type="checkbox" id="tables_{$tables[$nextid]}" name="tables[{$tables[$nextid]}]" {if $tables[$nextid] != 'sessionticket' && $tables[$nextid] != 'search'}checked {/if}/>
                         {/if}
 					</td>
 
-					<td>{$tables[$nextid]}</td>
+					<td><label for="tables_{$tables[$nextid]}">{$tables[$nextid]}</label></td>
 				</tr>
 			{/section}
             <tr>
@@ -110,7 +110,7 @@
 				<td colspan="2">&#160;</td>
 				<td colspan="3">
 					{*<input type="submit" class="downloadfile {button_style}" value="{'Export Data'|gettext}" onclick="return isOneSelected();" />*}
-                    {control type=buttongroup class="downloadfile" submit='Export Data'|gettext onclick="return isOneSelected();"}
+                    {control type=buttongroup class="downloadfile" submit='Export Data'|gettext}
 				</td>
 			</tr>
 		</table>

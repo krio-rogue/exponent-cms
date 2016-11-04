@@ -1,5 +1,5 @@
 {*
- * Copyright (c) 2004-2014 OIC Group, Inc.
+ * Copyright (c) 2004-2016 OIC Group, Inc.
  *
  * This file is part of Exponent
  *
@@ -12,6 +12,10 @@
  * GPL: http://www.gnu.org/licenses/gpl.txt
  *
  *}
+
+{css unique="myaddress" corecss="common"}
+
+{/css}
 
 <address class="address show">
 	<span class="fullname">
@@ -27,12 +31,12 @@
         {else}
             {$address->state|statename}
         {/if}
-        {$address->zip}{br}
+        {$address->zip}
         {if $address->state == -2 || empty($address->state)}
-            {$address->country|countryname}
+            {br}{$address->country|countryname}
         {/if}
     </span>
-	{if $address->address_type}<span class="address_type">({$address->address_type})</span>{/if}
+	{if $address->address_type}<span class="address_type">(<em>{$address->address_type}</em>)</span>{/if}
 	<span class="phone">{$address->phone}</span>
 	<span class="email">{$address->email}</span>
 </address>

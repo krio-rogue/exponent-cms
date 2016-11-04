@@ -1,5 +1,5 @@
 {*
- * Copyright (c) 2004-2014 OIC Group, Inc.
+ * Copyright (c) 2004-2016 OIC Group, Inc.
  *
  * This file is part of Exponent
  *
@@ -13,25 +13,10 @@
  *
  *}
  
-{*{css unique="permissions" corecss="tables"}*}
-{*{literal}*}
-{*.exp-skin-table thead th {*}
-    {*white-space:nowrap;*}
-    {*border-right:1px solid #D4CBBA;*}
-{*}*}
-{*{/literal}*}
-{*{/css}*}
-{css unique="manage-perms" link="`$asset_path`css/datatables-tools.css"}
+{css unique="manage-perms" corecss="datatables-tools"}
 
 {/css}
 
-//<form method="post">
-    {*<input type="hidden" name="module" value="{$page->controller}" />*}
-    {*<input type="hidden" name="action" value="{if $user_form == 1}userperms_save{else}groupperms_save{/if}" />*}
-    {*<input type="hidden" name="mod" value="{$loc->mod}" />*}
-    {*<input type="hidden" name="src" value="{$loc->src}" />*}
-    {*<input type="hidden" name="int" value="{$loc->int}" />*}
-    {*{$page->links}*}
 {if $user_form == 1}{$action = 'userperms_save'}{else}{$action = 'groupperms_save'}{/if}
 {form action=$action module=$page->controller}
     {control type="hidden" name="mod" value=$loc->mod}
@@ -49,11 +34,10 @@
             </thead>
             <tbody>
                 {foreach from=$page->records item=user key=ukey name=user}
-                    {*<input type="hidden" name="users[]" value="{$user->id}" />*}
-                    {control type="hidden" name="users[]" value=$user->id}
                     <tr>
                         {if !$is_group}
                             <td>
+                                {control type="hidden" name="users[]" value=$user->id}
                                 {$user->username}
                             </td>
                             <td>
@@ -64,6 +48,7 @@
                             </td>
                         {else}
                             <td>
+                                {control type="hidden" name="users[]" value=$user->id}
                                 {$user->name}
                             </td>
                         {/if}
@@ -79,33 +64,32 @@
     </div>
     {*{$page->links}*}
     {control type="buttongroup" submit="Save Permissions"|gettext cancel="Cancel"|gettext}
-//</form>
 {/form}
 
-{script unique="permission-checking" yui3mods=1}
+{script unique="permission-checking" yui3mods="node"}
 {literal}
-YUI(EXPONENT.YUI3_CONFIG).use('node', function(Y) {
+YUI(EXPONENT.YUI3_CONFIG).use('*', function(Y) {
     var manage = Y.all('input.manage');
 
     var checkSubs = function(row) {
-        row.each(function(n,k){
+        row.each(function(n, k){
             if (!n.hasClass('manage')) {
-                n.insertBefore('<input type="hidden" name="'+n.get("name")+'" value="1">',n);
-                n.setAttrs({'checked':1,'disabled':1});
+                n.insertBefore('<input type="hidden" name="' + n.get("name") + '" value="1">',n);
+                n.setAttrs({'checked':1, 'disabled':1});
             };
         });
     };
     var unCheckSubs = function(row) {
-        row.each(function(n,k){
+        row.each(function(n, k){
             if (!n.hasClass('manage')) {
                 n.get('previousSibling').remove();
-                n.setAttrs({'checked':0,'disabled':0});
+                n.setAttrs({'checked':0, 'disabled':0});
             };
         });
     };
-    var toggleChecks = function(target,start) {
+    var toggleChecks = function(target, start) {
         var row = target.ancestor('tr').all('input[type=checkbox]');
-        if(target.get('checked')&&!target.get('disabled')){
+        if(target.get('checked') && !target.get('disabled')){
             checkSubs(row);
         } else {
             if (!start) {
@@ -113,13 +97,12 @@ YUI(EXPONENT.YUI3_CONFIG).use('node', function(Y) {
             }
         }
     };
-    manage.on('click',function(e){
-        toggleChecks(e.target);
+    Y.one('#permissions').delegate('click', function(e){
+//        toggleChecks(e.target);
+    }, 'input.manage');
+    Y.all('#permissions input.manage').each(function(n){
+//        toggleChecks(n, 1);
     });
-    manage.each(function(n){
-        toggleChecks(n,1);
-    });
-
 });
 {/literal}
 {/script}
@@ -127,6 +110,47 @@ YUI(EXPONENT.YUI3_CONFIG).use('node', function(Y) {
 {script unique="permissions" jquery='jquery.dataTables,dataTables.tableTools'}
 {literal}
     $(document).ready(function() {
+        var checkSubs = function(row) {
+            row.each(function(k, n) {
+                if (!$(n).hasClass('manage')) {
+                    $('<input type="hidden" name="' + n.name + '" value="1">').insertBefore($(n));
+                    $(n).prop({'checked':true, 'disabled':true});
+                };
+            });
+        };
+        var unCheckSubs = function(row) {
+            row.each(function(k, n) {
+                if (!$(n).hasClass('manage')) {
+                    $(n).prev().remove();
+                    $(n).prop({'checked':false, 'disabled':false});
+                };
+            });
+        };
+        var toggleChecks = function(target, start) {
+            var row = $(target).closest('tr').find(':checkbox');
+            var row1 = $(target).closest('tr').next('tr.row-detail');  // if responsive
+            var checks1 = null;
+            if (row1.length)
+                checks1 = row1.find(':checkbox');
+            if(target.checked && !target.disabled) {
+                checkSubs(row);
+                if (checks1 != null && checks1.length)
+                    checkSubs(checks1);;
+            } else {
+                if (!start) {
+                    unCheckSubs(row);
+                    if (checks1 != null && checks1.length)
+                        unCheckSubs(checks1);;
+                }
+            }
+        };
+        $('#permissions').delegate('input.manage', 'click', function(e){
+            toggleChecks(e.target);
+        });
+        $('#permissions input.manage').each(function(k, e){
+            toggleChecks(e, 1);
+        });
+
         $('#permissions').DataTable({
             pagingType: "full_numbers",
 //            dom: 'T<"top"lfip>rt<"bottom"ip<"clear">',  // pagination location
@@ -134,15 +158,26 @@ YUI(EXPONENT.YUI3_CONFIG).use('node', function(Y) {
             tableTools: {
                 sSwfPath: EXPONENT.JQUERY_RELATIVE+"addons/swf/copy_csv_xls_pdf.swf"
             },
+            scrollX: true,
             columnDefs: [
 //                { searchable: true, targets: [ {/literal}{if !$is_group}0, 1, 2{else}0{/if}{literal} ] },
 //                { sortable: true, targets: [ {/literal}{if !$is_group}0, 1, 2{else}0{/if}{literal} ] },
 //                { searchable: false, targets: [ '_all' ] },
 //                { sortable: false, targets: [ '_all' ] },
-                {targets: [ "sortme"], sortable: true },
-                {targets: [ 'nosort' ], sortable: false }
+                {targets: [ "sortme"], orderable: true },
+                {targets: [ 'nosort' ], orderable: false }
             ],
         });
-    } );
+
+        // restore all rows so we get all form input instead of only those displayed
+        $('#manage-groups').on('submit', function (e) {
+            // Force all the rows back onto the DOM for postback
+            table.rows().nodes().page.len(-1).draw(false);  // This is needed
+            if ($(this).valid()) {
+                return true;
+            }
+            e.preventDefault();
+        });
+    });
 {/literal}
 {/script}

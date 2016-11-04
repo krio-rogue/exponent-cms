@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2004-2014 OIC Group, Inc.
+ * Copyright (c) 2004-2016 OIC Group, Inc.
  *
  * This file is part of Exponent
  *
@@ -13,7 +13,7 @@
  *
  */
 
-//FIXME convert to yui3
+//FIXME convert to yui3/jquery
 YUI(EXPONENT.YUI3_CONFIG).use('node','yui2-animation','yui2-container','yui2-json','yui2-yahoo-dom-event', function(Y) {
     var YAHOO = Y.YUI2;
 
@@ -312,7 +312,7 @@ YUI(EXPONENT.YUI3_CONFIG).use('node','yui2-animation','yui2-container','yui2-jso
 	            var sUri = EXPONENT.PATH_RELATIVE + "index.php?ajax_action=1" + json + "&yaetime=" + dt;
 	            return sUri;
 	        } else if (!obj.action || (!obj.controller && !obj.module)) {
-	            alert("If you don't pass the ID of a form, you need to specify both a module/controller AND and a corresponding action.");
+	            alert("If you don't pass the ID of a form, you need to specify both a module/controller AND a corresponding action.");
 	        } else {
 	            //slap a date in there so IE doesn't cache
 	            var dt = new Date().valueOf();

@@ -1,5 +1,5 @@
 {*
- * Copyright (c) 2004-2014 OIC Group, Inc.
+ * Copyright (c) 2004-2016 OIC Group, Inc.
  *
  * This file is part of Exponent
  *
@@ -13,13 +13,27 @@
  *
  *}
 
-{css unique="design-form" corecss="button"}
+{css unique="design-form" lesscss="`$asset_path`less/designer.less" corecss="button"}
 
 {/css}
 
-{if $config.style}
+{if !bs()}
+{css unique="design-form2"}
+    .formmoduleedit.item .item-actions a {
+        height: 16px;
+    }
+{/css}
+{/if}
+
+{if $style && !bs3()}
     {css unique="formmod2" corecss="forms2col"}
 
+    {/css}
+{else}
+    {css unique="formmod2"}
+        .stepy-step label {
+        	margin         : 0;
+        }
     {/css}
 {/if}
 
@@ -33,12 +47,13 @@
     <div class="form_title">
         {if $edit_mode != 1}
             <div class="module-actions">
+                {icon class=selectnone id='toggle_grid' action=scriptaction text='Toggle Designer Grid'|gettext title='Provides more accurate form display'|gettext}
                 {ddrerank module="forms_control" model="forms_control" where="forms_id=`$form->id`" sortfield="caption" label="Form Controls"|gettext}
             </div>
         {/if}
     </div>
     {if $edit_mode != 1}
-    <div style="border: 2px dashed lightgrey; padding: 1em;">
+    <div class="form-wrapper">
     {/if}
         {$form_html}
     {if $edit_mode != 1}
@@ -48,7 +63,7 @@
         <table cellpadding="5" cellspacing="0" border="0">
             <tr>
                 <td style="border:none;">
-                    <form role="form" method="post" action="{$smarty.const.PATH_RELATIVE}index.php" class="exp-skin">
+                    <form role="form" method="post" action="{$smarty.const.PATH_RELATIVE}index.php"{if !bs3()} class="exp-skin"{/if}>
                         <input type="hidden" name="controller" value="forms"/>
                         <input type="hidden" name="action" value="edit_control"/>
                         <input type="hidden" name="forms_id" value="{$form->id}"/>
@@ -69,19 +84,32 @@
     {*<p><a class="{button_style}"*}
     {*href="JavaScript: pickSource();">{'Append fields from existing form'|gettext}</a></p>*}
 
-    {*{script unique="viewform"}*}
-    {*function pickSource() {ldelim}*}
-    {*window.open('{$pickerurl}','sourcePicker','title=no,toolbar=no,width=800,height=600,scrollbars=yes');*}
-    {*{rdelim}*}
-    {*{/script}*}
+    {*script unique="viewform"}
+    function pickSource() {ldelim}
+    window.open('{$pickerurl}','sourcePicker','title=no,toolbar=no,width=800,height=600,scrollbars=yes');
+    {rdelim}
+    {/script*}
     {*{if !empty($forms_list)}{control type="dropdown" name="forms_id" label="Append fields from an existing form"|gettext items=$forms_list}{/if}*}
         <blockquote>
             {'Use the drop down to add fields to this form.'|gettext}
             <em>{'The first/top-most page break control will always be pushed to the top!'|gettext}</em>
         </blockquote>
-        <p class="exp-skin">
+        <p{if bs3()} class="exp-skin"{/if}>
             {*<a class="{button_style}" href="{$backlink}">{'Done'|gettext}</a>*}
-            {icon button=true link=$backlink text='Done'|gettext}
+            {icon button=true class=reply link=$backlink text='Done'|gettext}
         </p>
     {/if}
 </div>
+
+{script unique="design-form" jquery=1}
+{literal}
+    $(document).ready(function(){
+        // turn form grid on/off
+        $('#toggle_grid').on('click', function(evt) {
+            $('.forms.design-form .formmoduleedit.item').toggleClass('clean');
+            $('.forms.design-form .form-wrapper').toggleClass('clean');
+            $('#toggle_grid').toggleClass('active');
+        });
+    });
+{/literal}
+{/script}

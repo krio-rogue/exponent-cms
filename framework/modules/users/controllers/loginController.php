@@ -2,7 +2,7 @@
 
 ##################################################
 #
-# Copyright (c) 2004-2014 OIC Group, Inc.
+# Copyright (c) 2004-2016 OIC Group, Inc.
 #
 # This file is part of Exponent
 #
@@ -42,6 +42,10 @@ class loginController extends expController {
     static function displayname() { return gt("Login Manager"); }
     static function description() { return gt("This is the login management module. It allows for logging in, logging out, etc."); }
 
+    static function hasSources() {
+        return false;
+    }
+
 	/**
 	 * Display a login view
 	 */
@@ -77,6 +81,7 @@ class loginController extends expController {
 			} else {
 				$is_group_admin = 0;
 			}
+
 			assign_to_template(array(
                 'oicount'=>$oicount,
                 'previewtext'=>$previewtext,
@@ -96,6 +101,11 @@ class loginController extends expController {
                 'loggedin'=>$loggedin,
                 'user'=>$user
             ));
+            if (expSession::get('customer-login')) {
+                assign_to_template(array(
+                    'checkout'=>true
+                ));
+            }
 		}
 	}
 
@@ -115,8 +125,8 @@ class loginController extends expController {
 	 * main login method
 	 */
 	public static function login() {
-		user::login(expString::sanitize($_POST['username']),expString::sanitize($_POST['password']));
-		if (!isset($_SESSION[SYS_SESSION_KEY]['user'])) {
+		user::login(expString::escape(expString::sanitize($_POST['username'])),expString::escape(expString::sanitize($_POST['password'])));
+		if (!isset($_SESSION[SYS_SESSION_KEY]['user'])) {  // didn't successfully log in
 			flash('error', gt('Invalid Username / Password'));
 			if (expSession::is_set('redirecturl_error')) {
 				$url = expSession::get('redirecturl_error');
@@ -125,8 +135,10 @@ class loginController extends expController {
 			} else {
 				expHistory::back();
 			}
-		} else {
+		} else {  // we're logged in
 			global $user;
+
+            if (expSession::get('customer-login')) expSession::un_set('customer-login');
 			if (!empty($_POST['username'])) flash('message', gt('Welcome back').' '.expString::sanitize($_POST['username']));
             if ($user->isAdmin()) {
                 expHistory::back();
@@ -150,8 +162,7 @@ class loginController extends expController {
 	 * method to redirect to a login if needed
 	 */
 	public static function loginredirect() {
-		global $user;
-		global $router;
+		global $user, $router;
 
 		ob_start();
 		if ($user->isLoggedIn()) {
@@ -166,6 +177,7 @@ class loginController extends expController {
 //		redirect_to(array('controller'=>'login', 'action'=>'showlogin'));
         renderAction(array('controller'=>'login','action'=>'showlogin','no_output'=>true));
 	}
+
 }
 
 ?>

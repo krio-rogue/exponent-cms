@@ -2,7 +2,7 @@
 
 ##################################################
 #
-# Copyright (c) 2004-2014 OIC Group, Inc.
+# Copyright (c) 2004-2016 OIC Group, Inc.
 #
 # This file is part of Exponent
 #
@@ -60,7 +60,7 @@ if (!function_exists('smarty_function_ddrerank')) {
         } elseif (property_exists($obj, 'location_data')) {
             $locsql = "location_data='" . serialize($loc) . "'";
         } else {
-            $locsql = null;
+            $locsql = '1';
         }
 //            $params['items'] = $obj->find('all',"location_data='".serialize($loc)."'".$only,"rank");
             $params['items'] = $obj->find('all', $locsql . $only, "rank"); // we MUST re-pull since we only received one page of $items
@@ -92,17 +92,17 @@ if (!function_exists('smarty_function_ddrerank')) {
             $btn_size = expTheme::buttonStyle();
             $icon_size = expTheme::iconSize();
             if ($model != 'container') {  // make a button
-                echo '<a id="rerank' . $uniqueid . '" class="'.$btn_size.'" data-toggle="modal" data-target="#panel' . $uniqueid . '" href="#"><i class="fa fa-exchange fa-rotate-90 '.$icon_size.'"></i> ' . gt("Order") . ' ' . $params['label'] . '</a>';
+                echo '<a id="rerank', $uniqueid, '" class="',$btn_size,'" data-toggle="modal" data-target="#panel', $uniqueid, '" href="#"><i class="fa fa-exchange fa-rotate-90 ',$icon_size,'"></i> ', gt("Order"), ' ', $params['label'], '</a>';
             } else {  // make a menu item
-                echo '<a id="rerank' . $uniqueid . '" class="" data-toggle="modal" data-target="#panel' . $uniqueid . '" href="#"><i class="fa fa-exchange fa-rotate-90 fa-fw"></i> ' . gt("Order") . ' ' . $params['label'] . '</a>';
+                echo '<a id="rerank', $uniqueid, '" class="" data-toggle="modal" data-target="#panel', $uniqueid, '" href="#"><i class="fa fa-exchange fa-rotate-90 fa-fw"></i> ', gt("Order"), ' ', $params['label'], '</a>';
             }
 
             $html = '
-        <div id="panel' . $uniqueid . '" class="modal fade" tabindex="-1" role="dialog" aria-labelledby="myModalLabel' . $uniqueid . '" aria-hidden="true">
+        <div id="panel' . $uniqueid . '" class="modal fade" tabindex="-1" role="dialog" aria-labelledby="rerank' . $uniqueid . '" aria-hidden="true">
           <div class="modal-dialog">
             <div class="modal-content">
             <form role="form" method="post" action="' . PATH_RELATIVE . '">
-              <div class="modal-header">
+              <div class="modal-header bg-primary">
                 <button type="button" class="close" data-dismiss="modal"><span aria-hidden="true">&times;</span><span class="sr-only">' . gt('Close') . '</span></button>
                 <h4 class="modal-title" id="myModalLabel' . $uniqueid . '">' . gt('Set Order of') . ' ' . $params['label'] . '</h4>
               </div>
@@ -137,7 +137,7 @@ if (!function_exists('smarty_function_ddrerank')) {
                     <input type="hidden" name="rerank[]" value="' . $item->id . '" />
                     <div class="fpdrag"></div>';
                     //Do we include the picture? It depends on if there is one set.
-                    $html .= (!empty($item->expFile[0]->id) && !empty($item->expFile[0]->is_image)) ? '<img class="filepic" src="' . PATH_RELATIVE . 'thumb.php?id=' . $item->expFile[0]->id . '&w=16&h=16&zc=1">' : '';
+                    $html .= (!empty($item->expFile[0]->id) && !empty($item->expFile[0]->is_image)) ? '<img class="filepic" src="' . PATH_RELATIVE . 'thumb.php?id=' . $item->expFile[0]->id . '&w=16&h=16&zc=1" alt="item'.$item->id.'">' : '';
                     $html .= '<span class="title">' . (!empty($item->$sortfield) ? substr($item->$sortfield, 0, $stringlen) : gt('Untitled')) . '</span>
                     </li>';
                 }
@@ -145,7 +145,7 @@ if (!function_exists('smarty_function_ddrerank')) {
                     <div class="modal-footer">';
 //                    <a href="#" class="btn btn-default '.$btn_size.'" name=alpha' . $uniqueid . ' id=alpha' . $uniqueid . ' style="float:left;"><i class="fa fa-sort '.$icon_size.'"></i> ' . gt('Sort List Alphabetically') . '</a>
                 $html .= '
-                    <button type="submit" class="btn btn-primary '.$btn_size.'"><i class="fa fa-floppy-o '.$icon_size.'"></i> ' . gt('Save') . '</button>
+                    <button type="submit" class="btn btn-primary"><i class="fa fa-floppy-o '.$icon_size.'"></i> ' . gt('Save') . '</button>
                     </div>
                   </form>
                 </div>
@@ -160,16 +160,16 @@ if (!function_exists('smarty_function_ddrerank')) {
             }
             echo $html;
 
-            $script = "
-                $(document).ready(function(){
-                  $('#listToOrder" . $uniqueid . "').sortable();
-            ";
-            if ($model == 'container') {  // must move modal off of menu to display
-                $script .= "$('#panel" . $uniqueid . "').appendTo('body');";
-            }
-            $script .="
-                });
-            ";
+//            $script = "
+//                $(document).ready(function(){
+//                  $('#listToOrder" . $uniqueid . "').sortable();
+//            ";
+//            if ($model == 'container') {  // must move modal off of menu to display
+//                $script .= "$('#panel" . $uniqueid . "').appendTo('body');";
+//            }
+//            $script .="
+//                });
+//            ";
             $script = "
                 $(document).ready(function(){
                   new Sortable(document.getElementById('listToOrder" . $uniqueid . "'));

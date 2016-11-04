@@ -2,7 +2,7 @@
 
 ##################################################
 #
-# Copyright (c) 2004-2014 OIC Group, Inc.
+# Copyright (c) 2004-2016 OIC Group, Inc.
 #
 # This file is part of Exponent
 #
@@ -42,7 +42,7 @@ function smarty_function_message($params,&$smarty) {
     $text = empty($params['text']) ? '&#160;' : $params['text'];
     $class = empty($params['class']) ? '' : $params['class'];
     $centered = empty($params['center']) ? '' : ' style="text-align:center"';
-    echo '<div class="msg-queue ' . $class . $centered . '"><div class="msg">' . $text . '</div></div';
+    echo '<div class="msg-queue ', $class, $centered, '"><div class="msg">', $text, '</div></div>';
     expCSS::pushToHead(array(
         "corecss"=>"msgq",
     ));

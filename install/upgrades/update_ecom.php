@@ -2,7 +2,7 @@
 
 ##################################################
 #
-# Copyright (c) 2004-2014 OIC Group, Inc.
+# Copyright (c) 2004-2016 OIC Group, Inc.
 #
 # This file is part of Exponent
 #
@@ -46,7 +46,7 @@ class update_ecom extends upgradescript {
 	 */
 	function needed() {
         $config = new expConfig(expCore::makeLocation("ecomconfig","@globalstoresettings",""));
-        if (defined('ECOM') && (!empty($config->config['header']) || !empty($config->config['footer']))) {
+        if (ecom_active() && (!empty($config->config['header']) || !empty($config->config['footer']))) {
             return true;
         } else return false;
 	}

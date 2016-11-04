@@ -1,5 +1,5 @@
 {*
- * Copyright (c) 2004-2014 OIC Group, Inc.
+ * Copyright (c) 2004-2016 OIC Group, Inc.
  *
  * This file is part of Exponent
  *
@@ -16,7 +16,7 @@
 {if !empty($extra_data)}
     <div class="extra-data">
         <blockquote>
-            <strong>{'To:'|gettext} </strong>{$extra_data.to} <strong>{'From'|gettext}: </strong>{$extra_data.from}
+            <strong>{'To'|gettext}:</strong> {$extra_data.to} <strong>{'From'|gettext}:</strong> {$extra_data.from}
             {br}{$extra_data.msg}
         </blockquote>
     </div>

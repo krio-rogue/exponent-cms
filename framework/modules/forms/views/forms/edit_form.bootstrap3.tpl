@@ -1,5 +1,5 @@
 {*
- * Copyright (c) 2004-2014 OIC Group, Inc.
+ * Copyright (c) 2004-2016 OIC Group, Inc.
  *
  * This file is part of Exponent
  *
@@ -26,12 +26,12 @@
     {control type=hidden name=id value=$form->id}
     {control type=hidden name=old_id value=$form->old_id}
     <div id="editform-tabs" class="">
-        <ul class="nav nav-tabs">
-            <li class="active"><a href="#tab1" data-toggle="tab"><em>{'Form'|gettext}</em></a></li>
-            <li><a href="#tab2" data-toggle="tab"><em>{'Default Report'|gettext}</em></a></li>
+        <ul class="nav nav-tabs" role="tablist">
+            <li role="presentation" class="active"><a href="#tab1" role="tab" data-toggle="tab"><em>{'Form'|gettext}</em></a></li>
+            <li role="presentation"><a href="#tab2" role="tab" data-toggle="tab"><em>{'Default Report'|gettext}</em></a></li>
         </ul>
         <div class="tab-content yui3-skin-sam">
-            <div id="tab1" class="tab-pane fade in active">
+            <div id="tab1" role="tabpanel" class="tab-pane fade in active">
                 <div class="form_header">
                     <div class="info-header">
                         <div class="related-actions">
@@ -60,7 +60,7 @@
                     </blockquote>
                 {/group}
             </div>
-            <div id="tab2" class="tab-pane fade">
+            <div id="tab2" role="tabpanel" class="tab-pane fade">
                 <div class="form_header">
                     <div class="info-header">
                         <div class="related-actions">
@@ -84,26 +84,12 @@
                 </div>
             </div>
         </div>
-        <div class="loadingdiv">{'Loading Form'|gettext}</div>
+        {*<div class="loadingdiv">{'Loading Form'|gettext}</div>*}
+        {loading title='Loading Form'|gettext}
         {control type=buttongroup submit="Save Form"|gettext cancel="Cancel"|gettext}
         {/form}
     </div>
 </div>
-
-{*{script unique="editform" yui3mods=1}*}
-{*{literal}*}
-    {*EXPONENT.YUI3_CONFIG.modules.exptabs = {*}
-        {*fullpath: EXPONENT.JS_RELATIVE+'exp-tabs.js',*}
-        {*requires: ['history','tabview','event-custom']*}
-    {*};*}
-
-    {*YUI(EXPONENT.YUI3_CONFIG).use('exptabs', function(Y) {*}
-        {*Y.expTabs({srcNode: '#editform-tabs'});*}
-        {*Y.one('#editform-tabs').removeClass('hide');*}
-        {*Y.one('.loadingdiv').remove();*}
-    {*});*}
-{*{/literal}*}
-{*{/script}*}
 
 {script unique="tabload" jquery=1 bootstrap="tab,transition"}
 {literal}

@@ -1,5 +1,5 @@
 {*
- * Copyright (c) 2007-2014 OIC Group, Inc.
+ * Copyright (c) 2004-2016 OIC Group, Inc.
  * Written and Designed by Adam Kessler
  *
  * This file is part of Exponent
@@ -24,7 +24,7 @@
         </li>
         {if $doc->children}
             {$params.parent = $doc->id}
-            {showmodule module=help view=side_childview source=$doc->loc->src params=$params}
+            {showmodule controller=help action=showall view=side_childview source=$doc->loc->src params=$params}
         {/if}
     {/foreach}
     </ul>

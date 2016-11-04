@@ -2,7 +2,7 @@
 
 ##################################################
 #
-# Copyright (c) 2004-2014 OIC Group, Inc.
+# Copyright (c) 2004-2016 OIC Group, Inc.
 #
 # This file is part of Exponent
 #
@@ -27,7 +27,9 @@ return array(
 		DB_INCREMENT=>true),
 	'billingmethods_id'=>array(
 		DB_FIELD_TYPE=>DB_DEF_ID,
-		DB_INDEX=>10),	
+		DB_INDEX=>10),
+
+    // copy of billingmethods record used as history trail
 	'billingcalculator_id'=>array(
 		DB_FIELD_TYPE=>DB_DEF_ID),
 	'billing_cost'=>array(

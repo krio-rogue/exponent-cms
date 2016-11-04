@@ -2,7 +2,7 @@
 
 ##################################################
 #
-# Copyright (c) 2004-2014 OIC Group, Inc.
+# Copyright (c) 2004-2016 OIC Group, Inc.
 #
 # This file is part of Exponent
 #
@@ -95,10 +95,10 @@ class filemanagercontrol extends formcontrol {
         }
         $js = "
             EXPONENT.YUI3_CONFIG.modules.SimpleAjaxUploader = {
-                fullpath: EXPONENT.URL_FULL+'external/SimpleAjaxUploader/SimpleAjaxUploader-yui.js'
+                fullpath: EXPONENT.URL_FULL+'external/yui/SimpleAjaxUploader-yui.js'
             };
 
-            YUI(EXPONENT.YUI3_CONFIG).use('dd-constrain','dd-proxy','dd-drop','json','io','SimpleAjaxUploader', function(Y) {
+            YUI(EXPONENT.YUI3_CONFIG).use('*', function(Y) {
                 var limit = ".$this->limit.";
                 var filesAdded = ".$this->count.";
                 var fl = Y.one('#filelist".$name."');
@@ -116,14 +116,18 @@ class filemanagercontrol extends formcontrol {
                 if (Y.one('#quickaddfiles-".$name."') != null) {
                 var quickUpload = new Y.ss.SimpleUpload({
                     button: '#quickaddfiles-".$name."',
-                    url: '" . makelink(array("controller"=> "file", "action"=> "quickUpload", "ajax_action"=> 1, "json"=> 1, "folder"=> $this->folder)) . "',
+                    url: '" . makelink(array("controller"=> "file", "action"=> "quickUpload")) . "',
                     data: {controller: 'file', action: 'quickUpload', ajax_action: 1, json: 1, folder: '" . $this->folder . "'},
+                    dropzone: 'filelist".$name."',
+                    dragClass: 'dragit',
                     responseType: 'json',
                     name: 'uploadfile',
                     disabledClass: 'quick-upload-disabled ajax',
                     hoverClass: 'active',
                     multiple: (limit-filesAdded > 1),
                     maxUploads: limit,
+                    multipart: false,
+                    noParams: false,
                     maxSize: " . intval(ini_get('upload_max_filesize')*1024) . ",
 //                    debug: true,";
         if (!empty($this->accept)) {
@@ -213,7 +217,11 @@ class filemanagercontrol extends formcontrol {
                 var showFileAdder = function() {
                     listenForAdder();
                     filesAdded--;
-                    if (filesAdded < limit) Y.one('#adders-".$name."').removeClass('hide');
+                    if (filesAdded < limit) {
+                        Y.one('#adders-".$name."').removeClass('hide');
+                        quickUpload.clearQueue();
+                        quickUpload.enable();
+                    }
                     if (filesAdded == 0) showEmptyLI();
                 };
 
@@ -350,7 +358,6 @@ class filemanagercontrol extends formcontrol {
                                 filetitle = obj.filename;
                             }
                             html += '<span class=\"filename\" title=\"'+obj.filename+'\">'+filetitle+'<\/span>';
-//                            html += '<span class=\"filename\">'+obj.filename+'<\/span>';
                             html += '<\/li>';
                             
                             htmln = Y.Node.create(html);                        
@@ -378,9 +385,9 @@ class filemanagercontrol extends formcontrol {
 
                             filesAdded++;
 
-//                            if (limit>=filesAdded) {
                             if (filesAdded>=limit) {
                                 Y.one('#adders-".$name."').addClass('hide');
+                                quickUpload.disable();
                             }
 
                             j++;
@@ -453,9 +460,9 @@ class filemanagercontrol extends formcontrol {
 
                         filesAdded++;
 
-//                        if (limit>=filesAdded) {
                         if (filesAdded>=limit) {
                             Y.one('#adders-".$name."').addClass('hide');
+                            quickUpload.disable();
                         }
 
                         //initDragables();
@@ -482,7 +489,7 @@ class filemanagercontrol extends formcontrol {
 
             expJavascript::pushToFoot(array(
                 "unique"=>"filepicker".$name,
-                "yui3mods"=>"1",
+                "yui3mods"=>"dd-constrain,dd-proxy,dd-drop,json,io,SimpleAjaxUploader",
                 "content"=>$js,
              ));
         return $html;
@@ -545,7 +552,8 @@ class filemanagercontrol extends formcontrol {
             $object->html = "";
         } 
         $form->register("html",'',new htmleditorcontrol($object->html));
-        $form->register("submit","",new buttongroupcontrol(gt('Save'),'',gt('Cancel'),"",'editable'));
+        if (!expJavascript::inAjaxAction())
+            $form->register("submit","",new buttongroupcontrol(gt('Save'),'',gt('Cancel'),"",'editable'));
         return $form;
     }
     

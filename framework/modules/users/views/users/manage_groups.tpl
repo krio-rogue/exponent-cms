@@ -1,5 +1,5 @@
 {*
- * Copyright (c) 2004-2014 OIC Group, Inc.
+ * Copyright (c) 2004-2016 OIC Group, Inc.
  *
  * This file is part of Exponent
  *
@@ -16,7 +16,7 @@
 {*{css unique="manage_groups" corecss="tables"}*}
 
 {*{/css}*}
-{css unique="manage-groups" link="`$asset_path`css/datatables-tools.css"}
+{css unique="manage-groups" corecss="datatables-tools"}
 
 {/css}
 
@@ -90,7 +90,8 @@
                 null,
                 null,
                 null,
-                { searchable: false, sortable: false },
+                { searchable: false },
+                { searchable: false, orderable: false },
             ]
         });
     } );

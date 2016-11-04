@@ -1,5 +1,5 @@
 {*
- * Copyright (c) 2004-2014 OIC Group, Inc.
+ * Copyright (c) 2004-2016 OIC Group, Inc.
  *
  * This file is part of Exponent
  *
@@ -41,8 +41,10 @@
             </p>
         {/if}
         {if $record->title}<{$config.item_level|default:'h2'}>{$record->title}</{$config.item_level|default:'h2'}>{/if}
-        {printer_friendly_link}{export_pdf_link prepend='&#160;&#160;|&#160;&#160;'}{br}
-        {subscribe_link}
+        <div class="item-actions">
+            {printer_friendly_link}{export_pdf_link prepend='&#160;&#160;|&#160;&#160;'|not_bs}{br}
+            {subscribe_link}
+        </div>
         {$myloc=serialize($__loc)}
         {permissions}
 			<div class="item-actions">
@@ -64,13 +66,13 @@
         <div class="attribution">
             {if !$config.datetag}
                 <span class="label dated">{'Dated'|gettext}:</span>
-                <span class="value">{$record->$date|format_date}</span>
-                &#160;|&#160;
+                <span class="value">{$record->$date|format_date}</span>,
             {/if}
-            <span class="label downloads"># {'Downloads'|gettext}:</span>
             <span class="value">{$record->downloads}</span>
-            {comments_count record=$record show=1 prepend='&#160;&#160;|&#160;&#160;'}
-            {tags_assigned record=$record prepend='&#160;&#160;|&#160;&#160;'}
+            <span class="label downloads"> {'Downloads'|gettext}</span>,
+            {$prepend = '&#160;&#160;|&#160;&#160;'|not_bs}
+            {comments_count record=$record show=1 prepend=$prepend}
+            {tags_assigned record=$record prepend=','|cat:$prepend}
         </div>
         <div class="bodycopy">
             {$record->body}

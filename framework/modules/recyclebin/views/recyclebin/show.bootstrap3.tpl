@@ -1,5 +1,5 @@
 {*
- * Copyright (c) 2004-2014 OIC Group, Inc.
+ * Copyright (c) 2004-2016 OIC Group, Inc.
  *
  * This file is part of Exponent
  *
@@ -16,7 +16,7 @@
 <html>
 <head>
     <title>{'Restore from Recycle Bin'|gettext}</title>
-    {css unique="show" corecss="admin-global" link="`$asset_path`css/recyclebin.css"}
+    {css unique="show" link="`$asset_path`css/recyclebin.css"}
 
     {/css}
     {css unique="newui" link="`$smarty.const.PATH_RELATIVE`external/bootstrap3/css/bootstrap.css"}
@@ -25,6 +25,12 @@
     {css unique="fontawesome" link="`$smarty.const.PATH_RELATIVE`external/font-awesome4/css/font-awesome.css"}
 
     {/css}
+    <!--[if lt IE 9]>
+        <script src="{$smarty.const.JQUERY_SCRIPT}"></script>
+    <![endif]-->
+    <!--[if gte IE 9]><!-->
+        <script src="{$smarty.const.JQUERY2_SCRIPT}"></script>
+    <!--<![endif]-->
 </head>
 <body>
     <div class="recyclebin orphan-content">
@@ -36,7 +42,7 @@
                 {*</a>*}
                 <div class="module-actions" style="display: inline-flex">
                     {icon action=scriptaction class=recycle color=green onclick="window.opener.EXPONENT.useRecycled('{$item->source}');window.close();" text='Restore this content'|gettext}
-                    {icon action=delete id=$item->id mod=$module src=$item->source onclick="return confirm('Are you sure you want to delete this recyclebin item?');window.close();"}
+                    {icon class=delete action=remove mod=$item->module src=$item->source text='Remove this'|gettext|cat:' '|cat:$item->module|getcontrollername|capitalize|cat:' '|cat:'Module from Recycle Bin'|gettext onclick="return confirm('Are you sure you want to permanently delete this module and all it\'s items from the recyclebin?');window.close();"}
                 </div>
                 <div class="recycledcontent">
                     {$item->html}

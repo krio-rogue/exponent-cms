@@ -2,7 +2,7 @@
 
 ##################################################
 #
-# Copyright (c) 2004-2014 OIC Group, Inc.
+# Copyright (c) 2004-2016 OIC Group, Inc.
 #
 # This file is part of Exponent
 #
@@ -34,7 +34,6 @@ class calendarcontrol extends formcontrol
 
 //    var $disable_text = "";
     var $showtime = true;
-    var $default = '';
     var $default_date = '';
     var $default_hour = '';
     var $default_min = '';
@@ -93,7 +92,10 @@ class calendarcontrol extends formcontrol
 
     function controlToHTML($name, $label = null)
     {
-        if (empty($this->default_date) && !empty($this->default)) {
+        if (empty($this->default_date)) {
+            if (empty($this->default)) {
+                $this->default = time();
+            }
             // parse out date into calendarcontrol fields
             $this->default_date = date('m/d/Y', $this->default);
             $this->default_hour = date('h', $this->default);
@@ -103,12 +105,14 @@ class calendarcontrol extends formcontrol
         $this->default = strtotime($this->default_date . ' ' . $this->default_hour . ':' . $this->default_min . ' ' . $this->default_ampm);
         $default = date('n/j/Y g:i a', $this->default);
 
-        $idname = str_replace(array('[', ']', ']['), '_', $name);
+        $idname = createValidId($name);
         $assets_path = SCRIPT_RELATIVE . 'framework/core/forms/controls/assets/';
 
         $date_input = new textcontrol($default);
         $date_input->id = $idname;
         $date_input->name = $idname;
+        if ($this->horizontal) 
+            $date_input->horizontal_top = true;
         $html = $date_input->toHTML(null, $name);
 
         $script = "
@@ -201,7 +205,8 @@ class calendarcontrol extends formcontrol
         $form->register("identifier", gt('Identifier/Field'), new textcontrol($object->identifier));
         $form->register("caption", gt('Caption'), new textcontrol($object->caption));
         $form->register("showtime", gt('Show Time'), new checkboxcontrol($object->showtime, false));
-        $form->register("submit", "", new buttongroupcontrol(gt('Save'), "", gt('Cancel'), "", 'editable'));
+        if (!expJavascript::inAjaxAction())
+            $form->register("submit", "", new buttongroupcontrol(gt('Save'), "", gt('Cancel'), "", 'editable'));
         return $form;
     }
 
@@ -212,7 +217,7 @@ class calendarcontrol extends formcontrol
             $object->default = 0;
         }
         if ($values['identifier'] == "") {
-            $post = $_POST;
+            $post = expString::sanitize($_POST);
             $post['_formError'] = gt('Identifier is required.');
             expSession::set("last_POST", $post);
             return null;

@@ -1,5 +1,5 @@
 {*
- * Copyright (c) 2004-2014 OIC Group, Inc.
+ * Copyright (c) 2004-2016 OIC Group, Inc.
  *
  * This file is part of Exponent
  *
@@ -40,12 +40,13 @@
                 {/foreach}
 			</div>
 		</div>
-		<div class="loadingdiv">{"Loading Settings"|gettext}</div>
+		{*<div class="loadingdiv">{"Loading Settings"|gettext}</div>*}
+		{loading title="Loading Settings"|gettext}
 		{control type=buttongroup submit="Save Configuration"|gettext cancel="Cancel"|gettext}
 	{/form}
 </div>
 
-{script unique="conf" yui3mods=1}
+{script unique="conf" yui3mods="exptabs"}
 {literal}
 	/**
 	 * add exp-tabs module and file to the YUI configuration object.
@@ -64,7 +65,7 @@
      * Looking in exp-tabs.js, you can see that on line 1, that's the module name.
      */
     
-	YUI(EXPONENT.YUI3_CONFIG).use('exptabs', function(Y) {
+	YUI(EXPONENT.YUI3_CONFIG).use('*', function(Y) {
 		// Y.expTabs is the function defined in the exptabs script
 		// we're passing it a static js object, with nothing but a
 		// selector we want the tabs to work with

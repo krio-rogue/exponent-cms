@@ -2,7 +2,7 @@
 
 ##################################################
 #
-# Copyright (c) 2004-2014 OIC Group, Inc.
+# Copyright (c) 2004-2016 OIC Group, Inc.
 #
 # This file is part of Exponent
 #
@@ -56,11 +56,19 @@ function smarty_function_optiondisplayer($params,&$smarty) {
     if (!array_key_exists($default,$options)) $default = null;
     
     $view = $params['view'];
+    if ($view != 'checkboxes' && $view != 'dropdown') {
+        if (!empty($params['view'])) {
+            $view = 'checkboxes';
+        } else {
+            $view = 'dropdown';
+        }
+    }
     
-    //if((isset() || $og->required == false) $includeblank = $params['includeblank'] ; 
-    //elseif((isset($params['includeblank']) && $params['includeblank'] == false) || $og->required == true) $includeblank = false;
-    
-    $includeblank = $og->required == false && !isset($params['includeblank']) ? gt('-- Please Select an Option --') : $params['includeblank'];
+    //if((isset() || $group->required == false) $includeblank = $params['includeblank'] ;
+    //elseif((isset($params['includeblank']) && $params['includeblank'] == false) || $group->required == true) $includeblank = false;
+
+    // only include a blank if not 'required', otherwise we need to display it, or if forced by param
+    $includeblank = $group->required == false && !isset($params['includeblank']) ? gt('-- Please Select an Option --') : $params['includeblank'];
     
     $template = expTemplate::get_common_template($view, $smarty->getTemplateVars('__loc'), 'options');
     $template->assign('product', $product);

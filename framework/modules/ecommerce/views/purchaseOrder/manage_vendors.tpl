@@ -1,5 +1,5 @@
 {*
- * Copyright (c) 2004-2014 OIC Group, Inc.
+ * Copyright (c) 2004-2016 OIC Group, Inc.
  *
  * This file is part of Exponent
  *
@@ -56,10 +56,10 @@
     </table>
 </div>
 
-{script unique="purchase-orders" yui3mods=1}
+{*script unique="purchase-orders" yui3mods=1}
 {literal}
     YUI(EXPONENT.YUI3_CONFIG).use('node', function(Y) {
 
     });
 {/literal}
-{/script}
+{/script*}

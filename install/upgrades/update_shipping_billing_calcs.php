@@ -2,7 +2,7 @@
 
 ##################################################
 #
-# Copyright (c) 2004-2014 OIC Group, Inc.
+# Copyright (c) 2004-2016 OIC Group, Inc.
 #
 # This file is part of Exponent
 #
@@ -26,7 +26,7 @@
  */
 class update_shipping_billing_calcs extends upgradescript {
 	protected $from_version = '0.0.0';  // version number lower than first released version, 2.0.0
-	protected $to_version = '2.3.1';  // shipping/billing caclculator text was changed in 2.3.1
+//	protected $to_version = '2.3.1';  // shipping/billing caclculator text was changed in 2.3.1
 
 	/**
 	 * name/title of upgrade script
@@ -45,11 +45,7 @@ class update_shipping_billing_calcs extends upgradescript {
 	 * @return bool
 	 */
 	function needed() {
-        global $db;
-
-        if ($db->selectValue('modstate', 'active', 'module="store"') ||
-          $db->selectValue('modstate', 'active', 'module="eventregistration"') ||
-          $db->selectValue('modstate', 'active', 'module="donation"') || FORCE_ECOM) {
+        if (ecom_active()) {
             return true;
         } else {
             return false;
@@ -77,7 +73,7 @@ class update_shipping_billing_calcs extends upgradescript {
                         $calcobj->update(
                             array(
                                 'title'=>$calcobj->name(),
-                                'user_title'=>$calcobj->title,
+//                                'user_title'=>$calcobj->name(),
                                 'body'=>$calcobj->description(),
                                 'calculator_name'=>$classname,
                             )

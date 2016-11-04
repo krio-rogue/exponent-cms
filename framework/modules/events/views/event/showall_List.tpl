@@ -1,5 +1,5 @@
 {*
- * Copyright (c) 2004-2014 OIC Group, Inc.
+ * Copyright (c) 2004-2016 OIC Group, Inc.
  *
  * This file is part of Exponent
  *
@@ -12,28 +12,32 @@
  * GPL: http://www.gnu.org/licenses/gpl.txt
  *
  *}
- 
+
 {css unique="cal" link="`$asset_path`css/calendar.css"}
 
 {/css}
 
 <div class="module events list">
     {$myloc=serialize($__loc)}
-	{icon class="monthviewlink" action=showall time=$time text='Month View'|gettext}
-    &#160;&#160;|&#160;&#160;
+    {if !$config.disable_links}
+        {icon class="monthviewlink" action=showall time=$time text='Month View'|gettext}
+		{if !bs()}
+			{nbsp count=2}|{nbsp count=2}
+	    {/if}
+    {/if}
     <span class="listviewlink">{'List View'|gettext}</span><br />
 	<a href="#" onclick="window.open('popup.php?controller=event&src={$__loc->src}&action=showall&view=showall_Monthly+List&template=printerfriendly&time={$time}','printer','title=no,scrollbars=no,width=800,height=600'); return false">{'Printer-friendly'|gettext}</a>
 	{br}{br}
 	<a href="{link action=showall view='showall_Monthly List' time=$prev_timestamp}"><img style="border:none;" src="{$smarty.const.ICON_RELATIVE|cat:'navigate-left-icon.png'}" title="{'Prev'|gettext}" alt="{'Prev'|gettext}" /></a>
 	<strong>{$time|format_date:"%B %Y"}</strong>
-	<a href="{link action=showall view='showall_Monthly List' time=$next_timestamp}"><img style="border:none;" src="{$smarty.const.ICON_RELATIVE|cat:'navigate-right-icon.png'}" title="{'Next'|gettext}" alt="{'next'|gettext}" /></a>
+	<a href="{link action=showall view='showall_Monthly List' time=$next_timestamp}"><img style="border:none;" src="{$smarty.const.ICON_RELATIVE|cat:'navigate-right-icon.png'}" title="{'Next'|gettext}" alt="{'Next'|gettext}" /></a>
 	{br}{br}
 	{foreach from=$days item=items key=ts}
+        {$none=1}
 		{if_elements array=$items}
 			<div class="sectiontitle">
 			{$ts|format_date}
 			</div>
-            {$none=1}
 			{foreach from=$items item=item}
                 {$none=0}
 				<div class="paragraph">
@@ -74,11 +78,11 @@
 				</div>
 				{br}
 			{/foreach}
-			{if $none == 1}
-				<div class="paragraph"><strong>{'No Events'|gettext}</strong></div>
-			{/if}
-			{br}
 		{/if_elements}
+        {if $none == 1}
+            <div class="paragraph"><strong>{'No Events'|gettext}</strong></div>
+        {/if}
+        {br}
 	{/foreach}
 	{permissions}
 		{if $permissions.create}

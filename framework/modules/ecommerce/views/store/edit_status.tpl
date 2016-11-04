@@ -1,5 +1,5 @@
 {*
- * Copyright (c) 2004-2014 OIC Group, Inc.
+ * Copyright (c) 2004-2016 OIC Group, Inc.
  *
  * This file is part of Exponent
  *
@@ -14,10 +14,11 @@
  *}
 
 {group label="Active/Inactive"|gettext}
-{control type="hidden" name="tab_loaded[status]" value=1}
-{control type="radiogroup" name="status[active_type]" items=$record->active_display item_descriptions=$record->active_display_desc columns=1 default=$record->active_type|default:0}
+    {control type="hidden" name="tab_loaded[status]" value=1}
+    {control type="radiogroup" name="status[active_type]" items=$record->active_display item_descriptions=$record->active_display_desc columns=1 default=$record->active_type|default:0}
 {/group}
 {group label="Status"|gettext}
-{control type="dropdown" name="status[product_status_id]" frommodel=product_status items=$status_display value=$record->product_status_id}
-{icon controller="product_status" action="manage" text="Manage Product Statuses"|gettext}
+    {control type="dropdown" name="status[product_status_id]" frommodel=product_status items=$status_display orderby=rank value=$record->product_status_id label="In Stock Status"|gettext}
+    {control type="dropdown" name="status[oos_product_status_id]" frommodel=product_status items=$status_display orderby=rank value=$record->oos_product_status_id label='Out of Stock Status'|gettext}
+    {icon controller="product_status" action="manage" text="Manage Product Statuses"|gettext}
 {/group}

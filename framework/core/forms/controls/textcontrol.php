@@ -2,7 +2,7 @@
 
 ##################################################
 #
-# Copyright (c) 2004-2014 OIC Group, Inc.
+# Copyright (c) 2004-2016 OIC Group, Inc.
 #
 # This file is part of Exponent
 #
@@ -32,7 +32,6 @@ class textcontrol extends formcontrol {
     var $pattern = "";
     var $size = 40;
     var $maxlength = "";
-    var $multiple = false;
 
     static function name() { return "Text Box"; }
     static function isSimpleControl() { return true; }
@@ -55,13 +54,14 @@ class textcontrol extends formcontrol {
 
     function controlToHTML($name, $label) {
         $this->size = !empty($this->size) ? $this->size : 25;
-        $inputID  = (!empty($this->id)) ? ' id="'.$this->id.'"' : ' id="'.$name.'"';
+        $idname  = (!empty($this->id)) ? $this->id : $name;
+        $idname = createValidId($idname);
         if ($this->type != 'text') {
             $extra_class = ' ' . $this->type;
         } else {
             $extra_class = '';
         }
-        $html  = '<input' . $inputID . ' class="text form-control' . $extra_class . '" type="' . $this->type . '" name="' . $name . '"';
+        $html  = '<input id="' . $idname . '" class="text form-control' . $extra_class . '" type="' . $this->type . '" name="' . $name . '"';
         $html .= " value=\"" . str_replace('"', "&quot;", $this->default) . "\"";
         $html .= $this->size ? " size=\"" . $this->size . "\"" : "";
         $html .= $this->multiple ? ' multiple="multiple"' : "";
@@ -111,7 +111,8 @@ class textcontrol extends formcontrol {
         $form->register("maxlength",gt('Maximum Length'), new textcontrol((($object->maxlength==0)?"":$object->maxlength),4,false,3,"integer"));
         $form->register("required", gt('Make this a required field'), new checkboxcontrol($object->required,false));
         $form->register("is_hidden", gt('Make this a hidden field on initial entry'), new checkboxcontrol(!empty($object->is_hidden),false));
-        $form->register("submit","",new buttongroupcontrol(gt('Save'),'',gt('Cancel'),"",'editable'));
+        if (!expJavascript::inAjaxAction())
+            $form->register("submit","",new buttongroupcontrol(gt('Save'),'',gt('Cancel'),"",'editable'));
         return $form;
     }
 
@@ -120,7 +121,7 @@ class textcontrol extends formcontrol {
 //        if ($object == null) $object = new textcontrol();
         if ($object == null) $object = new $this_control();
         if ($values['identifier'] == "") {
-            $post = $_POST;
+            $post = expString::sanitize($_POST);
             $post['_formError'] = gt('Identifier is required.');
             expSession::set("last_POST",$post);
             return null;

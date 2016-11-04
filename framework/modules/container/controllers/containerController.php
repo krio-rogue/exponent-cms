@@ -2,7 +2,7 @@
 
 ##################################################
 #
-# Copyright (c) 2004-2014 OIC Group, Inc.
+# Copyright (c) 2004-2016 OIC Group, Inc.
 #
 # This file is part of Exponent
 #
@@ -108,8 +108,10 @@ class containerController extends expController {
         $containers = array();
 
 //        if (!isset($cache[$container_key])) {
+            // is this module visible?
+            $view_perm = expPermissions::check('view', expCore::makeLocation($loc->mod, $loc->src));
             foreach ($db->selectObjects('container', "external='" . $container_key . "'") as $c) {
-                if ($c->is_private == 0 || expPermissions::check('view', expCore::makeLocation($loc->mod, $loc->src, $c->id))) {
+                if ($c->is_private == 0 || $view_perm) {
                     $containers[$c->rank] = $c;
                 }
             }
@@ -141,6 +143,8 @@ class containerController extends expController {
 //                }
                 $containers[$i]->output = trim(ob_get_contents());
                 ob_end_clean();
+
+                $containers[$i]->config = expConfig::getConfig($location);
 
                 $containers[$i]->info = array(
                     'module'              => $mod->name(),
@@ -324,13 +328,16 @@ class containerController extends expController {
         $this->params['external'] = serialize($this->loc);
         unset($this->params['module']);
 
-        $hidetitle = $this->params['hidemoduletitle'];
+        $hidetitle = !empty($this->params['hidemoduletitle']);
         unset($this->params['hidemoduletitle']);
 
-        $modelname = $this->basemodel_name;
-        $this->$modelname->update($this->params);
+        $controller = expModules::getControllerClassName($this->params['modcntrol']);
+        $needs_config = $controller::requiresConfiguration() && empty($this->params['id']); //NOTE will crash php v5.2.x
+//        $modelname = $this->basemodel_name;
+        $this->container->update($this->params);
 
-        $modconfig = new expConfig(expUnserialize($this->$modelname->internal));
+        $cont_loc = expUnserialize($this->container->internal);
+        $modconfig = new expConfig($cont_loc);
         if ($modconfig->id || $hidetitle) {
             $modconfig->config['hidemoduletitle'] = $hidetitle;
             $modconfig->update();
@@ -340,7 +347,15 @@ class containerController extends expController {
         define('PREVIEW_READONLY',0); // for mods
 
         expSession::clearAllUsersSessionCache('containers');
-        expHistory::back();
+        if (!$needs_config) {
+            expHistory::back();
+        } else {
+            if ($controller == 'formsController') {
+                redirect_to(array('controller'=>$controller,'action'=>'manage','select'=>true,'src'=>$cont_loc->src));
+            } else {
+                redirect_to(array('controller'=>$controller,'action'=>'configure','src'=>$cont_loc->src));
+            }
+        }
     }
 
     public function delete_instance($loc = false) {
@@ -367,6 +382,9 @@ class containerController extends expController {
     }
 
     public function getactionviews() {
+        $this->params['mod'] = expString::escape($this->params['mod']);
+        $this->params['act'] = expString::escape($this->params['act']);
+        $this->params['actname'] = expString::escape($this->params['actname']);
         $views = expTemplate::get_action_views($this->params['mod'], $this->params['act'], $this->params['actname']);
         if (count($views) < 1) $views[$this->params['act']] = $this->params['actname'].' - Default View';
         echo json_encode($views);

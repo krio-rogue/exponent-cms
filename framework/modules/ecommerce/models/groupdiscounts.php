@@ -2,7 +2,7 @@
 
 ##################################################
 #
-# Copyright (c) 2004-2014 OIC Group, Inc.
+# Copyright (c) 2004-2016 OIC Group, Inc.
 #
 # This file is part of Exponent
 #
@@ -18,7 +18,7 @@
 
 /**
  * @subpackage Models
- * @package Core
+ * @package Modules
  */
 class groupdiscounts extends expRecord {
     public $table = 'groupdiscounts';
@@ -39,9 +39,9 @@ class groupdiscounts extends expRecord {
         if (!$user->isLoggedIn()) return false;
         
         $sql  = 'SELECT g.id as group_id, g.name as discount_name, gd.dont_allow_other_discounts as dont_allow_other_discounts, d.* ';
-        $sql .= 'FROM '.DB_TABLE_PREFIX.'_group g JOIN '.DB_TABLE_PREFIX.'_groupmembership gm ';
-        $sql .= 'ON g.id=gm.group_id JOIN '.DB_TABLE_PREFIX.'_groupdiscounts gd ON gd.group_id=gm.group_id ';
-        $sql .= 'JOIN '.DB_TABLE_PREFIX.'_discounts d ON d.id=gd.discounts_id WHERE gm.member_id='.$user->id;
+        $sql .= 'FROM '.$db->prefix.'group g JOIN '.$db->prefix.'groupmembership gm ';
+        $sql .= 'ON g.id=gm.group_id JOIN '.$db->prefix.'groupdiscounts gd ON gd.group_id=gm.group_id ';
+        $sql .= 'JOIN '.$db->prefix.'discounts d ON d.id=gd.discounts_id WHERE gm.member_id='.$user->id;
         $sql .= ' ORDER BY gd.rank ASC';
             
         return $db->selectObjectsBySql($sql);

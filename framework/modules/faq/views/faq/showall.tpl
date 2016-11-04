@@ -1,5 +1,5 @@
 {*
- * Copyright (c) 2004-2014 OIC Group, Inc.
+ * Copyright (c) 2004-2016 OIC Group, Inc.
  *
  * This file is part of Exponent
  *
@@ -102,7 +102,7 @@
                     </div>
                 </div>
             {foreachelse}
-                {if ($config->enable_categories == 1 && $catid != 0) || ($config->enable_categories==0)}
+                {if $catid != 0}
                     <div class="item">
                         <em>{'There are currently no FAQ\'s'|gettext}</em>
                     </div>

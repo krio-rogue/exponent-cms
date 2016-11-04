@@ -2,7 +2,7 @@
 
 ##################################################
 #
-# Copyright (c) 2004-2014 OIC Group, Inc.
+# Copyright (c) 2004-2016 OIC Group, Inc.
 #
 # This file is part of Exponent
 #
@@ -26,10 +26,11 @@ class searchController extends expController {
         'show'=>'Show Search Form',
         'cloud'=>'Show Tag Cloud'
     );
-    protected $add_permissions = array(
-        'spider'=>'Spider Site'
+    protected $manage_permissions = array(
+        'spider'=>'Spider Site',
+        'searchQueryReport'=>'Search Query Report',
+        'topSearchReport'=>'Top Search Report',
     );
-
     public $remove_configs = array(
         'aggregation',
         'categories',
@@ -47,7 +48,54 @@ class searchController extends expController {
     static function hasSources() { return false; }
     static function hasContent() { return false; }
 
-    public function search() {
+    public function search()
+    {
+        global $router;
+
+        $terms = $this->params['search_string'];
+
+        // If magic quotes is on and the user uses modifiers like " (quotes) they get escaped. We don't want that in this case.
+        if (get_magic_quotes_gpc()) {
+            $terms = stripslashes($terms);
+        }
+        $terms = htmlspecialchars($terms);
+
+        if ($router->current_url == substr(URL_FULL, 0, -1)) {  // give us a user friendly url
+            unset($router->params['int']);
+//            unset($router->params['src']);
+//            $router->params['src'] = '1';
+            redirect_to($router->params);
+        }
+
+        $search = new search();
+
+        $page = new expPaginator(array(
+//            'model'=>'search',
+            'records'=>$search->getSearchResults($terms, !empty($this->config['only_best']), 0, !empty($this->config['eventlimit']) ? $this->config['eventlimit'] : null),
+            //'sql'=>$sql,
+            'limit'=>(isset($this->config['limit']) && $this->config['limit'] != '') ? $this->config['limit'] : 10,
+            'order'=>'score',
+            'dir'=>'DESC',
+            'page' => (isset($this->params['page']) ? $this->params['page'] : 1),
+            'dontsortwithincat'=>true,
+            'controller' => $this->params['controller'],
+            'action' => $this->params['action'],
+            'src' => $this->loc->src,
+        ));
+
+        if (!empty($this->config['is_categorized'])) {
+            $results = array();
+            foreach ($page->records as $hit) {
+                if (!isset($results[$hit->category])) {
+                    $results[$hit->category] = array();
+                }
+                $results[$hit->category][] = $hit;
+            }
+            assign_to_template(array(
+                'results'=>$results,
+            ));
+        }
+
         // include CSS for results
         // auto-include the CSS for pagination links
 	    expCSS::pushToHead(array(
@@ -55,42 +103,21 @@ class searchController extends expController {
 		    "link"=>$this->asset_path."css/results.css",
 		    )
 		);
-        
-        $terms = $this->params['search_string'];
-        
-        // If magic quotes is on and the user uses modifiers like " (quotes) they get escaped. We don't want that in this case.
-        if (get_magic_quotes_gpc()) {
-            $terms = stripslashes($terms);
-        }
-        $terms = htmlspecialchars($terms);
-        
-        $search = new search();
-
-        $page = new expPaginator(array(
-            //'model'=>'search',
-            'records'=>$search->getSearchResults($terms, !empty($this->config['only_best'])),
-            //'sql'=>$sql,
-            'limit'=>(isset($this->config['limit']) && $this->config['limit'] != '') ? $this->config['limit'] : 10,
-            'order'=>'score',
-            'dir'=>'DESC',
-            'page'=>(isset($this->params['page']) ? $this->params['page'] : 1),
-            'controller'=>$this->params['controller'],
-            'action'=>$this->params['action'],
-            'src'=>$this->loc->src,
-        ));
 
         assign_to_template(array(
             'page'=>$page,
-            'terms'=>$terms
+            'terms'=>$terms,
+            'params'=>$this->params,
         ));
     }
-    
+
     public static function spider() {
         global $db;
 
         // reinitialize search index
 	    $db->delete('search');
 
+        $mods = array();
         // old school modules
 //	    foreach (expModules::modules_list() as $mod) {
 ////		    $name = @call_user_func(array($mod,'name'));
@@ -101,25 +128,27 @@ class searchController extends expController {
 //	    }
 
         // 2.0 modules
-	    foreach (expModules::listControllers() as $ctlname=>$ctl) {
-		    $controller = new $ctlname();		    
+//	    foreach (expModules::listControllers() as $ctlname=>$ctl) {
+        foreach (expModules::getActiveControllersList() as $ctl) {
+            $ctlname = expModules::getModuleClassName($ctl);
+		    $controller = new $ctlname();
 		    if (method_exists($controller,'isSearchable') && $controller->isSearchable()) {
 //			    $mods[$controller->name()] = $controller->addContentToSearch();
                 $mods[$controller->searchName()] = $controller->addContentToSearch();
 		    }
 	    }
-	
+
 	    uksort($mods,'strnatcasecmp');
 	    assign_to_template(array(
             'mods'=>$mods
         ));
     }
-        
+
     public function show() {
         //no need to do anything..we're just showing the form... so far! MUAHAHAHAHAHAAA!   what?
 //        redirect_to(array("controller"=>'search',"action"=>'showall'));
     }
-    
+
     public function showall() {
 //        redirect_to(array("controller"=>'search',"action"=>'show'));
 //        $this->show();
@@ -130,29 +159,41 @@ class searchController extends expController {
      */
     function cloud() {
         global $db;
+
         expHistory::set('manageable', $this->params);
         $page = new expPaginator(array(
             'model'=>'expTag',
             'where'=>null,
 //          'limit'=>999,
             'order'=>"title",
+            'dontsortwithincat'=>true,
             'controller'=>$this->baseclassname,
             'action'=>$this->params['action'],
-            'src'=>$this->hasSources() == true ? $this->loc->src : null,
+            'src'=>static::hasSources() == true ? $this->loc->src : null,
             'columns'=>array(gt('ID#')=>'id',gt('Title')=>'title',gt('Body')=>'body'),
         ));
 
-        foreach ($db->selectColumn('content_expTags','content_type',null,null,true) as $contenttype) {
-            foreach ($page->records as $key => $value) {
-                $attatchedat = $page->records[$key]->findWhereAttachedTo($contenttype);
-                if (!empty($attatchedat)) {
-                    $page->records[$key]->attachedcount = @$page->records[$key]->attachedcount + count($attatchedat);
-                    $page->records[$key]->attached[$contenttype] = $attatchedat;
-                }
-            }
-        }
+//        foreach ($db->selectColumn('content_expTags','content_type',null,null,true) as $contenttype) {
+//            foreach ($page->records as $key => $value) {
+//                $attatchedat = $page->records[$key]->findWhereAttachedTo($contenttype);
+//                if (!empty($attatchedat)) {
+//                    $page->records[$key]->attachedcount = @$page->records[$key]->attachedcount + count($attatchedat);
+//                    $page->records[$key]->attached[$contenttype] = $attatchedat;
+//                }
+//            }
+//        }
+        $tags_list = array();
         foreach ($page->records as $key=>$record) {
-            if (empty($record->attachedcount)) unset($page->records[$key]);
+            $count = $db->countObjects('content_expTags','exptags_id=' . $record->id);
+            if ($count) {
+                $page->records[$key]->attachedcount = $count;
+                $tags_list[$record->title] = new stdClass();
+                $tags_list[$record->title]->count = $count;
+                $tags_list[$record->title]->sef_url = $record->sef_url;
+                $tags_list[$record->title]->title = $record->title;
+            } else {
+                unset($page->records[$key]);
+            }
         }
         // trim the tag cloud to our limit.
         $page->records = expSorter::sort(array('array'=>$page->records, 'order'=>'attachedcount DESC', 'type'=>'a'));
@@ -161,13 +202,14 @@ class searchController extends expController {
             $page->records = expSorter::sort(array('array'=>$page->records, 'order'=>'title ASC', 'ignore_case'=>true, 'sort_type'=>'a'));
         }
         assign_to_template(array(
-            'page'=>$page
+            'page'=>$page,
+            'tags_list'=>$tags_list
         ));
     }
 
     // some general search stuff
     public function autocomplete() {
-        return;
+        return;  //fixme this negates the code below!
         global $db;
 
         $model = $this->params['model'];
@@ -179,26 +221,26 @@ class searchController extends expController {
         }*/
         //    $sql .= ' AND parent_id=0';
         //eDebug($sql);
-        
+
         //$res = $mod->find('all',$sql,'id',25);
-        $sql = "select DISTINCT(p.id), p.title, model, sef_url, f.id as fileid from ".DB_TABLE_PREFIX."_product as p INNER JOIN ".DB_TABLE_PREFIX."_content_expfiles as cef ON p.id=cef.content_id INNER JOIN ".DB_TABLE_PREFIX."_expfiles as f ON cef.expfiles_id = f.id where match (p.title,p.model,p.body) against ('" . $this->params['query'] . "') AND p.parent_id=0 order by match (p.title,p.model,p.body) against ('" . $this->params['query'] . "') desc LIMIT 25";
+        $sql = "select DISTINCT(p.id), p.title, model, sef_url, f.id as fileid from ".$db->prefix."product as p INNER JOIN ".$db->prefix."content_expfiles as cef ON p.id=cef.content_id INNER JOIN ".$db->prefix."expfiles as f ON cef.expfiles_id = f.id where match (p.title,p.model,p.body) against ('" . $this->params['query'] . "') AND p.parent_id=0 order by match (p.title,p.model,p.body) against ('" . $this->params['query'] . "') desc LIMIT 25";
         //$res = $db->selectObjectsBySql($sql);
         //$res = $db->selectObjectBySql('SELECT * FROM `exponent_product`');
-        
+
         $ar = new expAjaxReply(200, gt('Here\'s the items you wanted'), $res);
         $ar->send();
     }
-	
-	public function searchQueryReport() {
+
+	public function searchQueryReport() {  //fixme this will typically create a 500 error due to number of search query records
 		global $db;
-		
+
 		//Instantiate the search model
 		$search = new search();
-		
+
 		//Store the keywords that returns nothing
         $badSearch = array();
 		$badSearchArr =  array();
-		
+
 		//User Records Initialization
 		$all_user  = -1;
 		$anonymous = -2;
@@ -206,33 +248,33 @@ class searchController extends expController {
 
 		$user_default = '';
 		$where = '';
-		
+
 		if(isset($this->params['user_id']) && $this->params['user_id'] != -1) {
 			$user_default = $this->params['user_id'];
 		}
-		
+
 		expHistory::set('manageable', $this->params);
 
 		$ctr  = 2;
 		$ctr2 = 0;
-		
+
 		//Getting the search users
-		$records = $db->selectObjects('search_queries');
-		
-		
+		$records = $db->selectObjects('search_queries');  // note we get all records a first time?
+
+
 		foreach($records as $item) {
 			$u = user::getUserById($item->user_id);
 
 			if($item->user_id == 0) {
 				$item->user_id = $anonymous;
 			}
-			
+
 			if(!in_array($item->user_id, $uname['id'])) {
 				$uname['name'][$ctr] = $u->firstname . ' ' . $u->lastname;
 				$uname['id'][$ctr] = $item->user_id;
 				$ctr++;
 			}
-			
+
 			$result  = $search->getSearchResults($item->query, false, true);
 			if(empty($result) && !in_array($item->query, $badSearchArr)) {
 				$badSearchArr[] = $item->query;
@@ -240,9 +282,9 @@ class searchController extends expController {
 				$badSearch[$ctr2]['count'] = $db->countObjects("search_queries", "query='{$item->query}'");
 				$ctr2++;
 			}
-			
+
 		}
-	
+
 		//Check if the user choose from the dropdown
 		if(!empty($user_default)) {
 			if($user_default == $anonymous) {
@@ -252,16 +294,16 @@ class searchController extends expController {
 			}
 			$where .= "user_id = {$u_id}";
 		}
-	
+
 		//Get all the search query records
-		$records = $db->selectObjects('search_queries', $where);
-		for($i = 0 ; $i < count($records); $i++) {
+		$records = $db->selectObjects('search_queries', $where);  // note we then get all records a 2nd time?
+        for ($i = 0, $iMax = count($records); $i < $iMax; $i++) {
 			if(!empty($records[$i]->user_id)) {
 				$u = user::getUserById($records[$i]->user_id);
 				$records[$i]->user = $u->firstname . ' ' . $u->lastname;
 			}
 		}
-		
+
         $page = new expPaginator(array(
             'records' => $records,
             'where'=>1,
@@ -272,7 +314,7 @@ class searchController extends expController {
             'controller'=>$this->baseclassname,
             'action'=>$this->params['action'],
             'columns'=>array(
-                gt('ID')=>'id',
+                'ID'=>'id',
                 gt('Query')=>'query',
                 gt('Timestamp')=>'timestamp',
                 gt('User')=>'user_id',
@@ -287,20 +329,21 @@ class searchController extends expController {
             'user_default' => $user_default,
             'badSearch' => $badSearch
         ));
-		
+
 	}
-	
+
 	public function topSearchReport() {
 		global $db;
+
 		$limit = intval(TOP_SEARCH);
-		
+
 		if(empty($limit)) {
 			$limit = 10;
 		}
 
 		$count   = $db->countObjects('search_queries');
-	
-		$records = $db->selectObjectsBySql("SELECT COUNT(query) cnt, query FROM " .DB_TABLE_PREFIX . "_search_queries GROUP BY query ORDER BY cnt DESC LIMIT 0, {$limit}");
+
+		$records = $db->selectObjectsBySql("SELECT COUNT(query) cnt, query FROM " .$db->prefix . "search_queries GROUP BY query ORDER BY cnt DESC LIMIT 0, {$limit}");
 
         $records_key_arr = array();
         $records_values_arr = array();
@@ -310,7 +353,7 @@ class searchController extends expController {
 		}
 		$records_key   = implode(",", $records_key_arr);
 		$records_values = implode(",", $records_values_arr);
-		
+
 		assign_to_template(array(
             'records'=>$records,
             'total'=>$count,
@@ -329,6 +372,7 @@ class searchController extends expController {
         flash('message', gt("Search Queries successfully deleted."));
         expHistory::back();
     }
+
 }
 
 ?>

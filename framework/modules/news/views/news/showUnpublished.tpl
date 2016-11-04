@@ -1,5 +1,5 @@
 {*
- * Copyright (c) 2004-2014 OIC Group, Inc.
+ * Copyright (c) 2004-2016 OIC Group, Inc.
  *
  * This file is part of Exponent
  *
@@ -52,6 +52,7 @@
                                     {/if}
                                 {/if}
 								{icon action=edit record=$item}
+								{icon action=copy record=$item}
 							{/if}
 							{if $permissions.delete || ($permissions.create && $item->poster == $user->id)}
 								{icon action=delete record=$item}

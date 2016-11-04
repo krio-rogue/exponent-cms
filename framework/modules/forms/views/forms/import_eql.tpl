@@ -1,5 +1,5 @@
 {*
- * Copyright (c) 2004-2014 OIC Group, Inc.
+ * Copyright (c) 2004-2016 OIC Group, Inc.
  *
  * This file is part of Exponent
  *
@@ -21,7 +21,7 @@
     <div>
         {form action=import_eql_process}
             {control type="checkbox" name="include_data" label='Should stored form data also be included if available?' value=1 description='By default the form settings and controls are imported without including form data records'|gettext}
-            {control type=uploader name=file accept=".eql" label=gt('Form EQL File')}
+            {control type=uploader name=file accept=".eql" label='Form EQL File'|gettext}
             {control class=uploadfile type=buttongroup submit="Import Form Design"|gettext cancel="Cancel"|gettext}
         {/form}
     </div>

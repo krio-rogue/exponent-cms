@@ -2,7 +2,7 @@
 
 ##################################################
 #
-# Copyright (c) 2004-2014 OIC Group, Inc.
+# Copyright (c) 2004-2016 OIC Group, Inc.
 #
 # This file is part of Exponent
 #
@@ -40,7 +40,11 @@ class rssController extends expController {
 
     static function displayname() { return gt("RSS Syndication"); }
     static function description() { return gt("Displays a list of your syndicated RSS feeds on a web page"); }
-    
+
+    static function hasSources() {
+        return false;
+    }
+
     function showall() {
         $rss = new expRss();
         assign_to_template(array(

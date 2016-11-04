@@ -2,7 +2,7 @@
 
 ##################################################
 #
-# Copyright (c) 2004-2014 OIC Group, Inc.
+# Copyright (c) 2004-2016 OIC Group, Inc.
 #
 # This file is part of Exponent
 #
@@ -20,7 +20,7 @@ if (!defined('EXPONENT')) {
     exit('');
 }
 
-include_once('include/sanity.php');
+include('include/sanity.php');
 
 $status = sanity_checkFiles();
 // Run sanity checks

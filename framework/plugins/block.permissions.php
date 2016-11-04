@@ -2,7 +2,7 @@
 
 ##################################################
 #
-# Copyright (c) 2004-2014 OIC Group, Inc.
+# Copyright (c) 2004-2016 OIC Group, Inc.
 #
 # This file is part of Exponent
 #
@@ -44,7 +44,7 @@ function smarty_block_permissions($params,$content,&$smarty, &$repeat) {
             if ((isset($uilevel) && $uilevel == UILEVEL_PREVIEW) || !$user->isLoggedIn()) {
                 $cntnt = "";
             } else {
-                if (empty($css_core['admin-global'])) expCSS::pushToHead(array("corecss"=>"admin-global"));
+                if (!bs3() && empty($css_core['admin-global'])) expCSS::pushToHead(array("corecss"=>"admin-global"));
                 $cntnt = ((isset($uilevel) && $uilevel == UILEVEL_PREVIEW) || !$user->isLoggedIn()) ? "" : $content;
             }
     		return $cntnt;

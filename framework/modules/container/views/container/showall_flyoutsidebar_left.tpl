@@ -1,5 +1,5 @@
 {*
- * Copyright (c) 2004-2014 OIC Group, Inc.
+ * Copyright (c) 2004-2016 OIC Group, Inc.
  *
  * This file is part of Exponent
  *
@@ -18,7 +18,7 @@
 {/css}
 
 <div class="module exp-container flyout_left" style="display: none;">
-    {showmodule module='container' view="Default" source="@flyoutsidebar" chrome=true}
+    {showmodule controller=container action=showall source="@flyoutsidebar" chrome=true}
 </div>
 <a class="triggerlogin" href="#" title="{'Click to open this panel'|gettext}">{'View Panel'|gettext}</a>
 

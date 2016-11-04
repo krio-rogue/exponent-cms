@@ -1,5 +1,5 @@
 {*
- * Copyright (c) 2004-2014 OIC Group, Inc.
+ * Copyright (c) 2004-2016 OIC Group, Inc.
  *
  * This file is part of Exponent
  *
@@ -22,9 +22,9 @@
 </div>
 
 {*FIXME convert to yui3*}
-{script unique="admin99" yui3mods="yui"}
+{script unique="admin99" yui3mods="node,dd,anim,event-custom,cookie,yui2-yahoo-dom-event,yui2-menu,yui2-connection,yui2-container"}
 {literal}
-    YUI(EXPONENT.YUI3_CONFIG).use('node','dd','anim','event-custom','cookie','yui2-yahoo-dom-event','yui2-menu','yui2-connection','yui2-container', function(Y) {
+    YUI(EXPONENT.YUI3_CONFIG).use('*', function(Y) {
          var YAHOO=Y.YUI2;
          var aItemData = [
             {/literal}{$menu}{literal},
@@ -178,7 +178,6 @@
          });
 
          Y.fire('toolbar:loaded');
-
      });
 {/literal}
 {/script}
@@ -187,21 +186,21 @@
 {*<div id="yuilogger" class="yui3-skin-sam">*}
 
 {*</div>*}
-{*{script unique="ylogger99" yui3mods="yui"}*}
-{*{literal}*}
-    {*YUI(EXPONENT.YUI3_CONFIG).use('console','console-filters','dd-plugin', function(Y) {*}
-        {*var yconsole = new Y.Console({*}
-            {*/* any other configuration */*}
-            {*logSource: Y.Global,*}
-            {*newestOnTop : false,*}
-            {*style: 'separate',*}
-            {*plugins: [*}
-                {*Y.Plugin.ConsoleFilters,*}
-                {*Y.Plugin.Drag, { handles: ['.yui3-console-hd'] }*}
-            {*]*}
-        {*}).render("#yuilogger");*}
-        {*yconsole.collapse();*}
-    {*});*}
-{*{/literal}*}
-{*{/script}*}
+{*script unique="ylogger99" yui3mods="yui"}
+{literal}
+    YUI(EXPONENT.YUI3_CONFIG).use('console','console-filters','dd-plugin', function(Y) {
+        var yconsole = new Y.Console({
+            /* any other configuration */
+            logSource: Y.Global,
+            newestOnTop : false,
+            style: 'separate',
+            plugins: [
+                Y.Plugin.ConsoleFilters,
+                Y.Plugin.Drag, { handles: ['.yui3-console-hd'] }
+            ]
+        }).render("#yuilogger");
+        yconsole.collapse();
+    });
+{/literal}
+{/script*}
 {*{/if}*}

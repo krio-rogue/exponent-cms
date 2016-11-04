@@ -2,7 +2,7 @@
 
 ##################################################
 #
-# Copyright (c) 2004-2014 OIC Group, Inc.
+# Copyright (c) 2004-2016 OIC Group, Inc.
 #
 # This file is part of Exponent
 #
@@ -56,6 +56,7 @@ class order_typeController extends expController {
     
     public function update() {
         global $db;
+
         //reset others
         if ($this->params['is_default']){
             $o = new stdClass();
@@ -64,6 +65,7 @@ class order_typeController extends expController {
         }
         parent::update();
     }
+
 }
 
 ?>

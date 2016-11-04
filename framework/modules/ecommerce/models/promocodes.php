@@ -2,7 +2,7 @@
 
 ##################################################
 #
-# Copyright (c) 2004-2014 OIC Group, Inc.
+# Copyright (c) 2004-2016 OIC Group, Inc.
 #
 # This file is part of Exponent
 #
@@ -18,10 +18,13 @@
 
 /**
  * @subpackage Models
- * @package Core
+ * @package Modules
  */
 class promocodes extends expRecord {
     public $table = 'promocodes';
+    public $has_one = array(
+        'discounts',
+    );
     public $validates = array(
         'presence_of'=>array(
             'title'=>array('message'=>'You must give this code a title.'),

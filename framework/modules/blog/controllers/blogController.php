@@ -1,7 +1,7 @@
 <?php
 ##################################################
 #
-# Copyright (c) 2004-2014 OIC Group, Inc.
+# Copyright (c) 2004-2016 OIC Group, Inc.
 #
 # This file is part of Exponent
 #
@@ -29,15 +29,13 @@ class blogController extends expController {
         'dates'=>"Show Post Dates",
         'comments'=>"Show Recent Post Comments",
     );
+    protected $manage_permissions = array(
+//        'approve'=>"Approve Comments",
+    );
     public $remove_configs = array(
 //        'categories',
 //        'ealerts'
     ); // all options: ('aggregation','categories','comments','ealerts','facebook','files','module_title','pagination','rss','tags','twitter',)
-    protected $add_permissions = array(
-        'approve'=>"Approve Comments",
-        'import'=>'Import Blog Items',
-        'export'=>'Export Blog Items'
-    );
 
     static function displayname() { return gt("Blog"); }
     static function description() { return gt("Run a blog on your site."); }
@@ -72,9 +70,10 @@ class blogController extends expController {
                 gt('Title')=>'title'
             ),
         ));
-		            
+
 		assign_to_template(array(
             'page'=>$page,
+            'params'=>$this->params,
         ));
         if (isset($this->params['cat'])) assign_to_template(array(
             'moduletitle' => gt('Posts filed under') . ' ' . (empty($page->records[0]->expCat[0]->title) ? $this->config['uncat'] : $page->records[0]->expCat[0]->title),
@@ -88,18 +87,18 @@ class blogController extends expController {
         $users = array();
         foreach ($blogs as $blog) {
             if (isset($users[$blog->poster])) {
-                $users[$blog->poster]->count += 1;
+                $users[$blog->poster]->count++;
             } else {
                 $users[$blog->poster] = new user($blog->poster);
                 $users[$blog->poster]->count = 1;
             }
         }
-        
+
 	    assign_to_template(array(
             'authors'=>$users
         ));
 	}
-	
+
 	public function dates() {
 	    global $db;
 
@@ -113,13 +112,13 @@ class blogController extends expController {
 	        $year = date('Y',$date);
 	        $month = date('n',$date);
 	        if (isset($blog_date[$year][$month])) {
-	            $blog_date[$year][$month]->count += 1;
+	            $blog_date[$year][$month]->count++;
 	        } else {
                 $count++;
                 if ($count > $limit) break;
                 $blog_date[$year][$month] = new stdClass();
 	            $blog_date[$year][$month]->name = date('F',$date);
-	            $blog_date[$year][$month]->count = 1;    
+	            $blog_date[$year][$month]->count = 1;
 	        }
 	    }
         if (!empty($blog_date)) {
@@ -137,7 +136,7 @@ class blogController extends expController {
             'dates'=>$blog_date
         ));
 	}
-	
+
     public function showall_by_date() {
 	    expHistory::set('viewable', $this->params);
 	    $start_date = expDateTime::startOfMonthTimestamp(mktime(0, 0, 0, $this->params['month'], 1, $this->params['year']));
@@ -157,16 +156,17 @@ class blogController extends expController {
                 gt('Title')=>'title'
             ),
         ));
-		            
+
 		assign_to_template(array(
             'page'=>$page,
             'moduletitle'=>gt('Blogs by date').' "'.expDateTime::format_date($start_date,"%B %Y").'"')
         );
 	}
-	
+
 	public function showall_by_author() {
 	    expHistory::set('viewable', $this->params);
-	    
+
+        $this->params['author'] = expString::escape($this->params['author']);
         $user = user::getUserByName($this->params['author']);
 		$page = new expPaginator(array(
             'model'=>$this->basemodel_name,
@@ -181,25 +181,30 @@ class blogController extends expController {
                 gt('Title')=>'title'
             ),
         ));
-            	    
+
 		assign_to_template(array(
             'page'=>$page,
             'moduletitle'=>gt('Blogs by author').' "'.$this->params['author'].'"'
         ));
 	}
-	
-	public function show() {
-//	    global $db;
 
-	    expHistory::set('viewable', $this->params);
+	public function show() {
+        expHistory::set('viewable', $this->params);
 	    $id = isset($this->params['title']) ? $this->params['title'] : $this->params['id'];
         $record = new blog($id);
-	    
+        if (empty($record->id))
+            redirect_to(array('controller'=>'notfound','action'=>'page_not_found','title'=>$this->params['title']));
+
 	    // since we are probably getting here via a router mapped url
 	    // some of the links (tags in particular) require a source, we will
 	    // populate the location data in the template now.
-//        $config = expUnserialize($db->selectValue('expConfigs','config',"location_data='".$record->location_data."'"));
         $config = expConfig::getConfig($record->location_data);
+        if (empty($this->config))
+            $this->config = $config;
+        if (empty($this->loc->src)) {
+            $r_loc = expUnserialize($record->location_data);
+            $this->loc->src = $r_loc->src;
+        }
 
         $nextwhere = $this->aggregateWhereClause().' AND publish > '.$record->publish.' ORDER BY publish';
         $record->next = $record->find('first',$nextwhere);
@@ -208,11 +213,14 @@ class blogController extends expController {
 
 	    assign_to_template(array(
             'record'=>$record,
-            'config'=>$config));
+            'config'=>$config,
+            'params'=>$this->params
+        ));
 	}
 
     /**
-     * view items referenced by tags  DEPRECATED??
+     * view items referenced by tags
+     * @deprecated 2.0.0
      */
     function showByTags() {
         global $db;
@@ -222,12 +230,12 @@ class blogController extends expController {
 
         // setup some objects
         $tagobj = new expTag();
-        $modelname = empty($this->params['model']) ? $this->basemodel_name : $this->params['model'];
+        $modelname = empty($this->params['model']) ? $this->basemodel_name : expString::escape($this->params['model']);
         $model = new $modelname();
 
         // start building the sql query
-        $sql  = 'SELECT DISTINCT m.id FROM '.DB_TABLE_PREFIX.'_'.$model->tablename.' m ';
-        $sql .= 'JOIN '.DB_TABLE_PREFIX.'_'.$tagobj->attachable_table.' ct ';
+        $sql  = 'SELECT DISTINCT m.id FROM '.$db->prefix.$model->tablename.' m ';
+        $sql .= 'JOIN '.$db->prefix.$tagobj->attachable_table.' ct ';
         $sql .= 'ON m.id = ct.content_id WHERE (';
         $first = true;
 
@@ -265,38 +273,36 @@ class blogController extends expController {
      *
      * @return array
      */
-    function getRSSContent() {
-//        global $db;
-
-        $class = new blog();
-        $items = $class->find('all', $this->aggregateWhereClause(), isset($this->config['order']) ? $this->config['order'] : 'publish DESC');
-
-        //Convert the items to rss items
-        $rssitems = array();
-        foreach ($items as $key => $item) {
-            $rss_item = new FeedItem();
-            $rss_item->title = expString::convertSmartQuotes($item->title);
-            $rss_item->link = makeLink(array('controller'=>$this->baseclassname, 'action'=>'show', 'title'=>$item->sef_url));
-            $rss_item->description = expString::convertSmartQuotes($item->body);
-            $rss_item->author = user::getUserById($item->poster)->firstname.' '.user::getUserById($item->poster)->lastname;
-            $rss_item->authorEmail = user::getEmailById($item->poster);
-//            $rss_item->date = isset($item->publish_date) ? date(DATE_RSS,$item->publish_date) : date(DATE_RSS, $item->created_at);
-            $rss_item->date = isset($item->publish_date) ? $item->publish_date : $item->created_at;
-            $rss_item->guid = expUnserialize($item->location_data)->src.'-id#'.$item->id;
-            if (!empty($item->expCat[0]->title)) $rss_item->category = array($item->expCat[0]->title);
-            $comment_count = expCommentController::countComments(array('content_id'=>$item->id,'content_type'=>$this->basemodel_name));
-            if ($comment_count) {
-                $rss_item->comments = makeLink(array('controller'=>$this->baseclassname, 'action'=>'show', 'title'=>$item->sef_url)).'#exp-comments';
-//                $rss_item->commentsRSS = makeLink(array('controller'=>$this->baseclassname, 'action'=>'show', 'title'=>$item->sef_url)).'#exp-comments';
-                $rss_item->commentsCount = $comment_count;
-            }
-            $rssitems[$key] = $rss_item;
-        }
-        return $rssitems;
-    }
+//    function getRSSContent() {
+//        $class = new blog();
+//        $items = $class->find('all', $this->aggregateWhereClause(), isset($this->config['order']) ? $this->config['order'] : 'publish DESC');
+//
+//        //Convert the items to rss items
+//        $rssitems = array();
+//        foreach ($items as $key => $item) {
+//            $rss_item = new FeedItem();
+//            $rss_item->title = expString::convertSmartQuotes($item->title);
+//            $rss_item->link = $rss_item->guid = makeLink(array('controller'=>$this->baseclassname, 'action'=>'show', 'title'=>$item->sef_url));
+//            $rss_item->description = expString::convertSmartQuotes($item->body);
+//            $rss_item->author = user::getUserById($item->poster)->firstname.' '.user::getUserById($item->poster)->lastname;
+//            $rss_item->authorEmail = user::getEmailById($item->poster);
+////            $rss_item->date = isset($item->publish_date) ? date(DATE_RSS,$item->publish_date) : date(DATE_RSS, $item->created_at);
+//            $rss_item->date = isset($item->publish_date) ? $item->publish_date : $item->created_at;
+////            $rss_item->guid = expUnserialize($item->location_data)->src.'-id#'.$item->id;
+//            if (!empty($item->expCat[0]->title)) $rss_item->category = array($item->expCat[0]->title);
+//            $comment_count = expCommentController::countComments(array('content_id'=>$item->id,'content_type'=>$this->basemodel_name));
+//            if ($comment_count) {
+//                $rss_item->comments = makeLink(array('controller'=>$this->baseclassname, 'action'=>'show', 'title'=>$item->sef_url)).'#exp-comments';
+////                $rss_item->commentsRSS = makeLink(array('controller'=>$this->baseclassname, 'action'=>'show', 'title'=>$item->sef_url)).'#exp-comments';
+//                $rss_item->commentsCount = $comment_count;
+//            }
+//            $rssitems[$key] = $rss_item;
+//        }
+//        return $rssitems;
+//    }
 
     /**
-     * additional check for display of search hit, only display non=draft
+     * additional check for display of search hit, only display non-draft
      *
      * @param $record
      *
@@ -337,6 +343,82 @@ class blogController extends expController {
         parent::delete_instance(true);
     }
 
+    /**
+     * Returns Facebook og: meta data
+     *
+     * @param $request
+     * @param $object
+     *
+     * @return null
+     */
+    public function meta_fb($request, $object, $canonical) {
+        $metainfo = array();
+        $metainfo['type'] = 'article';
+        if (!empty($object->body)) {
+            $desc = str_replace('"',"'",expString::summarize($object->body,'html','para'));
+        } else {
+            $desc = SITE_DESCRIPTION;
+        }
+        $metainfo['title'] = substr(empty($object->meta_fb['title']) ? $object->title : $object->meta_fb['title'], 0, 87);
+        $metainfo['description'] = substr(empty($object->meta_fb['description']) ? $desc : $object->meta_fb['description'], 0, 199);
+        $metainfo['url'] = empty($object->meta_fb['url']) ? $canonical : $object->meta_fb['url'];
+        $metainfo['image'] = empty($object->meta_fb['fbimage'][0]) ? '' : $object->meta_fb['fbimage'][0]->url;
+        if (empty($metainfo['image'])) {
+            if (!empty($object->expFile['files'][0]->is_image)) {
+                $metainfo['image'] = $object->expFile['files'][0]->url;
+            } else {
+                $config = expConfig::getConfig($object->location_data);
+                if (!empty($config['expFile']['fbimage'][0]))
+                    $file = new expFile($config['expFile']['fbimage'][0]);
+                if (!empty($file->id))
+                    $metainfo['image'] = $file->url;
+                if (empty($metainfo['image']))
+                    $metainfo['image'] = URL_BASE . MIMEICON_RELATIVE . 'generic_22x22.png';
+            }
+        }
+        return $metainfo;
+    }
+
+    /**
+     * Returns Twitter twitter: meta data
+     *
+     * @param $request
+     * @param $object
+     *
+     * @return null
+     */
+    public function meta_tw($request, $object, $canonical) {
+        $metainfo = array();
+        $metainfo['card'] = 'summary';
+        if (!empty($object->body)) {
+            $desc = str_replace('"',"'",expString::summarize($object->body,'html','para'));
+        } else {
+            $desc = SITE_DESCRIPTION;
+        }
+        $config = expConfig::getConfig($object->location_data);
+        if (!empty($object->meta_tw['twsite'])) {
+            $metainfo['site'] = $object->meta_tw['twsite'];
+        } elseif (!empty($config['twsite'])) {
+            $metainfo['site'] = $config['twsite'];
+        }
+        $metainfo['title'] = substr(empty($object->meta_tw['title']) ? $object->title : $object->meta_tw['title'], 0, 87);
+        $metainfo['description'] = substr(empty($object->meta_tw['description']) ? $desc : $object->meta_tw['description'], 0, 199);
+        $metainfo['image'] = empty($object->meta_tw['twimage'][0]) ? '' : $object->meta_tw['twimage'][0]->url;
+        if (empty($metainfo['image'])) {
+            if (!empty($object->expFile['images'][0]->is_image)) {
+                $metainfo['image'] = $object->expFile['images'][0]->url;
+            } else {
+                if (!empty($config['expFile']['twimage'][0]))
+                    $file = new expFile($config['expFile']['twimage'][0]);
+                if (!empty($file->id))
+                    $metainfo['image'] = $file->url;
+                if (empty($metainfo['image']))
+                    $metainfo['image'] = URL_BASE . MIMEICON_RELATIVE . 'generic_22x22.png';
+            }
+        }
+        return $metainfo;
+    }
+
     function showall_by_author_meta($request) {
         global $router;
 
@@ -362,113 +444,21 @@ class blogController extends expController {
 //            }
 
             if (!empty($str)) {
-                $metainfo = array('title' => '', 'keywords' => '', 'description' => '', 'canonical' => '', 'noindex' => '', 'nofollow' => '');
+                $metainfo = array('title' => '', 'keywords' => '', 'description' => '', 'canonical' => '', 'noindex' => false, 'nofollow' => false);
                 $metainfo['title'] = gt('Showing all Blog Posts written by') ." \"" . $str . "\"";
 //                $metainfo['keywords'] = empty($object->meta_keywords) ? SITE_KEYWORDS : $object->meta_keywords;  //FIXME $object not set
                 $metainfo['keywords'] = $str;
 //                $metainfo['description'] = empty($object->meta_description) ? SITE_DESCRIPTION : $object->meta_description;  //FIXME $object not set
                 $metainfo['description'] = SITE_DESCRIPTION;
 //                $metainfo['canonical'] = empty($object->canonical) ? URL_FULL.substr($router->sefPath, 1) : $object->canonical;  //FIXME $object not set
-                $metainfo['canonical'] = URL_FULL.substr($router->sefPath, 1);
+//                $metainfo['canonical'] = URL_FULL.substr($router->sefPath, 1);
+                $metainfo['canonical'] = $router->plainPath();
 
                 return $metainfo;
             }
         }
     }
 
-    //	function metainfo() {
-//        global $router;
-//        if (empty($router->params['action'])) return false;
-//
-//        // figure out what metadata to pass back based on the action
-//        // we are in.
-//        $action = $_REQUEST['action'];
-//        $metainfo = array('title'=>'', 'keywords'=>'', 'description'=>'');
-//        $modelname = $this->basemodel_name;
-//        switch($action) {
-//            case 'showall':
-//                $metainfo = array('title'=>"Showing all - ".$this->displayname(), 'keywords'=>SITE_KEYWORDS, 'description'=>SITE_DESCRIPTION);
-//            break;
-//            case 'show':
-//            case 'showByTitle':
-//                // look up the record.
-//                if (isset($_REQUEST['id']) || isset($_REQUEST['title'])) {
-//                    $lookup = isset($_REQUEST['id']) ? intval($_REQUEST['id']) :expString::sanitize($_REQUEST['title']);
-//                    $object = new $modelname($lookup);
-//                    // set the meta info
-//                    if (!empty($object)) {
-//                        $metainfo['title'] = empty($object->meta_title) ? $object->title : $object->meta_title;
-//                        $metainfo['keywords'] = empty($object->meta_keywords) ? SITE_KEYWORDS : $object->meta_keywords;
-//                        $metainfo['description'] = empty($object->meta_description) ? SITE_DESCRIPTION : $object->meta_description;
-//                    }
-//                }
-//            break;
-//            case 'showall_by_tags':
-//                // look up the record.
-//                if (isset($_REQUEST['tag'])) {
-//                    $object = new expTag(expString::sanitize($_REQUEST['tag']));
-//                    // set the meta info
-//                    if (!empty($object)) {
-//                        $metainfo['title'] = gt('Showing all Blog Posts tagged with') ." \"" . $object->title . "\"";
-//                        $metainfo['keywords'] = empty($object->meta_keywords) ? SITE_KEYWORDS : $object->meta_keywords;
-//                        $metainfo['description'] = empty($object->meta_description) ? SITE_DESCRIPTION : $object->meta_description;
-//                    }
-//                }
-//            break;
-//            case 'showall_by_author':
-//                // look up the record.
-//                if (isset($_REQUEST['author'])) {
-//                    // set the meta info
-//                    $u = user::getUserByName(expString::sanitize($_REQUEST['author']));
-//
-//            		switch (DISPLAY_ATTRIBUTION) {
-//            			case "firstlast":
-//            				$str = $u->firstname . " " . $u->lastname;
-//            				break;
-//            			case "lastfirst":
-//            				$str = $u->lastname . ", " . $u->firstname;
-//            				break;
-//            			case "first":
-//            				$str = $u->firstname;
-//            				break;
-//            			case "username":
-//            			default:
-//            				$str = $u->username;
-//            				break;
-//            		}
-//
-//                    if (!empty($str)) {
-//                        $metainfo['title'] = gt('Showing all Blog Posts written by') ."\"" . $str . "\"";
-//                        $metainfo['keywords'] = empty($object->meta_keywords) ? SITE_KEYWORDS : $object->meta_keywords;  //FIXME $object not set
-//                        $metainfo['description'] = empty($object->meta_description) ? SITE_DESCRIPTION : $object->meta_description;
-//                    }
-//                }
-//            break;
-//            case 'showall_by_date':
-//                // look up the record.
-//                if (isset($_REQUEST['month'])) {
-//                    $mk = mktime(0, 0, 0, $_REQUEST['month'], 01, $_REQUEST['year']);
-//                    $ts = strftime('%B, %Y',$mk);
-//                    // set the meta info
-//                    $metainfo['title'] = gt('Showing all Blog Posts written in') . $ts ;
-//                    $metainfo['keywords'] = empty($object->meta_keywords) ? SITE_KEYWORDS : $object->meta_keywords;  //FIXME $object not set
-//                    $metainfo['description'] = empty($object->meta_description) ? SITE_DESCRIPTION : $object->meta_description;
-//                }
-//            break;
-//            default:
-//                //check for a function in the controller called 'action'_meta and use it if so
-//                $functionName = $action."_meta";
-//                $mod = new $this->classname;
-//                if (method_exists($mod,$functionName)) {
-//                    $metainfo = $mod->$functionName($_REQUEST);
-//                } else {
-//                    $metainfo = array('title'=>$this->displayname()." - ".SITE_TITLE, 'keywords'=>SITE_KEYWORDS, 'description'=>SITE_DESCRIPTION);
-//                }
-//        }
-//
-//        return $metainfo;
-//    }
-	
 }
 
 ?>

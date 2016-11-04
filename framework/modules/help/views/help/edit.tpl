@@ -1,5 +1,5 @@
 {*
- * Copyright (c) 2004-2014 OIC Group, Inc.
+ * Copyright (c) 2004-2016 OIC Group, Inc.
  *
  * This file is part of Exponent
  *
@@ -64,19 +64,20 @@
             </div>
             </div>
         </div>
-	    <div class="loadingdiv">{"Loading Help Item"|gettext}</div>
+	    {*<div class="loadingdiv">{"Loading Help Item"|gettext}</div>*}
+        {loading title="Loading Help Item"|gettext}
         {control type=buttongroup submit="Save Help Doc"|gettext cancel="Cancel"|gettext}
     {/form}     
 </div>
 
-{script unique="editform" yui3mods=1}
+{script unique="editform" yui3mods="exptabs"}
 {literal}
     EXPONENT.YUI3_CONFIG.modules.exptabs = {
         fullpath: EXPONENT.JS_RELATIVE+'exp-tabs.js',
         requires: ['history','tabview','event-custom']
     };
 
-	YUI(EXPONENT.YUI3_CONFIG).use('exptabs', function(Y) {
+	YUI(EXPONENT.YUI3_CONFIG).use('*', function(Y) {
         Y.expTabs({srcNode: '#edithelp-tabs'});
 		Y.one('#edithelp-tabs').removeClass('hide');
 		Y.one('.loadingdiv').remove();

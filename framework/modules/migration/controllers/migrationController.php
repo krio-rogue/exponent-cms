@@ -1,7 +1,7 @@
 <?php
 ##################################################
 #
-# Copyright (c) 2004-2014 OIC Group, Inc.
+# Copyright (c) 2004-2016 OIC Group, Inc.
 #
 # This file is part of Exponent
 #
@@ -21,7 +21,7 @@
  */
 
 class migrationController extends expController {
-    protected $add_permissions = array(
+    protected $manage_permissions = array(
         'analyze'=>'Analyze Data',
         'migrate'=>'Migrate Data'
     );
@@ -173,9 +173,9 @@ class migrationController extends expController {
 //                unset($page->sef_name);
 				$ret = $db->insertObject($page, 'section');
 				if (empty($ret)) {
-					$failed += 1;
+					$failed++;
 				} else {
-					$successful += 1;
+					$successful++;
 				}
 			}
 		}
@@ -201,9 +201,9 @@ class migrationController extends expController {
 //                unset($page->sef_name);
 				$ret = $db->insertObject($page, 'section');
 				if (empty($ret)) {
-					$failed += 1;
+					$failed++;
 				} else {
-					$successful += 1;
+					$successful++;
 				}
 			}
 		}
@@ -275,8 +275,10 @@ class migrationController extends expController {
         //import the files
         $oldfiles = $old_db->selectObjects('file');
         foreach ($oldfiles as $oldfile) {
-            unset($oldfile->name);
-            unset($oldfile->collection_id);
+            unset(
+                $oldfile->name,
+                $oldfile->collection_id
+            );
             $file = $oldfile;
             $file->directory = $file->directory."/";
             $db->insertObject($file,'expFiles');
@@ -301,7 +303,7 @@ class migrationController extends expController {
 
         $sql  = 'SELECT *, COUNT(module) as count FROM '.$this->config['prefix'].'_sectionref WHERE is_original=1 GROUP BY module';
         $modules = $old_db->selectObjectsBySql($sql);
-        for($i=0; $i<count($modules); $i++) {
+		for ($i = 0, $iMax = count($modules); $i < $iMax; $i++) {
             if (array_key_exists($modules[$i]->module, $this->new_modules)) {
                 $newmod = expModules::getController($this->new_modules[$modules[$i]->module]);
 //                $newmod = $this->new_modules[$modules[$i]->module];
@@ -547,8 +549,10 @@ class migrationController extends expController {
             $iloc = expUnserialize($module->internal);
             if (array_key_exists($iloc->mod, $this->new_modules)) {
                 // convert new modules added via container
-                unset($module->internal);
-                unset($module->action);
+                unset(
+                    $module->internal,
+                    $module->action
+                );
 //                unset($module->view);
                 $this->convert($iloc, $module);
 //            } else if (!in_array($iloc->mod, $this->deprecated_modules)) {
@@ -715,9 +719,9 @@ class migrationController extends expController {
 				$group = $old_db->selectObject('group', 'id='.$groupid);
 				$ret = $db->insertObject($group, 'group');
 				if (empty($ret)) {
-					$gfailed += 1;
+					$gfailed++;
 				} else {
-					$gsuccessful += 1;
+					$gsuccessful++;
 				}				
 			}
 		}
@@ -727,9 +731,9 @@ class migrationController extends expController {
 				$group = $old_db->selectObject('group', 'id='.$groupid);
 				$ret = $db->insertObject($group, 'group');
 				if (empty($ret)) {
-					$gfailed += 1;
+					$gfailed++;
 				} else {
-					$gsuccessful += 1;
+					$gsuccessful++;
 				}				
 			}
 		}
@@ -741,9 +745,9 @@ class migrationController extends expController {
 				$user = $old_db->selectObject('user', 'id='.$userid);
 				$ret = $db->insertObject($user, 'user');
 				if (empty($ret)) {
-					$failed += 1;
+					$failed++;
 				} else {
-					$successful += 1;
+					$successful++;
 				}				
 			}
 		}
@@ -753,9 +757,9 @@ class migrationController extends expController {
 				$user = $old_db->selectObject('user', 'id='.$userid);
 				$ret = $db->insertObject($user, 'user');
 				if (empty($ret)) {
-					$failed += 1;
+					$failed++;
 				} else {
-					$successful += 1;
+					$successful++;
 				}				
 			}
 		}
@@ -1182,7 +1186,7 @@ class migrationController extends expController {
                         @$this->msg['migrated'][$iloc->mod]['name'] = $this->new_modules[$iloc->mod];
                         if (!empty($ni['file_id'])) {
                             $file = new expFile($ni['file_id']);
-                            $news->attachitem($file,'');
+                            $news->attachItem($file,'');
                         }
                         if (isset($oldconfig->enable_tags) && $oldconfig->enable_tags = true) {
 	                        $params = null;;
@@ -1308,7 +1312,7 @@ class migrationController extends expController {
 							@$this->msg['migrated'][$iloc->mod]['count']++;
 							@$this->msg['migrated'][$iloc->mod]['name'] = $this->new_modules[$iloc->mod];
 							$file = new expFile($ri['file_id']);
-							$filedownload->attachitem($file,'downloadable');
+							$filedownload->attachItem($file,'downloadable');
 							// default is to create with current time						
 							$filedownload->created_at = $ri['posted'];
 							$filedownload->migrated_at = $ri['edited'];
@@ -1390,7 +1394,7 @@ class migrationController extends expController {
 								@$this->msg['migrated'][$iloc->mod]['count']++;
 								@$this->msg['migrated'][$iloc->mod]['name'] = $this->new_modules[$iloc->mod];
 								$file = new expFile($gi['file_id']);
-								$photo->attachitem($file,'');
+								$photo->attachItem($file,'');
 								$photo->created_at = $gi['posted'];
 								$photo->migrated_at = $gi['posted'];
 								$photo->update(array("validate"=>false));								
@@ -1436,7 +1440,7 @@ class migrationController extends expController {
                                 @$this->msg['migrated'][$iloc->mod]['count']++;
                                 @$this->msg['migrated'][$iloc->mod]['name'] = $this->new_modules[$iloc->mod];
                                 $file = new expFile($gi['file_id']);
-                                $photo->attachitem($file,'');
+                                $photo->attachItem($file,'');
                                 $photo->update(array("validate"=>false));
                             }
                         }
@@ -1563,7 +1567,7 @@ class migrationController extends expController {
 						// this next section is moot since there are no attachments to blogs
                         // if (!empty($bi['file_id'])) {
                             // $file = new expFile($bi['file_id']);
-                            // $post->attachitem($file,'downloadable');
+                            // $post->attachItem($file,'downloadable');
                         // }
 
                         if (isset($oldconfig->enable_tags) && $oldconfig->enable_tags = true) {
@@ -1735,7 +1739,7 @@ class migrationController extends expController {
                         @$this->msg['migrated'][$iloc->mod]['name'] = $this->new_modules[$iloc->mod];
                         if (!empty($li['file_id'])) {
 							$file = new expFile($li['file_id']);
-							$listing->attachitem($file,'');
+							$listing->attachItem($file,'');
 						}
                         if (!empty($oldconfig) && $oldconfig->enable_categories == 1 && $li['category_id']) {
                             $params = null;
@@ -1759,7 +1763,7 @@ class migrationController extends expController {
                     }
                 }
 				break;
-            case 'youtubemodule':  //FIXME must convert media player
+            case 'youtubemodule':  //must convert to media player
 				//check to see if it's already pulled in (circumvent !is_original)
                 $ploc = clone($iloc);
 				$ploc->mod = "media";
@@ -1795,7 +1799,7 @@ class migrationController extends expController {
 					}
 				}
 				break;
-            case 'mediaplayermodule':  //FIXME must now convert media player
+            case 'mediaplayermodule':  // must convert media player
 				//check to see if it's already pulled in (circumvent !is_original)
                 $ploc = clone($iloc);
 				$ploc->mod = "media";
@@ -1816,12 +1820,14 @@ class migrationController extends expController {
 						$movie->title = $mi['name'];
 						if (empty($movie->title)) { $movie->title = 'Untitled'; }
                         $movie->body = $mi['description'];
-						unset ($mi['bgcolor']);
-						unset ($mi['alignment']);
-						unset ($mi['loop_media']);
-						unset ($mi['auto_rewind']);
-						unset ($mi['autoplay']);
-						unset ($mi['hide_controls']);
+						unset (
+                            $mi['bgcolor'],
+                            $mi['alignment'],
+                            $mi['loop_media'],
+                            $mi['auto_rewind'],
+                            $mi['autoplay'],
+                            $mi['hide_controls']
+                        );
 						$movie->location_data = serialize($loc);
 						$movie->poster = 1;
 						$movie->rank = 1;
@@ -1830,10 +1836,10 @@ class migrationController extends expController {
 							@$this->msg['migrated'][$iloc->mod]['count']++;
 							@$this->msg['migrated'][$iloc->mod]['name'] = $this->new_modules[$iloc->mod];
 							$file = new expFile($mi['media_id']);
-							$movie->attachitem($file,'files');
+							$movie->attachItem($file,'files');
 							if (!empty($mi['alt_image_id'])) {
 								$file = new expFile($mi['alt_image_id']);
-								$movie->attachitem($file,'splash');					
+								$movie->attachItem($file,'splash');
 							}
 						}
 					}
@@ -1878,7 +1884,7 @@ class migrationController extends expController {
 						}
                         if (!empty($bi['file_id'])) {
                             $file = new expFile($bi['file_id']);
-                            $banner->attachitem($file,'');
+                            $banner->attachItem($file,'');
                         }
 						$banner->save();
 						@$this->msg['migrated'][$iloc->mod]['count']++;
@@ -1992,8 +1998,10 @@ class migrationController extends expController {
                         $question->save();
 
                         foreach ($oldanswers as $oi) {
-                            unset ($oi['id']);
-                            unset ($oi['question_id']);
+                            unset (
+                                $oi['id'],
+                                $oi['question_id']
+                            );
                             $newanswer = new simplepoll_answer($oi);
                             $newanswer->simplepoll_question_id = $question->id;
 //                            $question->simplepoll_answer[] = $newanswer;
@@ -2113,8 +2121,10 @@ class migrationController extends expController {
                     $cat = $cal->category_id;
                     unset($cal->category_id);
                     $tags = $cal->tags;
-                    unset($cal->tags);
-                    unset($cal->file_id);
+                    unset(
+                        $cal->tags,
+                        $cal->file_id
+                    );
                     $loc = expUnserialize($cal->location_data);
                     $loc->mod = "event";
                     $cal->location_data = serialize($loc);
@@ -2259,8 +2269,10 @@ class migrationController extends expController {
                     $fcs = $old_db->selectObjects('formbuilder_control',"form_id=".$oldform->id);
                     foreach ($fcs as $fc) {
                         $fc->forms_id = $newform->id;
-                        unset ($fc->id);
-                        unset ($fc->form_id);
+                        unset (
+                            $fc->id,
+                            $fc->form_id
+                        );
                         $db->insertObject($fc,'forms_control');
                     }
 
@@ -2537,7 +2549,8 @@ class migrationController extends expController {
             $newrss->enable_rss = $newconfig->config['enable_rss'];
             $newrss->advertise = $newconfig->config['enable_rss'];
             $newrss->title = $newconfig->config['feed_title'];
-            $newrss->sef_url = expCore::makeSefUrl($newrss->title,'expRss');
+//            $newrss->sef_url = expCore::makeSefUrl($newrss->title,'expRss');
+			$newrss->sef_url = $this->makeSefUrl($newrss->title);
             $newrss->feed_desc = $newconfig->config['feed_desc'];
             $newrss->rss_limit = $newconfig->config['rss_limit'];
             $newrss->rss_cachetime = $newconfig->config['rss_cachetime'];
@@ -2566,13 +2579,22 @@ class migrationController extends expController {
 	function saveconfig() {
         
         // unset some unneeded params
-        unset($this->params['module']);
-        unset($this->params['controller']);
-        unset($this->params['src']);
-        unset($this->params['int']);
-        unset($this->params['id']);
-        unset($this->params['action']);
-        unset($this->params['PHPSESSID']);
+        unset(
+            $this->params['module'],
+            $this->params['controller'],
+            $this->params['src'],
+            $this->params['int'],
+            $this->params['id'],
+            $this->params['action'],
+            $this->params['PHPSESSID'],
+            $this->params['__utma'],
+            $this->params['__utmb'],
+            $this->params['__utmc'],
+            $this->params['__utmz'],
+            $this->params['__utmt'],
+            $this->params['__utmli'],
+            $this->params['__cfduid']
+        );
         
         // setup and save the config
         $config = new expConfig($this->loc);
@@ -2584,14 +2606,14 @@ class migrationController extends expController {
         $this->connect();  // now make sure the parameters work
 
 		if (isset($this->params['fix_database'])) $this->fix_database();
-        //FIXME we need to push the button.css file to head for coolwater theme?
+        //NOTE we need to push the button.css file to head for coolwater theme?
         expCSS::pushToHead(array(
 //      		    "unique"=>"button",
       		    "corecss"=>"button",
       		    ));
 		echo '<h2>'.gt('Migration Configuration Saved').'</h2><br />';
 		echo '<p>'.gt('We\'ve successfully connected to the Old database').'</p><br />';
-        if(expSession::get('framework') == 'bootstrap' || expSession::get('framework') == 'bootstrap3'){
+        if (bs()) {
             $btn_class = 'btn btn-default';
         } else {
             $btn_class = "awesome " . BTN_SIZE . " " . BTN_COLOR;

@@ -1,5 +1,5 @@
 {*
- * Copyright (c) 2004-2014 OIC Group, Inc.
+ * Copyright (c) 2004-2016 OIC Group, Inc.
  *
  * This file is part of Exponent
  *
@@ -34,9 +34,9 @@
         <li id="norssfeeds">{'You don\'t have any RSS feeds configured'|gettext}</li>
     </ul>
 
-    {script unique="rssfeedpicker3" yui3mods=1}
+    {script unique="rssfeedpicker3" yui3mods="node"}
     {literal}
-    YUI(EXPONENT.YUI3_CONFIG).use('node', function(Y) {
+    YUI(EXPONENT.YUI3_CONFIG).use('*', function(Y) {
         if (Y.one('#rsspull-feeds').get('children').size() > 1) Y.one('#norssfeeds').setStyle('display','none');
         Y.one('#addtolist').on('click', function(e){
             e.halt();
@@ -45,7 +45,7 @@
             Y.one('#norssfeeds').setStyle('display', 'none');
             var newli = document.createElement('li');
             var newLabel = document.createElement('span');
-            newLabel.innerHTML = feedtoadd.value + '    <input type="hidden" name="pull_rss[]" value="'+feedtoadd+'" />';
+            newLabel.innerHTML = feedtoadd + '    <input type="hidden" name="pull_rss[]" value="'+feedtoadd+'" />';
             var newRemove = document.createElement('a');
             newRemove.setAttribute('href','#');
             newRemove.className = "delete removerss";

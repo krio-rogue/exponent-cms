@@ -2,7 +2,7 @@
 
 ##################################################
 #
-# Copyright (c) 2004-2014 OIC Group, Inc.
+# Copyright (c) 2004-2016 OIC Group, Inc.
 #
 # This file is part of Exponent
 #
@@ -17,13 +17,13 @@
 ##################################################
 /** @define "BASE" "../../.." */
 
-//FIXME DEPRECATED
 /**
  * Wraps the OS modules template system in use, to provide a uniform and consistent
  * interface to templates.
  *
  * @package    Subsystems-Forms
  * @subpackage Template
+ * @deprecated
  */
 //TODO: prepare this class for multiple template systems
 class template extends basetemplate {

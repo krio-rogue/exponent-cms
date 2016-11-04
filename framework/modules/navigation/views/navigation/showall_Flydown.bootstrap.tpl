@@ -1,5 +1,5 @@
 {*
- * Copyright (c) 2004-2014 OIC Group, Inc.
+ * Copyright (c) 2004-2016 OIC Group, Inc.
  *
  * This file is part of Exponent
  *
@@ -16,9 +16,12 @@
 {css unique="z-dropdown-bootstrap" lesscss="`$asset_path`less/dropdown-bootstrap.less"}
 
 {/css}
+{css unique="mega" lesscss="`$asset_path`less/yamm2.less"}
+
+{/css}
 
 <!-- navigation bar/menu -->
-<div id="topnavbar" class="navigation navbar navbar-{if $smarty.const.MENU_LOCATION}{$smarty.const.MENU_LOCATION}{else}fixed-top{/if}">
+<div id="topnavbar" class="navigation yamm navbar navbar-{if $smarty.const.MENU_LOCATION}{$smarty.const.MENU_LOCATION}{else}fixed-top{/if}">
     <div class="navbar-inner">
         <div class="container">
             <!-- toggle for collapsed/mobile navbar content -->
@@ -33,7 +36,7 @@
             <div class="nav-collapse collapse">
                 <ul class="nav{if $smarty.const.MENU_ALIGN == 'right'} pull-right{/if}">
                     {getnav type='hierarchy' assign=hierarchy}
-                    {bootstrap_navbar menu=$hierarchy}
+                    {bootstrap_navbar menu=$hierarchy length=$smarty.const.MENU_LENGTH|default:2}
                 </ul>
             </div>
         </div>
@@ -42,7 +45,7 @@
 <div class="navbar-spacer"></div>
 <div class="navbar-spacer-bottom"></div>
 
-{script unique="navbar-fix" jquery=1}
+{script unique="navbar-fix" bootstrap="dropdown,collapse,transition"}
 {literal}
     $('.dropdown-toggle').click(function(e) {
         e.preventDefault();
@@ -53,6 +56,13 @@
         }, this), 0);
     });
 
+    $(document).on('click', '.yamm .dropdown-menu', function(e) {
+        e.stopPropagation()
+    })
+
+    /**
+    * Auto-adjust (dynamically) top margins based on navbar type and slingbar display
+    */
     $(document).ready(function(){
         function setTopPadding(admin) {
             if ({/literal}{($user->getsToolbar == 1 && $smarty.const.SLINGBAR_TOP == 1)?1:0}{literal}) {

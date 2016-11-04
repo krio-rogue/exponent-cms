@@ -1,5 +1,5 @@
 {*
- * Copyright (c) 2004-2014 OIC Group, Inc.
+ * Copyright (c) 2004-2016 OIC Group, Inc.
  *
  * This file is part of Exponent
  *
@@ -67,9 +67,9 @@
             </table>
 
             {*FIXME convert to yui3*}
-            {script unique="shippingopts`$shippingitem->method->id`" yui3mods="1"}
+            {*script unique="shippingopts`$shippingitem->method->id`" yui3mods="node,yui2-yahoo-dom-event"}
             {literal}
-            YUI(EXPONENT.YUI3_CONFIG).use('node','yui2-yahoo-dom-event', function(Y) {
+            YUI(EXPONENT.YUI3_CONFIG).use('*', function(Y) {
                 var YAHOO=Y.YUI2;
                 YAHOO.util.Event.onDOMReady(function(){
                     var smc = YAHOO.util.Dom.getElementsByClassName('{/literal}smc{$shippingitem->method->id}{literal}', 'select');
@@ -88,6 +88,24 @@
                 });
             });
             {/literal}
+            {/script*}
+            {script unique="shippingopts`$shippingitem->method->id`" yui3mods="node"}
+            {literal}
+                YUI(EXPONENT.YUI3_CONFIG).use('*', function(Y) {
+                    var smc = Y.all('select.{/literal}smc{$shippingitem->method->id}{literal}');
+                    smc.on('change', function(e){
+                        var targ = e.target.get('value');
+                        var vals = Y.all('#tb-{/literal}{$shippingitem->method->id}{literal} tr.opt'+targ);
+                        var hvals = Y.all('#tb-{/literal}{$shippingitem->method->id}{literal} tr.opts');
+                        hvals.setStyle('display', 'none');
+                        if (Y.UA.ie > 0) {
+                            vals.setStyle('display', 'block');
+                        } else {
+                            vals.setStyle('display', 'table-row');
+                        }
+                    });
+                });
+            {/literal}
             {/script}
 
         {/foreach}
@@ -95,9 +113,9 @@
     {/form}
 </div>
 
-{script unique="shippingopts" yui3mods="1"}
+{*script unique="shippingopts" yui3mods="node,yui2-yahoo-dom-event"}
 {literal}
-YUI(EXPONENT.YUI3_CONFIG).use('node','yui2-yahoo-dom-event', function(Y) {
+YUI(EXPONENT.YUI3_CONFIG).use('*', function(Y) {
     var YAHOO=Y.YUI2;
     YAHOO.util.Event.onDOMReady(function(){
         var hvals = YAHOO.util.Dom.getElementsByClassName('opts', 'tr');
@@ -112,6 +130,18 @@ YUI(EXPONENT.YUI3_CONFIG).use('node','yui2-yahoo-dom-event', function(Y) {
         }
         //YAHOO.util.Dom.setStyle(vals, 'display', 'block');
     });
+});
+{/literal}
+{/script*}
+{script unique="shippingopts" yui3mods="node"}
+{literal}
+YUI(EXPONENT.YUI3_CONFIG).use('*', function(Y) {
+    Y.all('tr.opts').setStyle('display', 'none');
+    if (Y.UA.ie > 0) {
+        Y.all('tr.opt1').setStyle('display', 'block');
+    } else {
+        Y.all('tr.opt1').setStyle('display', 'table-row');
+    }
 });
 {/literal}
 {/script}

@@ -1,5 +1,5 @@
 {*
- * Copyright (c) 2004-2014 OIC Group, Inc.
+ * Copyright (c) 2004-2016 OIC Group, Inc.
  *
  * This file is part of Exponent
  *
@@ -13,6 +13,7 @@
  *
  *}
 
+{* FIXME NEVER used since we now gather all input on the show eventregistration view *}
 {if $product->isAvailable()}
     <div class="module cart eventregistration addToCart">
         <h1>{'Register for'|gettext} {$product->title}</h1>
@@ -37,10 +38,10 @@
     </div>
 
     {*FIXME convert to yui3*}
-    {script unique="eventreg" yui3mods="1"}
+    {script unique="eventreg" yui3mods="yui2-yahoo-dom-event"}
     {literal}
         //YAHOO.util.Event.onDOMReady(function(){
-        YUI(EXPONENT.YUI3_CONFIG).use('yui2-yahoo-dom-event', function(Y) {
+        YUI(EXPONENT.YUI3_CONFIG).use('*', function(Y) {
             var YAHOO = Y.YUI2;
             var addNewRegs = {
                 addcounter : 0,

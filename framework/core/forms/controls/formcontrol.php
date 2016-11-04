@@ -2,7 +2,7 @@
 
 ##################################################
 #
-# Copyright (c) 2004-2014 OIC Group, Inc.
+# Copyright (c) 2004-2016 OIC Group, Inc.
 #
 # This file is part of Exponent
 #
@@ -26,15 +26,22 @@ if (!defined('EXPONENT')) exit('');
  */
 abstract class formcontrol {
 
+    var $id = null;
+    var $name = "";
 	var $accesskey = "";
+    var $class = "";
 	var $default = "";
 	var $disabled = false;
     var $required = false;
+    var $multiple = false;
+    var $flip = false;
     var $is_hidden = false;
     var $focus = false;
 	var $tabindex = -1;
 	var $inError = 0; // This will ONLY be set by the parent form.
 	var $type = 'text';
+    var $horizontal = false;
+    var $jsHooks = array();
 
 	static function name() { return "formcontrol"; }
 
@@ -80,8 +87,8 @@ abstract class formcontrol {
     function toHTML($label,$name) {
         if (!empty($this->_ishidden)) {
             $this->name = empty($this->name) ? $name : $this->name;
-            $inputID  = (!empty($this->id)) ? ' id="'.$this->id.'"' : "";
-    		$html = '<input type="hidden"' . $inputID . ' name="' . $this->name . '" value="'.$this->default.'"';
+            $idname  = (!empty($this->id)) ? ' id="'.$this->id.'"' : "";
+    		$html = '<input type="hidden"' . $idname . ' name="' . $this->name . '" value="'.$this->default.'"';
     		$html .= ' />';
     		return $html;
         } else {
@@ -89,9 +96,9 @@ abstract class formcontrol {
                 $divID = ' id="' . $this->id . 'Control"';
                 $for = ' for="' . $this->id . '"';
             } else {
-//		    $divID  = '';
                 $divID = ' id="' . $name . 'Control"';
-                $for = '';
+//                $for = '';
+                $for = ' for="' . $name . '"';
             }
 
             $disabled = $this->disabled != 0 ? "disabled='disabled'" : "";

@@ -1,5 +1,5 @@
 {*
- * Copyright (c) 2004-2014 OIC Group, Inc.
+ * Copyright (c) 2004-2016 OIC Group, Inc.
  *
  * This file is part of Exponent
  *
@@ -13,7 +13,7 @@
  *
  *}
 
-<div class="module text edit yui-skin-sam">
+<div class="module text edit">
     {if $record->id != ""}
         <h1>{'Editing'|gettext}: {$record->title}</h1>
     {else}

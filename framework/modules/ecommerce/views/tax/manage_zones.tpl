@@ -1,5 +1,5 @@
 {*
- * Copyright (c) 2004-2014 OIC Group, Inc.
+ * Copyright (c) 2004-2016 OIC Group, Inc.
  *
  * This file is part of Exponent
  *
@@ -53,7 +53,7 @@
                     {$zone->country}
                 </td>
                 <td class="module-actions">
-                    {icon action=edit_zone record=$zone img="edit.png" title='Edit tax class|gettext'|gettext}
+                    {icon action=edit_zone record=$zone img="edit.png" title='Edit tax class'|gettext}
                     {icon action=delete_zone record=$zone img="delete.png" title='Delete tax zone along with classes and rates'|gettext}
                 </td>
             </tr>

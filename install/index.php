@@ -2,7 +2,7 @@
 
 ##################################################
 #
-# Copyright (c) 2004-2014 OIC Group, Inc.
+# Copyright (c) 2004-2016 OIC Group, Inc.
 #
 # This file is part of Exponent
 #
@@ -16,79 +16,33 @@
 #
 ##################################################
 
+/**
+ * Minimum PHP version check
+ */
+if (version_compare(PHP_VERSION, '5.3.1', 'lt')) {
+    echo "<h1 style='padding:10px;border:5px solid #992222;color:red;background:white;position:absolute;top:100px;left:300px;width:400px;z-index:999'>
+        PHP 5.3.1+ is required!  Please refer to the Exponent documentation for details:<br />
+        <a href=\"http://docs.exponentcms.org/docs/current/requirements-running-exponent-cms\" target=\"_blank\">http://docs.exponentcms.org/</a>
+        </h1>";
+    die();
+}
+
 ob_start();
 
 // Jumpstart to Initialize the installer language before it's set to default
 if (isset($_REQUEST['lang'])) {
-    $_POST['sc']['LANGUAGE'] = trim($_REQUEST['lang'], "'");
+    $_REQUEST['sc']['LANGUAGE'] = trim($_REQUEST['lang'], "'");
 }
-if (isset($_POST['sc']['LANGUAGE'])) {
+if (isset($_REQUEST['sc']['LANGUAGE'])) {
     if (!defined('LANGUAGE')) {
-        define('LANGUAGE', $_POST['sc']['LANGUAGE']);
+        define('LANGUAGE', $_REQUEST['sc']['LANGUAGE']);
     }
 }
 
 include_once('../exponent.php');
+expString::sanitize($_REQUEST);
 
-// Switch to a saved profile as requested
-if (isset($_GET['profile'])) {
-    expSettings::activateProfile($_GET['profile']);
-    expTheme::removeSmartyCache(); //FIXME is this still necessary?
-    expSession::clearAllUsersSessionCache();
-    flash('message', gt("New Configuration Profile Loaded"));
-    header('Location: ../index.php');
-}
-
-// Create or update the config settings
-if (isset($_POST['sc'])) {
-    if (file_exists("../framework/conf/config.php")) {
-        // Update the config
-        foreach ($_POST['sc'] as $key => $value) {
-            expSettings::change($key, $value);
-        }
-    } else {
-        // Initialize /framework/conf/config
-        $values = array(
-            'c'          => $_POST['sc'],
-            'opts'       => array(),
-            'configname' => 'Default',
-            'activate'   => 1
-        );
-        expSettings::saveConfiguration($values);
-    }
-}
-
-// Install a sample database as requested
-if (isset($_POST['install_sample'])) {
-    $eql = BASE . "themes/" . DISPLAY_THEME_REAL . "/" . $_POST['install_sample'] . ".eql";
-    if (!file_exists($eql)) {
-        $eql = BASE . "install/samples/" . $_POST['install_sample'] . ".eql";
-    }
-    if (file_exists($eql)) {
-        $errors = array();
-        expFile::restoreDatabase($eql, $errors);
-        $files = BASE . "themes/" . DISPLAY_THEME_REAL . "/" . $_POST['install_sample'] . ".tar.gz";
-        if (!file_exists($files)) {
-            $files = BASE . "install/samples/" . $_POST['install_sample'] . ".tar.gz";
-        }
-        if (file_exists($files)) { // only install if there was an archive
-            include_once(BASE . 'external/Tar.php');
-            $tar = new Archive_Tar($files);
-            $return = $tar->extract(BASE);
-        }
-    }
-    if (DEVELOPMENT && !empty($errors)) {
-        echo '<h2>' . gt('Errors were encountered populating the site database.') . '</h2><ul>';
-        foreach ($errors as $e) {
-            echo '<li>' . $e . '</li>';
-        }
-        echo '</ul>';
-    } else {
-//        echo gt('Sample content was added to your database.  This content should help you learn how Exponent works, and how to use it for your website.');
-    }
-}
-
-// Make sure our 'page' is set correctly
+// Make sure our 'page' is set correctly and prevent running under most circumstances
 if (file_exists("../framework/conf/config.php") && !isset($_REQUEST['page'])) {
     $_REQUEST['page'] = 'upgrade-1';
 }
@@ -98,15 +52,81 @@ if (!file_exists("../framework/conf/config.php") && !isset($_REQUEST['page'])) {
 $page = $_REQUEST['page'];
 
 // Superadmin must be logged in to do an upgrade
-if (strpos($page, 'upgrade-') !== false && !$user->isSuperAdmin()) {
-    header('Location: ../index.php');
-    exit();
+global $user;
+if (strpos($page, 'upgrade-') !== false) {
+    if(empty($user) || (!empty($user->id) && !$user->isSuperAdmin())) {
+        header('Location: ../index.php');
+        exit();
+    }
 }
 
 // Only run installation if not already installed
 if (strpos($page, 'upgrade-') === false && !file_exists(BASE . 'install/not_configured')) {
     header('Location: ../index.php');
     exit();
+}
+
+// Switch to a saved profile as requested
+if (isset($_REQUEST['profile'])) {
+    expSettings::activateProfile($_REQUEST['profile']);
+    expTheme::removeSmartyCache(); //FIXME is this still necessary?
+    expSession::clearAllUsersSessionCache();
+    flash('message', gt("New Configuration Profile Loaded"));
+    header('Location: ../index.php');
+}
+
+// Create or update the config settings
+if (isset($_REQUEST['sc'])) {
+    if (file_exists("../framework/conf/config.php")) {
+        // Update the config
+        foreach ($_REQUEST['sc'] as $key => $value) {
+            expSettings::change($key, $value);
+        }
+    } else {
+        // Initialize /framework/conf/config
+        $values = array(
+            'c'          => $_REQUEST['sc'],
+            'opts'       => array(),
+            'configname' => 'Default',
+            'activate'   => 1
+        );
+        expSettings::saveConfiguration($values);
+    }
+}
+
+// Install a sample database as requested
+if (isset($_REQUEST['install_sample'])) {
+    if (!empty($_REQUEST['install_sample']) && (strpos($_REQUEST['install_sample'], '..') !== false || strpos($_REQUEST['install_sample'], '/') !== false)) {
+        header('Location: ../index.php');
+        exit();  // attempt to hack the site
+    }
+    $eql = BASE . "themes/" . DISPLAY_THEME_REAL . "/" . $_REQUEST['install_sample'] . ".eql";
+    if (!file_exists($eql)) {
+        $eql = BASE . "install/samples/" . $_REQUEST['install_sample'] . ".eql";
+    }
+    if (file_exists($eql)) {
+        $errors = array();
+        expFile::restoreDatabase($eql, $errors);
+        $files = BASE . "themes/" . DISPLAY_THEME_REAL . "/" . $_REQUEST['install_sample'] . ".tar.gz";
+        if (!file_exists($files)) {
+            $files = BASE . "install/samples/" . $_REQUEST['install_sample'] . ".tar.gz";
+        }
+        if (file_exists($files)) { // only install if there was an archive
+            include_once(BASE . 'external/Tar.php');
+            $tar = new Archive_Tar($files);
+            $return = $tar->extract(BASE);
+        }
+    }
+    //FIXME we need to output this into an element and not simply out on the page
+    if (DEVELOPMENT && !empty($errors)) {
+        echo '<h2>' . gt('Errors were encountered populating the site database.') . '</h2><ul>';
+        foreach ($errors as $e) {
+            echo '<li>' . $e . '</li>';
+        }
+        echo '</ul>';
+    } else {
+//        echo gt('Sample content was added to your database.  This content should help you learn how Exponent works, and how to use it for your website.');
+    }
 }
 
 switch ($page) {
@@ -170,7 +190,7 @@ switch ($page) {
     case 'install-5':
         $masthead = gt("New Installation");
         $page_text = gt(
-            'Your theme is your site\'s look and feel. Select what you\'d like you site to look like from the list of themes.'
+            'Your theme is your site\'s look and feel. Select what you\'d like your site to look like from the list of themes. You may also give your site some sample content.'
         );
         break;
     case 'install-6':

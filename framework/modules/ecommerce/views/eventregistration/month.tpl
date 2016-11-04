@@ -1,5 +1,5 @@
 {*
- * Copyright (c) 2004-2014 OIC Group, Inc.
+ * Copyright (c) 2004-2016 OIC Group, Inc.
  *
  * This file is part of Exponent
  *
@@ -16,28 +16,29 @@
     {$myloc=serialize($__loc)}
 	<table id="calendar" summary="{$moduletitle|default:'Calendar'|gettext}">
         <div class="caption">
-            &laquo;&#160;
-            <a class="evnav module-actions" href="{link action=eventsCalendar time=$prevmonth3}" rel="{$prevmonth3}" title="{$prevmonth3|format_date:"%B %Y"}">{$prevmonth3|format_date:"%b"}</a>&#160;&#160;&laquo;&#160;
-            <a class="evnav module-actions" href="{link action=eventsCalendar time=$prevmonth2}" rel="{$prevmonth2}" title="{$prevmonth2|format_date:"%B %Y"}">{$prevmonth2|format_date:"%b"}</a>&#160;&#160;&laquo;&#160;
-            <a class="evnav module-actions" href="{link action=eventsCalendar time=$prevmonth}" rel="{$prevmonth}" title="{$prevmonth|format_date:"%B %Y"}">{$prevmonth|format_date:"%b"}</a>&#160;&#160;&laquo;&#160;&#160;&#160;&#160;&#160;
-            <strong>{$time|format_date:"%B %Y"}</strong>&#160;&#160;&#160;&#160;&#160;&#160;&raquo;&#160;&#160;
-            <a class="evnav module-actions" href="{link action=eventsCalendar time=$nextmonth}" rel="{$nextmonth}" title="{$nextmonth|format_date:"%B %Y"}">{$nextmonth|format_date:"%b"}</a>&#160;&#160;&raquo;&#160;
-            <a class="evnav module-actions" href="{link action=eventsCalendar time=$nextmonth2}" rel="{$nextmonth2}" title="{$nextmonth2|format_date:"%B %Y"}">{$nextmonth2|format_date:"%b"}</a>&#160;&#160;&raquo;&#160;
-            <a class="evnav module-actions" href="{link action=eventsCalendar time=$nextmonth3}" rel="{$nextmonth3}" title="{$nextmonth3|format_date:"%B %Y"}">{$nextmonth3|format_date:"%b"}</a>&#160;&#160;&raquo;
+            <span class="hidden-xs">&laquo;</span>&#160;
+            <a class="evnav module-actions" href="{link action=eventsCalendar time=$prevmonth3}" rel="{$prevmonth3}" title="{$prevmonth3|format_date:"%B %Y"}">{$prevmonth3|format_date:"%b"}</a><span class="hidden-xs">&#160;</span>&#160;&laquo;&#160;
+            <a class="evnav module-actions" href="{link action=eventsCalendar time=$prevmonth2}" rel="{$prevmonth2}" title="{$prevmonth2|format_date:"%B %Y"}">{$prevmonth2|format_date:"%b"}</a><span class="hidden-xs">&#160;</span>&#160;&laquo;&#160;
+            <a class="evnav module-actions" href="{link action=eventsCalendar time=$prevmonth}" rel="{$prevmonth}" title="{$prevmonth|format_date:"%B %Y"}">{$prevmonth|format_date:"%b"}</a><span class="hidden-xs">&#160;</span>&#160;&laquo;&#160;<span class="hidden-xs">&#160;&#160;&#160;&#160;</span>
+            <strong><span class="hidden-xs">{$time|format_date:"%B %Y"}</span><span class="visible-xs-inline">{$time|format_date:"%b %Y"}</span></strong><span class="hidden-xs">&#160;</span>&#160;{printer_friendly_link view='showall' text=''}{export_pdf_link view='showall' text=''}<span class="hidden-xs">&#160;&#160;&#160;</span>&#160;&raquo;<span class="hidden-xs">&#160;&#160;</span>
+            <input type='hidden' id='month{$__loc->src|replace:'@':'_'}' value="{$time|format_date:"%Y%m%d"}"/>
+            <a class="evnav module-actions" href="{link action=eventsCalendar time=$nextmonth}" rel="{$nextmonth}" title="{$nextmonth|format_date:"%B %Y"}">{$nextmonth|format_date:"%b"}</a><span class="hidden-xs">&#160;</span>&#160;&raquo;&#160;
+            <a class="evnav module-actions" href="{link action=eventsCalendar time=$nextmonth2}" rel="{$nextmonth2}" title="{$nextmonth2|format_date:"%B %Y"}">{$nextmonth2|format_date:"%b"}</a><span class="hidden-xs">&#160;</span>&#160;&raquo;&#160;
+            <a class="evnav module-actions" href="{link action=eventsCalendar time=$nextmonth3}" rel="{$nextmonth3}" title="{$nextmonth3|format_date:"%B %Y"}">{$nextmonth3|format_date:"%b"}</a>&#160;<span class="hidden-xs">&#160;&raquo;</span>
         </div>
 		<tr class="daysoftheweek">
             {if $config.show_weeks}<th></th>{/if}
 			{if $smarty.const.DISPLAY_START_OF_WEEK == 0}
-			<th scope="col" abbr="{'Sun'|gettext}" title="'Sunday'|gettext}">{'Sunday'|gettext}</th>
-			{/if}
-			<th scope="col" abbr="{'Mon'|gettext}" title="{'Monday'|gettext}">{'Monday'|gettext}</th>
-			<th scope="col" abbr="{'Tue'|gettext}" title="{'Tuesday'|gettext}">{'Tuesday'|gettext}</th>
-			<th scope="col" abbr="{'Wed'|gettext}" title="{'Wednesday'|gettext}">{'Wednesday'|gettext}</th>
-			<th scope="col" abbr="{'Thu'|gettext}" title="{'Thursday'|gettext}">{'Thursday'|gettext}</th>
-			<th scope="col" abbr="{'Fri'|gettext}" title="{'Friday'|gettext}">{'Friday'|gettext}</th>
-			<th scope="col" abbr="{'Sat'|gettext}" title="{'Saturday'|gettext}">{'Saturday'|gettext}</th>
-			{if $smarty.const.DISPLAY_START_OF_WEEK != 0}
-			<th scope="col" abbr="{'Sun'|gettext}" title="{'Sunday'|gettext}">{'Sunday'|gettext}</th>
+            <th scope="col" abbr="{$daynames.med.0}" title="{$daynames.long.0}"><span class="hidden-xs">{$daynames.long.0}</span><span class="visible-xs-inline">{$daynames.med.0}</span></th>
+            {/if}
+            <th scope="col" abbr="{$daynames.med.1}" title="{$daynames.long.1}"><span class="hidden-xs">{$daynames.long.1}</span><span class="visible-xs-inline">{$daynames.med.1}</span></th>
+            <th scope="col" abbr="{$daynames.med.2}" title="{$daynames.long.2}"><span class="hidden-xs">{$daynames.long.2}</span><span class="visible-xs-inline">{$daynames.med.2}</span></th>
+            <th scope="col" abbr="{$daynames.med.3}" title="{$daynames.long.3}"><span class="hidden-xs">{$daynames.long.3}</span><span class="visible-xs-inline">{$daynames.med.3}</span></th>
+            <th scope="col" abbr="{$daynames.med.4}" title="{$daynames.long.4}"><span class="hidden-xs">{$daynames.long.4}</span><span class="visible-xs-inline">{$daynames.med.4}</span></th>
+            <th scope="col" abbr="{$daynames.med.5}" title="{$daynames.long.5}"><span class="hidden-xs">{$daynames.long.5}</span><span class="visible-xs-inline">{$daynames.med.5}</span></th>
+            <th scope="col" abbr="{$daynames.med.6}" title="{$daynames.long.6}"><span class="hidden-xs">{$daynames.long.6}</span><span class="visible-xs-inline">{$daynames.med.6}</span></th>
+            {if $smarty.const.DISPLAY_START_OF_WEEK != 0}
+            <th scope="col" abbr="{$daynames.med.0}" title="{$daynames.long.0}"><span class="hidden-xs">{$daynames.long.0}</span><span class="visible-xs-inline">{$daynames.med.0}</span></th>
 			{/if}
 		</tr>
         {$dayts=$now}
@@ -83,7 +84,7 @@
                                         title="{$title}">
                                         {if $item->expFile.mainimage[0]->url != ""}
                                             <div class="image">
-                                                {img file_id=$item->expFile.mainimage[0]->id alt=$item->image_alt_tag|default:"Image of `$item->title`" title=$title class="large-img" id="enlarged-image" w=92}
+                                                {img file_id=$item->expFile.mainimage[0]->id alt=$item->image_alt_tag|default:"Image of `$item->title`" title=$title w=92 class="img-responsive"}
                                                 {clear}
                                             </div>
                                         {/if}
@@ -123,11 +124,15 @@
 {if $config.lightbox}
 {script unique="shadowbox" jquery='jquery.colorbox'}
 {literal}
-    $('a.calpopevent').click(function(e) {
+    $('.events_calendar.events a.calpopevent').click(function(e) {
         target = e.target;
         $.colorbox({
             href: EXPONENT.PATH_RELATIVE+"index.php?controller=eventregistration&action=show&ajax_action=1&title="+target.id,
-            maxWidth: 650
+            title: target.text + ' - ' + '{/literal}{'Event'|gettext}{literal}',
+            maxWidth: "100%",
+            close:'<i class="fa fa-close" aria-label="close modal"></i>',
+            previous:'<i class="fa fa-chevron-left" aria-label="previous photo"></i>',
+            next:'<i class="fa fa-chevron-right" aria-label="next photo"></i>',
         });
         e.preventDefault();
     });

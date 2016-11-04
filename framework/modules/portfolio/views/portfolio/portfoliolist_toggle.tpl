@@ -1,5 +1,5 @@
 {*
- * Copyright (c) 2004-2014 OIC Group, Inc.
+ * Copyright (c) 2004-2016 OIC Group, Inc.
  *
  * This file is part of Exponent
  *
@@ -51,11 +51,12 @@
                     {if $config.ffloat != "Below"}
                         {filedisplayer view="`$config.filedisplay`" files=$item->expFile record=$item is_listing=1}
                     {/if}
+                    {$link = '<a href="'|cat:makeLink([controller=>portfolio, action=>show, title=>$item->sef_url])|cat:'"><em>'|cat:'(read more)'|gettext|cat:'</em></a>'}
                     {if $config.usebody==1}
                         {*<p>{$item->body|summarize:"html":"paralinks"}</p>*}
-                        <p>{$item->body|summarize:"html":"parahtml"}</p>
+                        <p>{$item->body|summarize:"html":"parahtml":$link}</p>
                     {elseif $config.usebody==3}
-                        {$item->body|summarize:"html":"parapaged"}
+                        {$item->body|summarize:"html":"parapaged":$link}
                     {elseif $config.usebody==2}
                     {else}
                         {$item->body}

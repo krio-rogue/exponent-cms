@@ -1,5 +1,5 @@
 {*
- * Copyright (c) 2004-2014 OIC Group, Inc.
+ * Copyright (c) 2004-2016 OIC Group, Inc.
  *
  * This file is part of Exponent
  *
@@ -38,7 +38,7 @@
     {else}
         {$tag = 'View Panel'|gettext}
     {/if}
-    {showmodule module='container' action="showall" view="showall" source="@flyout_sidebar_`$__loc->src`" scope=$scope chrome=true}
+    {showmodule controller=container action=showall source="@flyout_sidebar_`$__loc->src`" scope=$scope chrome=true}
 </div>
 <a class="triggerlogin {$class} thetop" href="#" title="{'Click to open this panel'|gettext}">{$tag}</a>
 

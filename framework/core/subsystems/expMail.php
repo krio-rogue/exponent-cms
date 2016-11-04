@@ -1,7 +1,7 @@
 <?php
 ##################################################
 #
-# Copyright (c) 2004-2014 OIC Group, Inc.
+# Copyright (c) 2004-2016 OIC Group, Inc.
 #
 # This file is part of Exponent
 #
@@ -30,12 +30,14 @@
  */
 class expMail {
 
+	public $to = null;
+	public $from = null;
+	public $cc = null;
+	public $bcc = null;
+	public $subject = null;
+	private $message = null;  // swiftmailer object
 	private $log = null;
 	private $errStack = null;
-	public $to = null;
-	//public $from = SMTP_FROMADDRESS;
-	public $from = NULL;
-	private $message = null;
 
 	//this is the mail transporter like exim, SMTP, whatever, that is setup in the constructor
 	private $transport = null;
@@ -70,7 +72,6 @@ class expMail {
 	 * @todo add further documentation for using settings other than the system default
 	 */
 	function __construct($params = array()) {
-//		require_once(BASE . 'external/Swift-4/lib/swift_required.php');
 		require_once(SWIFT_PATH . 'swift_required.php');
 
 		if (array_key_exists('method', $params)) {
@@ -78,7 +79,6 @@ class expMail {
 				case "multi":
 					break;
 				case "smtp":
-					//require_once(BASE.'external/Swift-4/Connection/SMTP.php');
 					if (array_key_exists('connections', $params)) {
 						if (is_array($params['connections'])) {
 							//$this->transport = new Swift_Connection_SMTP($params['connections']['host'], $params['connections']['port'], $params['connections']['option']);
@@ -135,7 +135,7 @@ class expMail {
 					//$conn = new Swift_Connection_SMTP($params['connections']['host'], $params['connections']['port'], $params['connections']['option']);
 					$this->transport = Swift_SmtpTransport::newInstance($params['connections']['host'], $params['connections']['port']);
 				} else {
-					$this->transport = Swift_SmtpTransport::newInstance($params['connections']['host'], $params['connections']['port']);
+					$this->transport = Swift_SmtpTransport::newInstance($params['connections']['host'], $params['connections']['port']);  //FIXME won't work since $params['connections'] is NOT array
 				}
 			} else {
 				$this->transport = Swift_SmtpTransport::newInstance(SMTP_SERVER, SMTP_PORT, SMTP_PROTOCOL)
@@ -178,12 +178,13 @@ class expMail {
 	public function test() {
 		try {
 			$this->transport->start();
-			echo ("<h2>Mail Server Test Complete!</h2>We Connected to the Mail Server");
+			echo "<h2>".gt("Mail Server Test Complete!")."</h2>".gt("We Connected to the Mail Server")." - ", SMTP_SERVER;
 		} catch (Swift_TransportException $e) {
-			echo ("<h2>Mail Server Test Failed!</h2>");
+			echo "<h2".gt("Mail Server Test Failed!")."</h2>", SMTP_SERVER;
 			eDebug($e->getMessage());
 		}
 	}
+
 	/**
 	 * quickSend() - This is a quick method for sending email messages.  It only requires a message value be passed in
 	 * an associative array, (or else the message fails immediately).
@@ -230,32 +231,37 @@ class expMail {
     	// set up the to address(es)
 		if (is_array($params['to'])) {
 			$params['to'] = array_filter($params['to']);
-		} elseif (empty($params['to'])) {
-			$params['to'] = SMTP_FROMADDRESS;
 		} else {
-			trim($params['to']);
+			//fixme do we need to check for a comma-delimited list?
+			$params['to'] = array(trim($params['to']));
 		}
-//		$this->message->setTo((array)$params['to']);
-        $this->addTo((array)$params['to']);
+		if (empty($params['to'])) {
+			$params['to'] = array(trim(SMTP_FROMADDRESS)); // default address is ours
+			eLog('ERROR',gt('We didn\'t get a \'to\' address, so we set default'));
+		}
+        $this->addTo($params['to']);
 
     	// set up the from address(es)
 		if (is_array($params['from'])) {
 			$params['from'] = array_filter($params['from']);
-		} elseif (empty($params['from'])) {
-			$params['from'] = SMTP_FROMADDRESS;
 		} else {
-			trim($params['from']);
+			$params['from'] = trim($params['from']);
 		}
-//		$this->message->setFrom((array)$params['from']);  //FIXME we need to use this->addFrom() instead
+		if (empty($params['from'])) {
+			$params['from'] = trim(SMTP_FROMADDRESS); // default address is ours
+		}
         $this->addFrom($params['from']);
 
-		$this->message->setSubject($params['subject'] = !empty($params['subject']) ? $params['subject'] : 'Message from '.SITE_TITLE);
+//		$this->message->setSubject($params['subject'] = !empty($params['subject']) ? $params['subject'] : 'Message from '.SITE_TITLE);  //note we reset subject
+		$this->addSubject($params['subject'] = !empty($params['subject']) ? $params['subject'] : 'Message from '.SITE_TITLE);  //note we reset subject
 
-		if (!empty($params['headers'])) $this->addHeaders($params['headers']);
+		if (!empty($params['headers']))
+			$this->addHeaders($params['headers']);
 
 		if (!empty($params['html_message'])) {
 			$this->setHTMLBody($params['html_message']);
-			if (!empty($params['text_message'])) $this->addText($params['text_message']);
+			if (!empty($params['text_message']))
+				$this->addText($params['text_message']);
 		} elseif (!empty($params['text_message'])) {
 			$this->setTextBody($params['text_message']);
 		}
@@ -266,9 +272,26 @@ class expMail {
 			$numsent = $this->mailer->send($this->message,$failed);
             if (!empty($failed)) {
                 flash('error',gt('Unable to Send Mail to').' - '.implode(', ',$failed));
-            }
+            } elseif (DEVELOPMENT && LOGGER) {
+				$sent = array();
+				foreach ($params['to'] as $address=>$name) {
+					if (is_int($address))
+						$address = $name;
+					$sent[] = $address;
+				}
+				eLog(gt('E-Mail sent to').' - '.implode(', ', $sent));
+			}
 		} catch (Swift_TransportException $e) {
 			flash('error',gt('Sending Mail Failed!').' - '.$e->getMessage());
+			if (DEVELOPMENT && LOGGER) {
+				$sent = array();
+				foreach ($params['to'] as $address=>$name) {
+					if (is_int($address))
+						$address = $name;
+					$sent[] = $address;
+				}
+				eLog('ERROR',gt('E-Mail NOT sent to').' - '.implode(', ', $sent));
+			}
 		}
 		return $numsent;
 	}
@@ -361,31 +384,35 @@ class expMail {
     	// set up the to address(es)
 		if (is_array($params['to'])) {
 			$params['to'] = array_filter($params['to']);
-		} elseif (empty($params['to'])) {
-			$params['to'] = array(SMTP_FROMADDRESS);
 		} else {
 			$params['to'] = array(trim($params['to']));
 		}
-        $this->addTo($params['to']);
+		if (empty($params['to'])) {
+			$params['to'] = array(trim(SMTP_FROMADDRESS)); // default address is ours
+			eLog('ERROR',gt('We didn\'t get a \'to\' address, so we set default'));
+		}
+        $this->addTo($params['to']);  // we only do this to save addresses in our object
 
     	// set up the from address(es)
 		if (is_array($params['from'])) {
 			$params['from'] = array_filter($params['from']);
-		} elseif (empty($params['from'])) {
-			$params['from'] = SMTP_FROMADDRESS;
 		} else {
-			trim($params['from']);
+			$params['from'] = trim($params['from']);
 		}
-//		$this->message->setFrom($params['from']);  //FIXME we need to use this->addFrom() instead
+		if (empty($params['from'])) {
+			$params['from'] = trim(SMTP_FROMADDRESS); // default address is ours
+		}
         $this->addFrom($params['from']);
 
 		$this->addSubject($params['subject'] = !empty($params['subject']) ? $params['subject'] : 'Message from '.SITE_TITLE);
 
-		if (!empty($params['headers'])) $this->addHeaders($params['headers']);
+		if (!empty($params['headers']))
+			$this->addHeaders($params['headers']);
 
 		if (!empty($params['html_message'])) {
 			$this->setHTMLBody($params['html_message']);
-			if (!empty($params['text_message'])) $this->addText($params['text_message']);
+			if (!empty($params['text_message']))
+				$this->addText($params['text_message']);
 		} elseif (!empty($params['text_message'])) {
 			$this->setTextBody($params['text_message']);
 		}
@@ -393,10 +420,18 @@ class expMail {
 		$numsent = 0;
 		foreach ($params['to'] as $address=>$name) {
 			try {
-				$this->message->setTo(array($address=>$name));
+				$this->message->setTo(array($address=>$name));  // make sure we reset the 'to' addresses by using setTo
 				$numsent += $this->send($this->message);
+				if (DEVELOPMENT && LOGGER) {
+					if (is_int($address))
+						$address = $name;
+					eLog(gt('E-Mail sent to') . ' - ' . $address);
+				}
 			} catch (Swift_TransportException $e) {
 				flash('error',gt('Batch Send Mail Failed!').' - '.$address.' - '.$e->getMessage());
+				if (DEVELOPMENT && LOGGER) {
+					eLog('ERROR',gt('Batch E-Mail NOT sent to').' - '.implode(', ', $params['to']));
+				}
 			}
 		}
 		return $numsent;
@@ -439,13 +474,33 @@ class expMail {
 	 *			Path headers are like very-restricted mailbox headers. They contain a single email address with no associated name. The Return-Path header of a message is a path header.
 	 */
 	public function addHeaders($headers) {
-		$headers = $this->message->getHeaders();
+		$current = $this->message->getHeaders();
 		foreach ($headers as $header => $value) {
-			//new SWIFT 4 way
-            $headers->addTextHeader($header, $value);
+			$current->addTextHeader($header, $value);
 		}
 	}
 
+	/**
+	 *  setHTMLBody() - This function sets the main version of the message to HTML.
+	 *
+	 * @author Tyler Smart <tyleresmart@gmail.com>
+	 * @example This will set the message body to the HTML that is passed in. This is the standard way to set the email message body.
+	 *
+	 *	 $emailItem = new expMail();
+	 *
+	 *	 $emailItem->setHTMLBody('<h2>My Text</h2> '); //This sets the body to be an HTML version
+	 *
+	 *	 $emailItem->addTo('myemail@mysite.com');
+	 *	 $emailItem->addFrom('from@sender.com');
+	 *	 $emailItem->subject('Hello World!');
+	 *
+	 *	 $emailItem->send();
+	 *
+	 * @param string $html This is the HTML that you want set as the body
+	 */
+	public function setHTMLBody($html) {
+		$this->message->setBody($html, "text/html");
+	}
 
 	/**
 	 *  addHTML() - This function is similar to setHTMLBody except that it includes the HTML in the message body rather than sets it as default. Many
@@ -483,28 +538,6 @@ class expMail {
 	 */
 	public function addHTML($html) {
 		$this->message->addPart($html, "text/html");
-	}
-
-	/**
-	 *  setHTMLBody() - This function sets the main version of the message to HTML.
-	 *
-	 * @author Tyler Smart <tyleresmart@gmail.com>
-	 * @example This will set the message body to the HTML that is passed in. This is the standard way to set the email message body.
-	 *
-	 *	 $emailItem = new expMail();
-	 *
-	 *	 $emailItem->setHTMLBody('<h2>My Text</h2> '); //This sets the body to be an HTML version
-	 *
-	 *	 $emailItem->addTo('myemail@mysite.com');
-	 *	 $emailItem->addFrom('from@sender.com');
-	 *	 $emailItem->subject('Hello World!');
-	 *
-	 *	 $emailItem->send();
-	 *
-	 * @param string $html This is the HTML that you want set as the body
-	 */
-	public function setHTMLBody($html) {
-		$this->message->setBody($html, "text/html");
 	}
 
 	/**
@@ -630,7 +663,8 @@ class expMail {
         }
         $this->to = $email;
         if (!empty($email)) {
-            $this->message->setTo($email);
+            $this->message->setTo($email);  //fixme this resets the 'to' addresses, unless using $this->message->addTo($email);
+//			$this->message->addTo($email);  //if you need to reset the 'to' addresses, use $this->flushRecipients();
         }
 	}
 
@@ -648,7 +682,7 @@ class expMail {
 	 *
 	 *	$ccs = array('a@website.com'=>'Mr A.', 'b@website.com'=>'Mr B.', 'c@website.com'=>'Mr C.', 'd@website.com'=>'Mr D.', 'e@website.com'=>'Mr E.', 'f@website.com'=>'Mr F.');
 	 *
-	 *	//add multiple bcc recipients to the email
+	 *	//add multiple cc recipients to the email
 	 *	foreach ($ccs as $email => $name)
 	 *	{
 	 *		$emailItem->addCc($email, $name);
@@ -660,10 +694,25 @@ class expMail {
 	 *
 	 *	$emailItem->send();
 	 *
-	 * @param string $email This is the email address for the BCC.
+	 * @param string $email This is the email address for the CC.
 	 * @param string $name  This is the name associated with the above email address.
 	 */
 	public function addCc($email, $name = null) {
+        // attempt to fix a bad to address
+        if (is_array($email)) {
+            foreach ($email as $address=>$name) {
+                if (is_integer($address)) {
+                    if (strstr($name,'.') === false) {
+                        $email[$address] .= $name.'.net';
+                    }
+                }
+            }
+        } else {
+            if (strstr($email,'.') === false) {
+                $email .= '.net';
+            }
+        }
+        $this->cc = $email;
 		$this->message->addCc($email, $name);
 	}
 
@@ -697,6 +746,21 @@ class expMail {
 	 * @param string $name  This is the name associated with the above email address.
 	 */
 	public function addBcc($email, $name = null) {
+        // attempt to fix a bad to address
+        if (is_array($email)) {
+            foreach ($email as $address=>$name) {
+                if (is_integer($address)) {
+                    if (strstr($name,'.') === false) {
+                        $email[$address] .= $name.'.net';
+                    }
+                }
+            }
+        } else {
+            if (strstr($email,'.') === false) {
+                $email .= '.net';
+            }
+        }
+        $this->bcc = $email;
 		$this->message->addBcc($email, $name);
 	}
 
@@ -734,7 +798,7 @@ class expMail {
         }
         $this->from = $email;
         if (!empty($email)) {
-            $this->message->setFrom($email);
+            $this->message->setFrom($email);  //note this is appropriate? or cumulative $this->message->addFrom($email);
         }
 	}
 
@@ -796,6 +860,7 @@ class expMail {
 		if (!is_object($this->message)) {
 			$this->message = new Swift_Message();
 		}
+		$this->subject = $subj;
 		$this->message->setSubject($subj);
 	}
 
@@ -830,7 +895,12 @@ class expMail {
 	 *	 $emailItem->send();
 	 */
 	public function flushRecipients() {
+		$this->to = null;
 		$this->message->setTo(array());
+//		$this->cc = null;
+//		$this->message->setCc(array());
+//		$this->bcc = null;
+//		$this->message->setBcc(array());
 	}
 
 	/**
@@ -865,8 +935,6 @@ class expMail {
 	 * @internal param mixed $file_to_attach This is the data for the file that you want to send, for example, the HTML, CSV, or PDF data
 	 */
 	public function attach_file_not_on_disk($data_to_attach, $file_name, $file_type) {
-//		require_once(BASE . 'external/Swift-4/lib/classes/Swift/Attachment.php');
-
 		//Create the attachment with your data
 		$attachment = Swift_Attachment::newInstance($data_to_attach, $file_name, $file_type);
 
@@ -897,8 +965,6 @@ class expMail {
 	 * @param string  $file_type This is the MIME type of the file that you are attaching
 	 */
 	public function attach_file_on_disk($file_to_attach, $file_type) {
-//		require_once(BASE . 'external/Swift-4/lib/classes/Swift/Attachment.php');
-
 		//Create the attachment with your data
 		$attachment = Swift_Attachment::fromPath($file_to_attach, $file_type);
 

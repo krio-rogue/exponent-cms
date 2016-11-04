@@ -1,7 +1,7 @@
 <?php
 ##################################################
 #
-# Copyright (c) 2004-2014 OIC Group, Inc.
+# Copyright (c) 2004-2016 OIC Group, Inc.
 #
 # This file is part of Exponent
 #
@@ -39,7 +39,7 @@ class expCat extends expRecord {
      */
     public function __construct($params=array()) {
         parent::__construct($params);
-        $this->grouping_sql = " AND module='".$this->module."'";
+        if (!empty($this->module)) $this->grouping_sql = " AND module='".$this->module."'";
     }
 
     /**
@@ -58,7 +58,7 @@ class expCat extends expRecord {
     }
 
     public function beforeSave() {
-        $this->grouping_sql = " AND module='".$this->module."'";
+        if (!empty($this->module)) $this->grouping_sql = " AND module='".$this->module."'";
         parent::beforeSave();
     }
 
@@ -102,12 +102,12 @@ class expCat extends expRecord {
     }
 
     /*
-     * Return array of all expTag records in system
+     * Return array of all expCat records in system
      */
     public static function selectAllCatContentType() {
         global $db;
 
-        return $db->selectColumn('content_expTags','content_type',null,null,true);
+        return $db->selectColumn('content_expCats','content_type',null,null,true);
     }
 
 }

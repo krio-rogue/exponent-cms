@@ -1,7 +1,7 @@
 <?php
 ##################################################
 #
-# Copyright (c) 2004-2014 OIC Group, Inc.
+# Copyright (c) 2004-2016 OIC Group, Inc.
 #
 # This file is part of Exponent
 #
@@ -98,8 +98,8 @@ class expCore
         }
 
         foreach ($params as $key => $value) {
-            $value = chop($value);
-            $key = chop($key);
+            $value = trim($value);
+            $key = trim($key);
             if ($value != "") {
                 $link .= urlencode($key) . "=" . urlencode($value) . "&";
             }
@@ -148,8 +148,8 @@ class expCore
             if (!ENABLE_SSL) return self::makeLink($params);
             $link = SSL_URL .  SCRIPT_RELATIVE . SCRIPT_FILENAME . "?";
             foreach ($params as $key=>$value) {
-                $value = chop($value);
-                $key = chop($key);
+                $value = trim($value);
+                $key = trim($key);
                 if ($value != "") $link .= urlencode($key)."=".urlencode($value)."&";
             }
             $link = substr($link,0,-1);
@@ -174,7 +174,8 @@ class expCore
         } else {
             $sef_name = $router->encode('Untitled');
         }
-        $dupe = $db->selectValue($model, 'sef_name', 'sef_name="' . $sef_name . '"');
+//        $dupe = $db->selectValue($model, 'sef_name', 'sef_name="' . $sef_name . '"');
+        $dupe = $db->selectValue($model, 'sef_url', 'sef_url="' . $sef_name . '"');
         if (!empty($dupe)) {
             list($u, $s) = explode(' ', microtime());
             $sef_name .= '-' . $s . '-' . $u;
@@ -329,6 +330,21 @@ class expCore
     }
 
     /**
+     * Return the amount properly formatted with the currency symbol
+     *
+     * @static
+     *
+     * @param $amount
+     * @param $currency_type
+     *
+     * @return string
+     */
+    public static function getCurrency($amount, $currency_type = ECOM_CURRENCY)
+    {
+        return self::getCurrencySymbol() . number_format($amount,2,".",",");
+    }
+
+    /**
      * Use cUrl to get data from url
      *
      * @static
@@ -416,6 +432,55 @@ class expCore
         return $destination;
     }
 
+    /**
+   	 * Determines if the current version of PHP is equal to or greater than the supplied value
+   	 *
+   	 * @param	string
+   	 * @return	bool	TRUE if the current version is $version or higher
+   	 */
+    public static function is_php($version)
+   	{
+   		static $_is_php;
+   		$version = (string) $version;
+
+   		if ( ! isset($_is_php[$version]))
+   		{
+   			$_is_php[$version] = version_compare(PHP_VERSION, $version, '>=');
+   		}
+
+   		return $_is_php[$version];
+   	}
+
+    public static function array_diff_assoc_recursive($array1, $array2)
+    {
+        foreach($array1 as $key => $value)
+        {
+            if(is_array($value))
+            {
+                  if(!isset($array2[$key]))
+                  {
+                      $difference[$key] = $value;
+                  }
+                  elseif(!is_array($array2[$key]))
+                  {
+                      $difference[$key] = $value;
+                  }
+                  else
+                  {
+                      $new_diff = self::array_diff_assoc_recursive($value, $array2[$key]);
+                      if($new_diff != FALSE)
+                      {
+                            $difference[$key] = $new_diff;
+                      }
+                  }
+              }
+              elseif(!isset($array2[$key]) || $array2[$key] != $value)
+              {
+                  $difference[$key] = $value;
+              }
+        }
+        return !isset($difference) ? 0 : $difference;
+    }
 }
 
 ?>

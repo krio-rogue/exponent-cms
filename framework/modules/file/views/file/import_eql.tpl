@@ -1,5 +1,5 @@
 {*
- * Copyright (c) 2004-2014 OIC Group, Inc.
+ * Copyright (c) 2004-2016 OIC Group, Inc.
  *
  * This file is part of Exponent
  *
@@ -21,7 +21,7 @@
 	</div>
     <div>
         {form action=import_eql_process}
-            {control type=uploader name=file accept=".eql" label=gt('EQL File')}
+            {control type=uploader name=file accept=".eql" label='EQL File'|gettext}
             {control class=uploadfile type=buttongroup submit="Restore"|gettext}
         {/form}
     </div>

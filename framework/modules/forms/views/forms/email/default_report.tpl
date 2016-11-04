@@ -1,5 +1,5 @@
 {*
- * Copyright (c) 2004-2011 OIC Group, Inc.
+ * Copyright (c) 2004-2016 OIC Group, Inc.
  * Written and Designed by James Hunt
  *
  * This file is part of Exponent
@@ -15,7 +15,7 @@
  *}
 
 {if $is_email == 1}
-    <style type="text/css" media="screen">
+    <style type="text/css">
         {$css}
     </style>
 {else}
@@ -36,8 +36,28 @@
         <tbody>
         {foreach from=$fields key=fieldname item=value}
             <tr class="{cycle values="even,odd"}">
-                <td>{$captions[$fieldname]}</td>
-                <td>{$value}</td>
+                <td>
+                    {$captions.$fieldname}
+                </td>
+                <td>
+                    {if $fieldname|lower == 'email' && stripos($value, '<a ') === false}
+                        <a href="mailto:{$value}">{$value}</a>
+                    {elseif $fieldname|lower == 'image'}
+                        {$matches = array()}
+                        {$tmp = preg_match_all('~<a(.*?)href="([^"]+)"(.*?)>~', $value, $matches)}
+                        {$filename1 = $matches.2.0}
+                        {$filename2 = str_replace(URL_BASE, '/', $filename1)}
+                        {$base = str_replace(PATH_RELATIVE, '', BASE)}
+                        {$fileinfo = expFile::getImageInfo($base|cat:$filename2)}
+                        {if $fileinfo.is_image == 1}
+                            {img src=$filename1 w=64 fulllink=1}
+                        {else}
+                            {$value}
+                        {/if}
+                    {else}
+                        {$value}
+                    {/if}
+                </td>
             </tr>
         {/foreach}
         </tbody>

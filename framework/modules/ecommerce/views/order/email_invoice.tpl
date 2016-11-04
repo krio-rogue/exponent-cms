@@ -1,5 +1,5 @@
 {*
- * Copyright (c) 2004-2014 OIC Group, Inc.
+ * Copyright (c) 2004-2016 OIC Group, Inc.
  *
  * This file is part of Exponent
  *
@@ -13,20 +13,22 @@
  *
  *}
 
-<style type="text/css" media="screen">
-    {literal}
-        .address.show span {
-            display:block;
-        }
-        span.pmt-label {
-            color: #555555;
-            display: inline-block;
-            font-weight: bold;
-            padding: 5px;
-            text-align: right;
-            width: 170px;
-        }
-    {/literal}
+<style type="text/css">
+    {*{literal}*}
+        {*.address.show span {*}
+            {*display:block;*}
+        {*}*}
+        {*span.pmt-label,*}
+        {*td.pmt-label {*}
+            {*color: #555555;*}
+            {*display: inline-block;*}
+            {*font-weight: bold;*}
+            {*padding: 5px;*}
+            {*text-align: right;*}
+            {*width: 170px;*}
+        {*}*}
+    {*{/literal}*}
+    {$css}
 </style>
 
 <div id="invoice" style="color:#000000; font-size:100%; position:relative; text-align: left; margin: 0px; padding: 0px;">   
@@ -63,8 +65,14 @@
                     <td style="border:1px solid #DEDEDE;">
                         {if $order->shipped}
                             {$order->shipped|format_date:"%A, %B %e, %Y":"Not Shipped Yet"}
+                            {if $shipping->shippingmethod->delivery}
+                                {br}{'Estimated Delivery Date'|gettext}: {$shipping->shippingmethod->delivery|date_format}
+                            {/if}
                         {else}
                             {"Not Shipped Yet"|gettext}
+                            {if $shipping->shippingmethod->delivery}
+                                {br}{'Estimated Delivery Date'|gettext}: {$shipping->shippingmethod->delivery|date_format}
+                            {/if}
                         {/if}
                     </td>
                 </tr>
@@ -97,62 +105,63 @@
                         {$shipping->shippingmethod->option_title}
                     </td>
                     <td class="div-rows" style="border:1px solid #DEDEDE; text-align:left; vertical-align:top; padding:0.5em;">
-                        <div class="odd">
-                            <span class="pmt-label">
-                                {"Payment Method"|gettext}
-                            </span>
-                            <span class="pmt-value">
-                                {$billing->calculator->getPaymentMethod($billing->billingmethod)}
-                            </span>
-                        </div>
-                        <div class="even">
-                            <span class="pmt-label">
-                                {"Payment Status"|gettext}
-                            </span>
-                            <span class="pmt-value">
-                                {$billing->calculator->getPaymentStatus($billing->billingmethod)}
-                            </span>
-                        </div>
-                        <div class="odd">
-                            <span class="pmt-label">
-                                {"Payment Authorization #"|gettext}
-                            </span>
-                            <span class="pmt-value">
-                                {$billing->calculator->getPaymentAuthorizationNumber($billing->billingmethod)}
-                            </span>
-                        </div>
-                        <div class="even">
-                            <span class="pmt-label">
-                                {"Payment Reference #"|gettext}
-                            </span>
-                            <span class="pmt-value">
-                                {$billing->calculator->getPaymentReferenceNumber($billing->billingmethod->billing_options)}
-                            </span>
-                        </div>
-                        <div class="odd">
-                            <span class="pmt-label">
-                                {"AVS Address Verified"|gettext}
-                            </span>
-                            <span class="pmt-value">
-                                {$billing->calculator->getAVSAddressVerified($billing->billingmethod)}
-                            </span>
-                        </div>
-                        <div class="even">
-                            <span class="pmt-label">
-                                {"AVS ZIP Verified"|gettext}
-                            </span>
-                                <span class="pmt-value">
-                            {$billing->calculator->getAVSZipVerified($billing->billingmethod)}
-                            </span>
-                        </div>
-                        <div class="odd">
-                            <span class="pmt-label">
-                                {"CVV # Matched"|gettext}
-                            </span>
-                            <span class="pmt-value">
-                                {$billing->calculator->getCVVMatched($billing->billingmethod)}
-                            </span>
-                        </div>                       
+                        {$billinginfo}
+                        {*<div class="odd">*}
+                            {*<span class="pmt-label">*}
+                                {*{"Payment Method"|gettext}*}
+                            {*</span>*}
+                            {*<span class="pmt-value">*}
+                                {*{$billing->calculator->getPaymentMethod($billing->billingmethod)}*}
+                            {*</span>*}
+                        {*</div>*}
+                        {*<div class="even">*}
+                            {*<span class="pmt-label">*}
+                                {*{"Payment Status"|gettext}*}
+                            {*</span>*}
+                            {*<span class="pmt-value">*}
+                                {*{$billing->calculator->getPaymentStatus($billing->billingmethod)}*}
+                            {*</span>*}
+                        {*</div>*}
+                        {*<div class="odd">*}
+                            {*<span class="pmt-label">*}
+                                {*{"Payment Authorization #"|gettext}*}
+                            {*</span>*}
+                            {*<span class="pmt-value">*}
+                                {*{$billing->calculator->getPaymentAuthorizationNumber($billing->billingmethod)}*}
+                            {*</span>*}
+                        {*</div>*}
+                        {*<div class="even">*}
+                            {*<span class="pmt-label">*}
+                                {*{"Payment Reference #"|gettext}*}
+                            {*</span>*}
+                            {*<span class="pmt-value">*}
+                                {*{$billing->calculator->getPaymentReferenceNumber($billing->billingmethod)}*}
+                            {*</span>*}
+                        {*</div>*}
+                        {*<div class="odd">*}
+                            {*<span class="pmt-label">*}
+                                {*{"AVS Address Verified"|gettext}*}
+                            {*</span>*}
+                            {*<span class="pmt-value">*}
+                                {*{$billing->calculator->getAVSAddressVerified($billing->billingmethod)}*}
+                            {*</span>*}
+                        {*</div>*}
+                        {*<div class="even">*}
+                            {*<span class="pmt-label">*}
+                                {*{"AVS ZIP Verified"|gettext}*}
+                            {*</span>*}
+                                {*<span class="pmt-value">*}
+                            {*{$billing->calculator->getAVSZipVerified($billing->billingmethod)}*}
+                            {*</span>*}
+                        {*</div>*}
+                        {*<div class="odd">*}
+                            {*<span class="pmt-label">*}
+                                {*{"CVV # Matched"|gettext}*}
+                            {*</span>*}
+                            {*<span class="pmt-value">*}
+                                {*{$billing->calculator->getCVVMatched($billing->billingmethod)}*}
+                            {*</span>*}
+                        {*</div>                       *}
                     </td>
                 </tr>
             </tbody>
@@ -241,7 +250,7 @@
                </tr>
             </thead>
             <tbody>
-                <tr class="even">
+                <tr class="{cycle values="odd, even"}">
                     <td style="border:1px solid #DEDEDE;">
                         {"Subtotal"|gettext}
                     </td>
@@ -252,7 +261,7 @@
                     </td>
                 </tr>
                  {if isset($order->order_discounts[0]) && $order->order_discounts[0]->isCartDiscount()} 
-                 <tr class="odd">
+                 <tr class="{cycle values="odd, even"}">
                     <td style="border:1px solid #DEDEDE;">
                         {"Total Discounts (Code"|gettext}: {$order->order_discounts[0]->coupon_code})
                     </td>
@@ -262,7 +271,7 @@
                     <td style="text-align:right; border:1px solid #DEDEDE;  border-left:0px;">-{$order->total_discounts|number_format:2}
                     </td>
                 </tr>
-                <tr class="even">
+                <tr class="{cycle values="odd, even"}">
                     <td style="border:1px solid #DEDEDE;">
                         {"Total"|gettext}
                     </td>
@@ -272,8 +281,9 @@
                     <td style="text-align:right; border:1px solid #DEDEDE;  border-left:0px;">{$order->total|number_format:2}
                     </td>
                 </tr>   
-                 {/if}
-                  <tr class="odd">
+                {/if}
+                {if !$order->shipping_taxed}
+                  <tr class="{cycle values="odd, even"}">
                     <td width="90%" style="border:1px solid #DEDEDE;">
                         {"Tax"|gettext|cat:" - "}
                         {foreach from=$order->taxzones item=zone}
@@ -287,8 +297,9 @@
                     </td>
                     <td style="text-align:right; border:1px solid #DEDEDE; border-left:0px;">{$order->tax|number_format:2}
                     </td>
-                </tr>   
-                <tr class="even">
+                </tr>
+                {/if}
+                <tr class="{cycle values="odd, even"}">
                     <td style="border:1px solid #DEDEDE;">
                         {if isset($order->order_discounts[0]) && $order->order_discounts[0]->isShippingDiscount()} 
                             {"Shipping & Handling (Discount Code"|gettext}: {$order->order_discounts[0]->coupon_code})
@@ -303,7 +314,7 @@
                     </td>
                 </tr>
                 {if $order->surcharge_total != 0}
-                    <tr class="even">
+                    <tr class="{cycle values="odd, even"}">
                         <td style="border:1px solid #DEDEDE;">
                             {"Freight Surcharge"|gettext}
                         </td>
@@ -314,7 +325,24 @@
                         </td>
                     </tr>
                 {/if}
-                <tr class="odd">
+                {if $order->shipping_taxed}
+                  <tr class="{cycle values="odd, even"}">
+                    <td width="90%" style="border:1px solid #DEDEDE;">
+                        {"Tax"|gettext|cat:" - "}
+                        {foreach from=$order->taxzones item=zone}
+                            {$zone->name} ({$zone->rate}%)
+                        {foreachelse}
+                            ({"Not Required"|gettext})
+                        {/foreach}
+                    </td>
+                    <td style="border:1px solid #DEDEDE; border-right:0px;">
+                        {currency_symbol}
+                    </td>
+                    <td style="text-align:right; border:1px solid #DEDEDE; border-left:0px;">{$order->tax|number_format:2}
+                    </td>
+                </tr>
+                {/if}
+                <tr class="{cycle values="odd, even"}">
                     <td style="border:1px solid #DEDEDE;">
                         {"Order Total"|gettext}
                     </td>

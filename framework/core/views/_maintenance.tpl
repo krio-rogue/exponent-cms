@@ -1,5 +1,5 @@
 {*
- * Copyright (c) 2004-2014 OIC Group, Inc.
+ * Copyright (c) 2004-2016 OIC Group, Inc.
  *
  * This file is part of Exponent
  *
@@ -19,7 +19,7 @@
         <meta http-equiv="Content-Type" content="text/html; charset={$smarty.const.LANG_CHARSET}"/>
         <meta name="Generator" content="Exponent Content Management System - v{expVersion::getVersion(true)}"/>
         <title>{$smarty.const.SITE_TITLE} :: {'Down for Maintenance.'|gettext}</title>
-        <style media="screen" type="text/css">
+        <style type="text/css" media="screen">
             html {
                 background : #397993;
                 text-align : left;
@@ -47,16 +47,29 @@
                 border-radius         : 12px;
             }
         </style>
+        <!-- MINIFY REPLACE -->
     </head>
     <body>
         <div class="box">
             {$smarty.const.MAINTENANCE_MSG_HTML}
+            {if $smarty.const.MAINTENANCE_USE_RETURN_TIME && $smarty.const.MAINTENANCE_RETURN_TIME > time()}
+                {*{assocarray}*}
+                    {*prm: [*}
+                        {*count: $smarty.const.MAINTENANCE_RETURN_TIME*}
+                        {*title: $smarty.const.MAINTENANCE_RETURN_TEXT*}
+                    {*]*}
+                {*{/assocarray}*}
+                {$prm = ["count" => $smarty.const.MAINTENANCE_RETURN_TIME, "title" => $smarty.const.MAINTENANCE_RETURN_TEXT]}
+                {showmodule controller=countdown action=show view=show_circles params=$prm}
+            {/if}
             {if $db_down}
                 <h3 style="color:red">{'Database is currently Off-line!'|gettext}</h3>
+            {elseif $login}
+                {* NOTE no database, so we can't log on! *}
+                {showmodule controller=login action=showlogin view=showlogin_stacked moduletitle="Administrators Login"|gettext}
             {/if}
-            <h3>{'Administrator Login'|gettext}</h3>
-            {chain controller=login action=showlogin view=showlogin_stacked title="Administrators Login"|gettext}
         </div>
         <div style="float:right;">{'Powered by'|gettext} <a style="color:black;" href="http://www.exponentcms.org">ExponentCMS</a></div>
+        {expTheme::foot()}  {* NOTE we need to output css & javascript *}
     </body>
 </html>

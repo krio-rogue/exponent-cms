@@ -14,6 +14,7 @@ class mp3file
     protected $fd;
     protected $bitpos;
     protected $mp3data;
+
     public function __construct($filename)
     {
         $this->powarr  = array(0=>1,1=>2,2=>4,3=>8,4=>16,5=>32,6=>64,7=>128);
@@ -25,6 +26,8 @@ class mp3file
         $this->fd = fopen($filename,'rb');
         $this->prefetchblock();
         $this->readmp3frame();
+//        $this->get_meta_tags();
+        $this->mp3_get_tags();
     }
     public function __destruct()
     {
@@ -337,7 +340,271 @@ class mp3file
     //-----------------------------------------------------------------------------
     public static function seconds_to_mmss($duration)
     {
-        return sprintf("%d:%02d", ($duration /60), $duration %60 );
+        $trailSeconds = $duration % 60;
+       	$minutes = floor($duration / 60);
+       	if ($minutes >= 60) {
+       		$hour = floor($minutes / 60);
+       		$minutes = $minutes % 60;
+//       		return $hour . ':' . $minutes . ':' . $trailSeconds;
+            return sprintf("%02d:%02d:%02d", $hour, $minutes, $trailSeconds);
+       	} else {
+//            return $minutes . ':' . $trailSeconds;
+            return sprintf("%02d:%02d", $minutes, $trailSeconds);
+       	}
     }
+
+    // Get ID3 meta tags
+
+    protected function get_meta_tags() {
+        $this->mp3data = array_merge($this->mp3data, $this->getTagsInfo($this->getTagsInfo()));
+    }
+
+    // variables
+    var $aTV23 = array( // array of possible sys tags (for last version of ID3)
+        'TIT2',
+        'TALB',
+        'TPE1',
+        'TPE2',
+        'TRCK',
+        'TYER',
+        'TLEN',
+        'USLT',
+        'TPOS',
+        'TCON',
+        'TENC',
+        'TCOP',
+        'TPUB',
+        'TOPE',
+        'WXXX',
+        'COMM',
+        'TCOM'
+    );
+    var $aTV23t = array( // array of titles for sys tags
+        'Title',
+        'Album',
+        'Author',
+        'AlbumAuthor',
+        'Track',
+        'Year',
+        'Length',
+        'Lyric',
+        'Desc',
+        'Genre',
+        'Encoded',
+        'Copyright',
+        'Publisher',
+        'OriginalArtist',
+        'URL',
+        'Comments',
+        'Composer'
+    );
+    var $aTV22 = array( // array of possible sys tags (for old version of ID3)
+        'TT2',
+        'TAL',
+        'TP1',
+        'TRK',
+        'TYE',
+        'TLE',
+        'ULT'
+    );
+    var $aTV22t = array( // array of titles for sys tags
+        'Title',
+        'Album',
+        'Author',
+        'Track',
+        'Year',
+        'Length',
+        'Lyric'
+    );
+
+    // functions
+    function getTagsInfo() {
+        // read source file
+        $iFSize = $this->mp3data['Filesize'];
+        fseek($this->fd,0);
+        $sSrc = fread($this->fd,$iFSize);
+        $aInfo = array();
+
+        // obtain base info
+        if (substr($sSrc,0,3) == 'ID3') {
+//            $aInfo['FileName'] = $sFilepath;
+            $aInfo['ID3Version'] = hexdec(bin2hex(substr($sSrc,3,1))).'.'.hexdec(bin2hex(substr($sSrc,4,1)));
+        } else {
+            return $aInfo;
+        }
+
+        // passing through possible tags of idv2 (v3 and v4)
+        if ($aInfo['ID3Version'] == '4.0' || $aInfo['ID3Version'] == '3.0') {
+            for ($i = 0; $i < count($this->aTV23); $i++) {
+                if (strpos($sSrc, $this->aTV23[$i].chr(0)) != FALSE) {
+
+                    $s = '';
+                    $iPos = strpos($sSrc, $this->aTV23[$i].chr(0));
+                    $iLen = hexdec(bin2hex(substr($sSrc,($iPos + 5),3)));
+
+                    $data = substr($sSrc, $iPos, 9 + $iLen + 1);
+                    for ($a = 0; $a < strlen($data); $a++) {
+                        $char = substr($data, $a, 1);
+                        if ($char >= ' ' && $char <= '~')
+                            $s .= $char;
+                    }
+                    if (substr($s, 0, 4) == $this->aTV23[$i]) {
+                        $iSL = 4;
+                        if ($this->aTV23[$i] == 'USLT') {
+                            $iSL = 7;
+//                        } elseif ($this->aTV23[$i] == 'TALB') {
+//                            $iSL = 5;
+                        } elseif ($this->aTV23[$i] == 'COMM') {
+                            $iSL = 8;
+                        } elseif ($this->aTV23[$i] == 'TENC') {
+                            $iSL = 6;
+                        }
+                        $aInfo[$this->aTV23t[$i]] = substr($s, $iSL);
+                    }
+                }
+            }
+        }
+
+        // passing through possible tags of idv2 (v2)
+        if($aInfo['ID3Version'] == '2.0') {
+            for ($i = 0; $i < count($this->aTV22); $i++) {
+                if (strpos($sSrc, $this->aTV22[$i].chr(0)) != FALSE) {
+
+                    $s = '';
+                    $iPos = strpos($sSrc, $this->aTV22[$i].chr(0));
+                    $iLen = hexdec(bin2hex(substr($sSrc,($iPos + 3),3)));
+
+                    $data = substr($sSrc, $iPos, 6 + $iLen);
+                    for ($a = 0; $a < strlen($data); $a++) {
+                        $char = substr($data, $a, 1);
+                        if ($char >= ' ' && $char <= '~')
+                            $s .= $char;
+                    }
+
+                    if (substr($s, 0, 3) == $this->aTV22[$i]) {
+                        $iSL = 3;
+                        if ($this->aTV22[$i] == 'ULT') {
+                            $iSL = 6;
+                        }
+                        $aInfo[$this->aTV22t[$i]] = substr($s, $iSL);
+                    }
+                }
+            }
+        }
+        return $aInfo;
+    }
+
+    function mp3_get_tags()
+    {
+    	// http://www.seabreezecomputers.com/tips/mp3_id3_tag.htm
+    	$id3_tags = array(); // Function returns an array of id3 mp3 tags for $file
+
+        // Look for ID3v2 - http://id3.org/id3v2.3.0 or http://id3.org/id3v2.4.0-frames
+        $tags_array = array( // first ID3v2.3 and ID3v2.4 tags
+                            'TIT2' => 'title', 'TALB' => 'album', 'TPE1' => 'artist',
+                            'TYER' => 'year', 'COMM' => 'comment', 'TCON' => 'genre', 'TLEN' => 'length',
+                            // second ID3v2.2 tags - http://id3.org/id3v2-00
+                            'TT2' => 'title', 'TAL' => 'album', 'TP1' => 'artist',
+                            'TYE' => 'year', 'TCO' => 'genre', 'TLE' => 'length'
+                            );
+        $null = chr(0); // the stop bit or null in ID3 tags is the first ASCII character or chr(0)
+        fseek($this->fd,0);  // set file pointer back to beginning
+        $data = fread($this->fd, 10); // 10 = Size of header - http://id3.org/id3v2.4.0-structure
+        if (substr($data,0,3) == 'ID3') // If first 3 bytes == "ID3"
+        {
+            $id3_major_version = hexdec(bin2hex(substr($data,3,1)));
+            $id3_tags["id3_tag_version"] = "2.".$id3_major_version;
+            $id3_revision = hexdec(bin2hex(substr($data,4,1)));
+            $id3_flags = decbin(ord(substr($data,5,1))); // 8 flag bits (first 4 may be set)
+            $id3_flags = str_pad($id3_flags, 8, 0, STR_PAD_LEFT);
+            $footer_flag = $id3_flags[3]; // footer flag is 4th flag bit
+            // Calculate size of header including all tags and extended header and footer
+            $mb_size = ord(substr($data,6,1)); // each number here is equal to 2 Megabytes
+            $kb_size = ord(substr($data,7,1)); // each number here is equal to 16 Kilobytes
+            $byte128_size = ord(substr($data,8,1)); // each number here is equal to 128 Bytes
+            $byte_size = ord(substr($data,9,1)); // each number here is equal to 1 Byte
+            $total_size = ($mb_size * 2097152) + ($kb_size * 16384) + ($byte128_size * 128) + $byte_size;
+            //fseek($handle, 0, SEEK_SET); // Read file from beginning // Version 2.0 - Removed all fseek for remote file support
+            //$data = fread($handle, 10 + $total_size + ($footer_flag * 10));
+            $data .= stream_get_contents($this->fd, $total_size + ($footer_flag * 10)); // Version 2.0 - Using stream_get_contents instead of fread // Version 2.0a - Removed extra 10 + before $total_size
+            foreach ($tags_array as $key => $value)
+            {
+                if ($id3_major_version == 3 || $id3_major_version == 4)
+                    $tag_header_length = 10;
+                else // if ($id3_major_version == 2)
+                    $tag_header_length = 6;
+                if ($tag_pos = strpos($data, $key.$null))
+                {
+                    $tag_abbr = trim(substr($data, $tag_pos, 4)); // tag abbreviation
+                    $content_length = hexdec(bin2hex(substr($data, $tag_pos + ($tag_header_length/2),3)));
+                    $content = trim(substr($data, $tag_pos + $tag_header_length, $content_length));
+                    $tag_content = "";
+                    for ($i = 0; $i < strlen($content); $i++)
+                        if($content[$i] >= " " && $content[$i] <= "~") $tag_content .= $content[$i];
+                    $id3_tags[$value] = $tag_content; // Ex: $id3_tags['title'] = "Song Title";
+                    if ($value == 'comment')
+                        $id3_tags[$value] = substr($id3_tags[$value], 3);  // skip over language
+                }
+            }
+            if ($id3_major_version != 2) // Version 2.0
+                $data = ""; // wipe out data so we only add to it if it is ID3v1 below with: $data .= fread($handle, 10);
+            //else // ID3v1
+            //	fseek($handle, 0, SEEK_SET); // Read file from beginning // Version 2.0 - Removed all fseek for remote file support
+        }
+
+    	// Look for ID3v1 - http://id3.org/ID3v1
+    	if (!isset($id3_major_version)) // if we didn't alreay find ID3v2 v3 or v4 tags
+    	{
+    		$id3_tags["id3_tag_version"] = 1; // Version 2.0
+    		while (!feof($this->fd))
+    		{
+    			//$data .= fread($handle, 128);
+    			$data .= stream_get_contents($this->fd, 128); // Version 2.0 - Using stream_get_contents instead of fread
+
+    		}
+    		$data = substr($data, -128);  // Get just last 128 bytes of file
+    		if(substr($data, 0, 3) == "TAG") // If first 3 bytes == "TAG"
+    		{
+    			$id3_tags["title"] = trim(substr($data, 3, 30));
+    			$id3_tags["artist"] = trim(substr($data, 33, 30));
+    			$id3_tags["album"] = trim(substr($data, 63, 30));
+    			$id3_tags["year"] = trim(substr($data, 93, 4));
+    			$id3_tags["comment"] = trim(substr($data, 97, 30));
+    			$id3_tags["genre"] = ord(trim(substr($data, 127, 1))); // http://www.sno.phy.queensu.ca/~phil/exiftool/TagNames/ID3.html
+    		}
+    	}
+
+        $this->mp3data = array_merge($this->mp3data, $id3_tags);
+    } // end function mp3_get_tags($file)
+
+    function mp3_get_genre_name($genre_id)
+    {
+    	// See: http://www.sno.phy.queensu.ca/~phil/exiftool/TagNames/ID3.html
+    	$genre_names = array("Blues", "Classic Rock", "Country", "Dance", "Disco", "Funk", "Grunge", "Hip-Hop", "Jazz", "Metal", "New Age", "Oldies", "Other", "Pop", "R&B", "Rap", "Reggae", "Rock", "Techno", "Industrial", "Alternative", "Ska", "Death Metal", "Pranks", "Soundtrack", "Euro-Techno", "Ambient", "Trip-Hop", "Vocal", "Jazz+Funk", "Fusion", "Trance", "Classical", "Instrumental", "Acid", "House", "Game", "Sound Clip", "Gospel", "Noise", "Alt. Rock", "Bass", "Soul", "Punk", "Space", "Meditative", "Instrumental Pop", "Instrumental Rock", "Ethnic", "Gothic", "Darkwave", "Techno-Industrial", "Electronic", "Pop-Folk", "Eurodance", "Dream", "Southern Rock", "Comedy", "Cult", "Gangsta Rap", "Top 40", "Christian Rap", "Pop/Funk", "Jungle", "Native American", "Cabaret", "New Wave", "Psychedelic", "Rave", "Showtunes", "Trailer", "Lo-Fi", "Tribal", "Acid Punk", "Acid Jazz", "Polka", "Retro", "Musical", "Rock & Roll", "Hard Rock", "Folk", "Folk-Rock", "National Folk", "Swing", "Fast-Fusion", "Bebop", "Latin", "Revival", "Celtic", "Bluegrass", "Avantgarde", "Gothic Rock", "Progressive Rock", "Psychedelic Rock", "Symphonic Rock", "Slow Rock", "Big Band", "Chorus", "Easy Listening", "Acoustic", "Humour", "Speech", "Chanson", "Opera", "Chamber Music", "Sonata", "Symphony", "Booty Bass", "Primus", "Porn Groove", "Satire", "Slow Jam", "Club", "Tango", "Samba", "Folklore", "Ballad", "Power Ballad", "Rhythmic Soul", "Freestyle", "Duet", "Punk Rock", "Drum Solo", "A Cappella", "Euro-House", "Dance Hall", "Goa", "Drum & Bass", "Club-House", "Hardcore", "Terror", "Indie", "BritPop", "Afro-Punk", "Polsk Punk", "Beat", "Christian Gangsta Rap", "Heavy Metal", "Black Metal", "Crossover", "Contemporary Christian", "Christian Rock", "Merengue", "Salsa", "Thrash Metal", "Anime", "JPop", "Synthpop", "Abstract", "Art Rock", "Baroque", "Bhangra", "Big Beat", "Breakbeat", "Chillout", "Downtempo", "Dub", "EBM", "Eclectic", "Electro", "Electroclash", "Emo", "Experimental", "Garage", "Global", "IDM", "Illbient", "Industro-Goth", "Jam Band", "Krautrock", "Leftfield", "Lounge", "Math Rock", "New Romantic", "Nu-Breakz", "Post-Punk", "Post-Rock", "Psytrance", "Shoegaze", "Space Rock", "Trop Rock", "World Music", "Neoclassical", "Audiobook", "Audio Theatre", "Neue Deutsche Welle", "Podcast", "Indie Rock", "G-Funk", "Dubstep", "Garage Rock", "Psybient");
+    	/* According to http://id3.org/id3v2.3.0#Text_information_frames:
+    		"Several references can be made in the same frame, e.g. "(51)(39)" */
+    	$genres = explode(")", $genre_id);
+    	$n = 1;
+        $genre_string = '';
+    	foreach($genres as $genre_num)
+    	{
+    			$genre_num = str_replace("(", "", str_replace(")", "", $genre_num)); // remove ( and )
+    			if ($n > 1 && !empty($genre_num))
+    				$genre_string .= ","; // Separate multiple genres by ,
+    			if (is_numeric($genre_num))
+    			{
+    				if ($genre_num >= 0 && $genre_num <= 191)
+    					$genre_string .= $genre_names[$genre_num];
+    				else
+    					$genre_string .= "None"; // 255 = None
+    			}
+    			else
+    				$genre_string .= $genre_num;
+    		$n++;
+    	}
+    	return($genre_string);
+    } // end function mp3_get_genre_name()
+
 }
+
 ?>

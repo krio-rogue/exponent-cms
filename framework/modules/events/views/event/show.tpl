@@ -1,5 +1,5 @@
 {*
- * Copyright (c) 2004-2014 OIC Group, Inc.
+ * Copyright (c) 2004-2016 OIC Group, Inc.
  *
  * This file is part of Exponent
  *
@@ -23,25 +23,31 @@
 <div class="module events show">
     <div class="vevent">
 	<div class="module-actions">
-		{icon class="dayviewlink" action=showall view=showall_Day time=$eventstart title='View Entire Day'|gettext text='View Day'|gettext}
-        &#160;&#160;|&#160;&#160;
-		{icon class="weekviewlink" action=showall view=showall_Week time=$eventstart title='View Entire Week'|gettext text='View Week'|gettext}
-        &#160;&#160;|&#160;&#160;
-		{icon class="monthviewlink" action=showall time=$eventstart title='View Entire Month'|gettext text='View Month'|gettext}
-		{printer_friendly_link text='Printer-friendly'|gettext prepend='&#160;&#160;|&#160;&#160;'}
-        {export_pdf_link prepend='&#160;&#160;|&#160;&#160;'}
+        {if !$config.disable_links}
+            {icon class="dayviewlink" action=showall view=showall_Day time=$eventstart title='View Entire Day'|gettext text='View Day'|gettext}
+            {if !bs()}
+                {nbsp count=2}|{nbsp count=2}
+            {/if}
+            {icon class="weekviewlink" action=showall view=showall_Week time=$eventstart title='View Entire Week'|gettext text='View Week'|gettext}
+            {if !bs()}
+                {nbsp count=2}|{nbsp count=2}
+            {/if}
+            {icon class="monthviewlink" action=showall time=$eventstart title='View Entire Month'|gettext text='View Month'|gettext}
+        {/if}
+		{printer_friendly_link text='Printer-friendly'|gettext prepend='&#160;&#160;|&#160;&#160;'|not_bs}
+        {export_pdf_link prepend='&#160;&#160;|&#160;&#160;'|not_bs}
         {br}
 	</div>
     {if !empty($item->expFile[0]->url)}
         <div class="image photo" style="margin: 1em 0;padding:10px;float:left;overflow: hidden;">
-            {img file_id=$item->expFile[0]->id title="`$item->title`" class="large-img" id="enlarged-image"}
+            {img file_id=$item->expFile[0]->id title="`$item->title`" w=128}
             {clear}
         </div>
     {/if}
     {if $item->is_cancelled}<h2 class="cancelled-label">{'This Event Has Been Cancelled!'|gettext}</h2>{/if}
 	<h2{if $item->is_cancelled} class="cancelled"{/if}>
-        {ical_link}
         <div><span class="summary">
+        {ical_link}
 		{$item->title}
         </span></div>
 	</h2>

@@ -1,5 +1,5 @@
 {*
- * Copyright (c) 2004-2014 OIC Group, Inc.
+ * Copyright (c) 2004-2016 OIC Group, Inc.
  *
  * This file is part of Exponent
  *
@@ -48,13 +48,14 @@
             <p>{'You\'ve got'|gettext} <strong>{$order->orderitem|@count}</strong> item{if $order->orderitem|@count > 1}s{/if} {'in your cart.'|gettext} {br}
             <a id="expandcart" href="#" class="fox-link">{'Show them?'|gettext}<span></span></a></p>
             <div id="shoppingcartwrapper">
-                {chain controller=cart action=show view=show_quickpay_donation_cart}
+                {*{chain controller=cart action=quickpay_donation_cart}*}
+                {showmodule controller=cart action=quickpay_donation_cart}
             </div>
         </div>
         {control type="buttongroup" submit="Submit"|gettext cancel="Cancel"|gettext}
     {/form}
 </div>
 
-{script unique="shoppingcartcheckout" yuimodules="animation,container,json" src="`$smarty.const.JS_RELATIVE`exp-ecomcheckout.js"}
+{script unique="shoppingcartcheckout" yui3mods=1 src="`$smarty.const.JS_RELATIVE`exp-ecomcheckout.js"}
 
 {/script}

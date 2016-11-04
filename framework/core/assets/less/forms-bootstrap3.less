@@ -126,23 +126,23 @@ input.radio, input.checkbox {
 //	width : 214px;
 //}
 
-li [class^="fa-"],
-li [class*=" fa-"],
-li .fa-lg[class^="fa-"],
-li .fa-lg[class*=" fa-"] {
-	width: auto;
-}
+//li [class^="fa-"],
+//li [class*=" fa-"],
+//li .fa-lg[class^="fa-"],
+//li .fa-lg[class*=" fa-"] {
+//	width: auto;
+//}
 
 input:focus:invalid,
 textarea:focus:invalid,
-select:focus:invalid, {
+select:focus:invalid {
 	color: #b94a48;
 	border: 1px solid #ee5f5b;
 }
 
 input:focus:invalid:focus,
 textarea:focus:invalid:focus,
-select:focus:invalid:focus, {
+select:focus:invalid:focus {
 	border-color: #e9322d;
 	box-shadow: 0 0 2px #ce1a15;
 	-moz-box-shadow: 0 0 2px #ce1a15;
@@ -181,7 +181,7 @@ a.fa-sort,
 .add-to-cart-btn,
 .add-to-cart-btn a,
 .add-to-cart-btn button {
-	line-height: 2.4;
+//	line-height: 2.4;
 }
 
 .add-to-cart-btn.input button {
@@ -193,7 +193,7 @@ a.fa-sort,
 //	z-index: 999;
 	color: #000000;
 	background: white;
-	margin-top: 3px;
+	margin-top: 8px;
 }
 
 .alt-body {
@@ -227,9 +227,9 @@ a.fa-sort,
 	margin-bottom: 5px
 }
 
-.label {
-	color: #000000;
-}
+//.label {
+//	color: #000000;
+//}
 
 input.tagit-hidden-field {
 	display: none !important;
@@ -252,4 +252,17 @@ input.tagit-hidden-field {
 
 .additional.thumbnails img.thumbnail {
 	margin-bottom: 0;
+}
+
+.tagpicker .bootstrap-tagsinput {
+	width: 100%;
+}
+
+.tagpicker label {
+	display: block;
+}
+
+.datetime-control .bootstrap-datetimepicker-widget {
+	border: #ccc solid 1px;
+	.border-radius(4px)
 }

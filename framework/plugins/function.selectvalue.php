@@ -2,7 +2,7 @@
 
 ##################################################
 #
-# Copyright (c) 2004-2014 OIC Group, Inc.
+# Copyright (c) 2004-2016 OIC Group, Inc.
 #
 # This file is part of Exponent
 #
@@ -38,8 +38,15 @@ function smarty_function_selectvalue($params,&$smarty) {
 	
 	if (empty($params['field']) || empty($params['table'])) return false;
 	
-	$where = isset($params['where']) ? $params['where'] : null;	
-	return $db->selectValue($params['table'], $params['field'], $params['where']);
+	$where = isset($params['where']) ? $params['where'] : null;
+    $val = $db->selectValue($params['table'], $params['field'], $params['where']);
+
+    if (!empty($params['assign'])) {
+        $smarty->assign($params['assign'], $val);
+    } else {
+        return $val;
+    }
+
 }
 
 ?>

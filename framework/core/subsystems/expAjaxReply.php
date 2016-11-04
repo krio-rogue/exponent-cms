@@ -1,7 +1,7 @@
 <?php
 ##################################################
 #
-# Copyright (c) 2004-2014 OIC Group, Inc.
+# Copyright (c) 2004-2016 OIC Group, Inc.
 #
 # This file is part of Exponent
 #
@@ -29,7 +29,7 @@ class expAjaxReply {
 	public $redirecturl = null;
 
 	public function __construct($replyCode=200, $replyText='Ok', $data=null, $redirecturl=null) {
-		$this->packet = $this->makePacket($replyCode, $replyText, $data);
+		$this->packet = self::makePacket($replyCode, $replyText, $data);
 		$this->redirecturl = $redirecturl;
 	}
 
@@ -41,7 +41,7 @@ class expAjaxReply {
 		} else {
 			if ($p = expJavascript::requiresJSON()) {
 				if ($p==='jsonp') {
-					echo $_GET['callback'] . '(' . json_encode($this->packet) . ')';
+					echo expString::sanitize($_GET['callback']) . '(' . json_encode($this->packet) . ')';
 				} else {
 					echo json_encode($this->packet);
 				}

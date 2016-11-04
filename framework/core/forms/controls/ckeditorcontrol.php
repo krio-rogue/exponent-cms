@@ -2,7 +2,7 @@
 
 ##################################################
 #
-# Copyright (c) 2004-2014 OIC Group, Inc.
+# Copyright (c) 2004-2016 OIC Group, Inc.
 #
 # This file is part of Exponent
 #
@@ -31,6 +31,7 @@ class ckeditorcontrol extends formcontrol {
     var $cols;
     var $maxchars;
     var $toolbar;
+    var $tb_collapsed = false;
 
     static function name() {
         return "CKEditor";
@@ -49,15 +50,20 @@ class ckeditorcontrol extends formcontrol {
         global $user;
 
         $contentCSS = '';
-        $cssabs     = BASE . 'themes/' . DISPLAY_THEME . '/editors/ckeditor/ckeditor.css';
-        $css        = PATH_RELATIVE . 'themes/' . DISPLAY_THEME . '/editors/ckeditor/ckeditor.css';
+        $css        = 'themes/' . DISPLAY_THEME . '/editors/ckeditor/ckeditor.css';
         if (THEME_STYLE != "" && is_file(BASE . 'themes/' . DISPLAY_THEME . '/editors/ckeditor/ckeditor_' . THEME_STYLE . '.css')) {
-            $cssabs = BASE . 'themes/' . DISPLAY_THEME . '/editors/ckeditor/ckeditor_' . THEME_STYLE . '.css';
-            $css    = PATH_RELATIVE . 'themes/' . DISPLAY_THEME . '/editors/ckeditor/ckeditor_' . THEME_STYLE . '.css';
+            $css    = 'themes/' . DISPLAY_THEME . '/editors/ckeditor/ckeditor_' . THEME_STYLE . '.css';
         }
-        if (is_file($cssabs)) {
-            $contentCSS = "contentsCss : '" . $css . "',";
+        if (is_file(BASE . $css)) {
+            $contentCSS = "contentsCss : '" . PATH_RELATIVE . $css . "',";
         }
+        
+        if (is_file(BASE . 'themes/' . DISPLAY_THEME . '/editors/ckeditor/config.js')) {
+            $configjs = "customConfig : '" . PATH_RELATIVE . 'themes/' . DISPLAY_THEME . '/editors/ckeditor/config.js' . "',";
+        } else {
+            $configjs = "";
+        }
+        
         if ($this->toolbar === '') {
 //            $settings = $db->selectObject('htmleditor_ckeditor', 'active=1');
             $settings = expHTMLEditorController::getActiveEditorSettings('ckeditor');
@@ -78,6 +84,8 @@ class ckeditorcontrol extends formcontrol {
         }
         if (!empty($this->additionalConfig)) {
             $additionalConfig = $this->additionalConfig;
+        } elseif (!empty($settings->additionalconfig)) {
+            $additionalConfig = stripSlashes($settings->additionalconfig);
         } else {
             $additionalConfig = '';
         }
@@ -130,9 +138,11 @@ class ckeditorcontrol extends formcontrol {
             removePlugins : 'elementspath',
             resize_enabled : false,";
         }
+        if (!MOBILE && $this->tb_collapsed) $tb .= 'toolbarStartupExpanded : false,';
         if (empty($paste_word)) $paste_word = 'forcePasteAsPlainText : true,';
         if (!$user->globalPerm('prevent_uploads')) {
             $upload = "filebrowserUploadUrl : '" . PATH_RELATIVE . "framework/modules/file/connector/uploader.php',";
+            $upload .= "uploadUrl : '" . PATH_RELATIVE . "framework/modules/file/connector/uploader_paste.php',";
         } else {
             $upload = '';
         }
@@ -149,7 +159,7 @@ class ckeditorcontrol extends formcontrol {
                                     'Trebuchet MS/Trebuchet MS, Helvetica, sans-serif;' +
                                     'Verdana/Verdana, Geneva, sans-serif'";
         $content = "
-        YUI(EXPONENT.YUI3_CONFIG).use('yui','node','event-custom', function(Y) {
+        YUI(EXPONENT.YUI3_CONFIG).use('*', function(Y) {
             Y.Global.on(\"lazyload:cke\", function () {
                 if(!Y.Lang.isUndefined(EXPONENT.editor" . createValidId($name) . ")){
                     return true;
@@ -169,16 +179,19 @@ class ckeditorcontrol extends formcontrol {
                     filebrowserLinkBrowseUrl : '" . PATH_RELATIVE . "framework/modules/file/connector/ckeditor_link.php?update=ck',
                     filebrowserLinkWindowWidth : 320,
                     filebrowserLinkWindowHeight : 600,
-                    extraPlugins : 'stylesheetparser,tableresize,widget,image2," . $plugins . "',
+                    extraPlugins : 'autosave,tableresize,image2,uploadimage,quicktable,showborders," . $plugins . "',
+                    removePlugins: 'image,forms,flash',
+                    image2_alignClasses: [ 'image-left', 'image-center', 'image-right' ],
+                    image2_captionedClass: 'image-captioned',
                     " . $additionalConfig . "
                     autoGrow_minHeight : 200,
                     autoGrow_maxHeight : 400,
                     autoGrow_onStartup : false,
-//                    removePlugins : 'resize',
                     height : 200,
                     toolbarCanCollapse : true,
                     entities_additional : '',
                     " . $contentCSS . "
+                    " . $configjs . "
                     stylesSet : " . $stylesset . ",
                     format_tags : " . $formattags . ",
                     font_names :
@@ -211,16 +224,16 @@ class ckeditorcontrol extends formcontrol {
         ";
 
         expJavascript::pushToFoot(array(
+            "unique"  => "ckeditor",
+            "src"=>PATH_RELATIVE."external/editors/ckeditor/ckeditor.js"
+        ));
+        expJavascript::pushToFoot(array(
             "unique"  => "000-cke" . $name,
-            "yui3mods"=> "1",
+            "yui3mods"=> "node,event-custom",
             "content" => $content,
             //"src"=>PATH_RELATIVE."external/ckeditor/ckeditor.js"
         ));
 //        $html = "<script src=\"" . PATH_RELATIVE . "external/editors/ckeditor/ckeditor.js\"></script>";
-        expJavascript::pushToFoot(array(
-            "unique"  => "ckeditor",
-            "src"=>PATH_RELATIVE."external/editors/ckeditor/ckeditor.js"
-        ));
         // $html .= ($this->lazyload==1)?"<!-- cke lazy -->":"";
         $html = "<!-- cke lazy -->";
         $html .= "<textarea class=\"textarea\" id=\"" . createValidId($name) . "\" name=\"$name\"";

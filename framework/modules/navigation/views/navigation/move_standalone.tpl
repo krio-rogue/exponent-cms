@@ -1,5 +1,5 @@
 {*
- * Copyright (c) 2004-2014 OIC Group, Inc.
+ * Copyright (c) 2004-2016 OIC Group, Inc.
  *
  * This file is part of Exponent
  *
@@ -33,21 +33,22 @@
             <div class="yui-content">
                 <div id="tab1">
                     {control type="checkbox" name="new_window" label="Open in New Window"|gettext|cat:"?" checked=$section->new_window value=1}
-                    {control type="dropdown" name="page" label="Standalone Page"|gettext items=navigationController::levelDropdownControlArray(-1,0,array(),false,'manage') value=$page}
+                    {control type="dropdown" name="page" label="Standalone Page"|gettext items=section::levelDropdownControlArray(-1,0,array(),false,'manage') value=$page}
                 </div>
             </div>
         </div>
-        <div class="loadingdiv">{'Loading Pages'|gettext}</div>
+        {*<div class="loadingdiv">{'Loading Pages'|gettext}</div>*}
+        {loading title='Loading Pages'|gettext}
         {control type=buttongroup submit="Save"|gettext cancel="Cancel"|gettext}
     {/form}
-{script unique="configure" yui3mods=1}
+{script unique="configure" yui3mods="exptabs"}
 {literal}
     EXPONENT.YUI3_CONFIG.modules.exptabs = {
         fullpath: EXPONENT.JS_RELATIVE+'exp-tabs.js',
         requires: ['history','tabview','event-custom']
     };
 
-    YUI(EXPONENT.YUI3_CONFIG).use('exptabs', function(Y) {
+    YUI(EXPONENT.YUI3_CONFIG).use('*', function(Y) {
         Y.expTabs({srcNode: '#configure-tabs'});
         Y.one('#configure-tabs').removeClass('hide');
         Y.one('.loadingdiv').remove();

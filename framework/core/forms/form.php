@@ -2,7 +2,7 @@
 
 ##################################################
 #
-# Copyright (c) 2004-2014 OIC Group, Inc.
+# Copyright (c) 2004-2016 OIC Group, Inc.
 #
 # This file is part of Exponent
 #
@@ -65,21 +65,30 @@ class form extends baseform {
      * @param string       $label
      * @param \formcontrol $control The Control object to register with the form.
      * @param bool         $replace boolean dictating what to do if a Control with the specified internal name already exists on the form.  If passed as true (default), the existing Control will be replaced.  Otherwise, the Control registration will fail and return false.
-     * @param string       $tab
-     * @param null         $desc
+     * @param array        $params
      *
      * @return boolean Returns true if the new Control was registered.
      */
-	function register($name,$label, $control,$replace=true,$tab=null,$desc=null) {
-		if ($name == null || $name == "") $name = uniqid("");
+	function register($name, $label, $control, $replace=true, $params=null) {
+		if ($name == null || $name == "")
+			$name = uniqid("");
 		if (isset($this->controls[$name])) {
 			if (!$replace) return false;
-		} else $this->controlIdx[] = $name;
+		} else {
+			$this->controlIdx[] = $name;
+		}
+
+        if ($this->horizontal)
+			$control->horizontal = true;
+		if (!empty($params)) {
+			foreach ($params as $name => $value) {
+				$control->$name = $value;
+			}
+		}
 		$this->controls[$name] = $control;
-        if (!empty($desc)) $this->controls[$name]->description = $desc;
 		$this->controlLbl[$name] = $label;
-//        $this->tabs[$name] = $tab;
-        if (method_exists($control,'onRegister')) $control->onRegister($this);
+        if (method_exists($control,'onRegister'))
+			$control->onRegister($this);
 		return true;
 	}
 
@@ -93,9 +102,10 @@ class form extends baseform {
 	function unregister($name) {
 		if (in_array($name,$this->controlIdx)) {
 			$control = $this->controls[$name];
-			unset($this->controls[$name]);
-			unset($this->controlLbl[$name]);
-//            unset($this->tabs[$name]);
+			unset(
+                $this->controls[$name],
+                $this->controlLbl[$name]
+            );
 
 			$tmp = array_flip($this->controlIdx);
 			unset($tmp[$name]);
@@ -105,7 +115,8 @@ class form extends baseform {
 			foreach ($tmp as $name=>$rank) {
 				$this->controlIdx[] = $name;
 			}
-            if (method_exists($control,'onUnRegister')) $control->onUnregister($this);
+            if (method_exists($control,'onUnRegister'))
+				$control->onUnregister($this);
 		}
 		return true;
 	}
@@ -118,16 +129,24 @@ class form extends baseform {
      * @param string $label
      * @param object $control The Control object to register with the Form.
      *
-     * @param string $tab
+     * @param array  $params
      * @return boolean Returns true if the new Control was registered.
      */
-	function registerAfter($afterName,$name,$label, $control,$tab=null) {
-		if ($name == null || $name == "") $name = uniqid("");
-		if (in_array($name,$this->controlIdx)) return false;
+	function registerAfter($afterName, $name, $label, $control, $params=null) {
+		if ($name == null || $name == "")
+			$name = uniqid("");
+		if (in_array($name,$this->controlIdx))
+			return false;
 		
+        if ($this->horizontal)
+			$control->horizontal = true;
+		if (!empty($params)) {
+			foreach ($params as $name => $value) {
+				$control->$name = $value;
+			}
+		}
 		$this->controls[$name] = $control;
 		$this->controlLbl[$name] = str_replace(" ","&#160;",$label);
-//        $this->tabs[$name] = $tab;
 		if (!in_array($afterName,$this->controlIdx)) {
 			$this->controlIdx[] = $name;
 			$control->onRegister($this);
@@ -149,16 +168,24 @@ class form extends baseform {
      * @param string $label
      * @param object $control the Control object to register with the Form.
      *
-     * @param string $tab
+     * @param array  $params
      * @return boolean Returns true if the new Control was registered.
      */
-	function registerBefore($beforeName,$name,$label, $control,$tab=null) {
-		if ($name == null || $name == "") $name = uniqid("");
-		if (in_array($name,$this->controlIdx)) return false;
+	function registerBefore($beforeName, $name, $label, $control, $params=null) {
+		if ($name == null || $name == "")
+			$name = uniqid("");
+		if (in_array($name,$this->controlIdx))
+			return false;
 		
+        if ($this->horizontal)
+			$control->horizontal = true;
+		if (!empty($params)) {
+			foreach ($params as $name => $value) {
+				$control->$name = $value;
+			}
+		}
 		$this->controls[$name] = $control;
 		$this->controlLbl[$name] = str_replace(" ","&#160;",$label);
-//        $this->tabs[$name] = $tab;
 
 		if (!in_array($beforeName,$this->controlIdx)) {
 			$this->controlIdx[] = $name;
@@ -204,41 +231,36 @@ class form extends baseform {
 			
 			//expSession::un_set("last_POST");
 		}
-//        $num_tabs = array();
-//		if ($this->is_tabbed) {
-//            foreach ($this->tabs as $tab) {
-//                if (!in_array($tab,$num_tabs) && $tab != 'base') {
-//                    $num_tabs[]=$tab;
-//                }
-//            }
-//        }
+
 		$html = "<!-- Form Object '" . $this->name . "' -->\r\n";
 //		$html .= '<script type="text/javascript" src="'.PATH_RELATIVE.'framework/core/forms/js/required.js"></script>'."\r\n";
 		$html .= "<script type=\"text/javascript\" src=\"" .PATH_RELATIVE."framework/core/forms/js/inputfilters.js.php\"></script>\r\n";
-        if (expSession::get('framework') == 'bootstrap') {
+        if (bs2()) {
             expCSS::pushToHead(array(
                 "corecss"=>"forms-bootstrap"
             ));
             $btn_class = 'btn btn-default';
             if (BTN_SIZE == 'large') {
-                $btn_size = '';  // actually default size, NOT true boostrap large
+                $btn_size = '';  // actually default size, NOT true bootstrap large
             } elseif (BTN_SIZE == 'small') {
                 $btn_size = 'btn-mini';
             } else { // medium
                 $btn_size = 'btn-small';
             }
             $btn_class .= ' ' . $btn_size;
-        } elseif (NEWUI || expSession::get('framework') == 'bootstrap3') {
+        } elseif (bs3()) {
             expCSS::pushToHead(array(
                 "corecss"=>"forms-bootstrap3"
             ));
             $btn_class = 'btn btn-default';
             if (BTN_SIZE == 'large') {
-                $btn_size = '';  // actually default size, NOT true boostrap large
+                $btn_size = 'btn-lg';
             } elseif (BTN_SIZE == 'small') {
-                $btn_size = 'btn-xs';
-            } else { // medium
                 $btn_size = 'btn-sm';
+			} elseif (BTN_SIZE == 'extrasmall') {
+		       $btn_size = 'btn-xs';
+            } else { // medium
+                $btn_size = '';
             }
             $btn_class .= ' ' . $btn_size;
         } else {
@@ -247,72 +269,53 @@ class form extends baseform {
             ));
             $btn_class = 'awesome ".BTN_SIZE." ".BTN_COLOR."';
         };
-        expJavascript::pushToFoot(array(
-            "unique"  => 'html5forms-1mod',
-            "src"=> PATH_RELATIVE . 'external/html5forms/modernizr-262.js',
-        ));
-        expJavascript::pushToFoot(array(
-            "unique"  => 'html5forms-2eh',
-            "src"=> PATH_RELATIVE . 'external/html5forms/EventHelpers.js',
-        ));
-        expJavascript::pushToFoot(array(
-            "unique"  => 'html5forms-3wf',
-            "src"=> PATH_RELATIVE . 'external/html5forms/webforms2/webforms2_src.js',
-        ));
-        expJavascript::pushToFoot(array(
-            "unique"  => 'html5forms-4fb',
-            "jquery"=> 'jqueryui,jquery.placeholder,spectrum',
-            "src"=> PATH_RELATIVE . 'external/html5forms/html5forms.fallback.js',
-        ));
+		if (expJavascript::inAjaxAction()) {
+			$ws_load = "webshim.setOptions({loadStyles:false,canvas:{type:'excanvas'}});webshim.polyfill('canvas forms forms-ext');";
+		} else {
+			$ws_load = "webshim.setOptions({canvas:{type:'excanvas'}});webshim.polyfill('canvas forms forms-ext');";
+		}
+		expJavascript::pushToFoot(array(
+			"unique"  => 'html5forms',
+	 	    "jquery"  => 1,
+		    "src"     => PATH_RELATIVE . 'external/webshim-1.15.10/js-webshim/dev/polyfiller.js',
+			"content" => $ws_load,
+	    ));
 		foreach ($this->scripts as $script) $html .= "<script type=\"text/javascript\" src=\"".$script."\"></script>\r\n";
 		$html .= '<div class="error">'.$formError.'</div>';
+        $class = '';
+        if ($this->horizontal) {
+            if (newui()) {
+                $class = " class=\"exp-skin form-horizontal\"";
+            } else {
+                $class = " class=\"form-horizontal\"";
+            }
+        } elseif (newui()) {
+            $class = " class=\"exp-skin\"";
+        }
 		if (isset($this->ajax_updater)) {
 			$html .= "<form role=\"form\" name=\"" . $this->name . "\" method=\"" ;
 			$html .= $this->method . "\" action=\"" . $this->action ."\" ";
 			$html .= " onsubmit=\"new Ajax.Updater('".$this->div_to_update."', '".$this->action."', ";
 			$html .= "{asynchronous:true, parameters:Form.serialize(this)}); return false;\">\r\n";
 		} else {
-			$html .= "<form role=\"form\" id='".$this->id."' name=\"" . $this->name . "\"" . (newui()?" class=\"exp-skin\"":"") . " method=\"" . $this->method . "\" action=\"" . $this->action . "\" enctype=\"".$this->enctype."\">\r\n";
+			$html .= "<form role=\"form\" id='".$this->id."' name=\"" . $this->name . "\"" . $class . " method=\"" . $this->method . "\" action=\"" . $this->action . "\" enctype=\"".$this->enctype."\">\r\n";
 		}
 		//$html .= "<form name=\"" . $this->name . "\" method=\"" . $this->method . "\" action=\"" . $this->action . "\" enctype=\"".$this->enctype."\">\r\n";
 		foreach ($this->meta as $name=>$value) $html .= "<input type=\"hidden\" name=\"$name\" id=\"$name\" value=\"$value\" />\r\n";
 //		$html .= "<div class=\"form_wrapper\">\r\n";
-//        if ($this->is_tabbed) {
-//            $html .= '<div id="configure-tabs" class="yui-navset exp-skin-tabview hide">'."\r\n";
-//            $html .= '<ul class="yui-nav">'."\r\n";
-//            foreach ($num_tabs as $key=>$tab_name) {
-//                if (!empty($tab_name)) $html .= '<li'.($key==0?' class="selected"':'').'><a href="#tab'.($key+1).'"><em>'.gt($tab_name).'</em></a></li>'."\r\n";
-//            }
-//            $html .= '</ul>'."\r\n";
-//            $html .= '<div class="yui-content">'."\r\n";
-//        }
 
 //        $oldname = 'oldname';
 //        $save = '';
         $rank = 0;
 		foreach ($this->controlIdx as $name) {
-//            if ($this->is_tabbed && !empty($this->tabs[$name]) && $this->tabs[$name] != $oldname && $this->tabs[$name] != 'base') {
-//                if ($oldname != 'oldname') {
-//                    $html .= '</div>'."\r\n";
-//                }
-//                $html .= '<div id="tab'.(array_search($this->tabs[$name],$num_tabs)+1).'">'."\r\n";
-//            }
-            if (get_class($this->controls[$name]) == 'pagecontrol' && $rank) {
+            if ($rank && get_class($this->controls[$name]) == 'pagecontrol') {
                 $html .= '</fieldset>';
             }
-//            if ($this->tabs[$name] != 'base') {
             if ($rank == 0) $this->controls[$name]->focus = true;  // first control gets the focus
             $html .= $this->controls[$name]->toHTML($this->controlLbl[$name],$name) . "\r\n";
-//                $oldname = $this->tabs[$name];
-//            } else {
-//                $save .= $this->controls[$name]->toHTML($this->controlLbl[$name],$name) . "\r\n";
-//            }
             $rank ++;
 		}
 
-//        if ($this->is_tabbed) {
-//            $html .= '</div></div></div>';
-//        }
         if ($this->is_paged) $html .= '</fieldset>';
 //		$html .= "</div>\r\n";
 //        $html .= $save;
@@ -330,27 +333,44 @@ class form extends baseform {
             if (bs3()) {
                 $content .= "
                     validateOptions: {
-                       highlight: function(element) {
-                           $(element).closest('.control').removeClass('has-success').addClass('has-error');
-   //                        var id_attr = '#' + $( element ).attr('id') + '1';
-   //                        $(id_attr).removeClass('glyphicon-ok').addClass('glyphicon-remove');
-                       },
-                       unhighlight: function(element) {
-                           $(element).closest('.control').removeClass('has-error').addClass('has-success');
-   //                        var id_attr = '#' + $( element ).attr('id') + '1';
-   //                        $(id_attr).removeClass('glyphicon-remove').addClass('glyphicon-ok');
-                       },
-                       errorElement: 'span',
-                       errorClass: 'help-block',
-                       errorPlacement: function(error, element) {
-                           if (element.prop('type') === 'checkbox' || element.prop('type') === 'radio') {
-                               error.appendTo(element.parent().parent());
-                           } else if(element.parent('.input-group').length) {
-                               error.insertAfter(element.parent());
-                           } else {
-                               error.insertAfter(element);
-                           }
-                       }
+						rules: {
+							'hiddenRecaptcha': {
+								required: function() {
+									if(grecaptcha.getResponse() == '') {
+										return true;
+									} else {
+										return false;
+									}
+								}
+							}
+						},
+                        highlight: function(element) {
+//                            $('.stepy-header .stepy-active').addClass('stepy-error');
+                            $(element).closest('.control').removeClass('has-success').addClass('has-error');
+//	 						$(element).closest('.form-group').find('i.fa').remove();
+//							$(element).closest('.form-group').append('<i class=\"fa fa-exclamation fa-lg form-control-feedback\"></i>');
+//                           var id_attr = '#' + $( element ).attr('id') + '1';
+//                           $(id_attr).removeClass('glyphicon-ok').addClass('glyphicon-remove');  // requires a feedback <span> and has-feedback class to control
+                        },
+                        unhighlight: function(element) {
+//							$('.stepy-header .stepy-error').removeClass('stepy-error');
+                            $(element).closest('.control').removeClass('has-error').addClass('has-success');
+//							$(element).closest('.form-group').find('i.fa').remove();
+//							$(element).closest('.form-group').append('<i class=\"fa fa-check fa-lg form-control-feedback\"></i>');
+//                           var id_attr = '#' + $( element ).attr('id') + '1';
+//                           $(id_attr).removeClass('glyphicon-remove').addClass('glyphicon-ok');  // requires a feedback <span> and has-feedback class to control
+                        },
+                        errorElement: 'span',
+                        errorClass: '".(bs3()?"help-block":"control-desc")."',
+                        errorPlacement: function(error, element) {
+                            if (element.prop('type') === 'checkbox' || element.prop('type') === 'radio') {
+                                error.appendTo(element.parent().parent());
+                            } else if(element.parent('.input-group').length) {
+                                error.insertAfter(element.parent());
+                            } else {
+                                error.insertAfter(element);
+                            }
+                        }
                     }";
             }
             $content .= "
@@ -367,15 +387,30 @@ class form extends baseform {
             if (bs3()) {
                 $content = "
                     $('#" . $this->id . "').validate({
+						rules: {
+							'hiddenRecaptcha': {
+								required: function() {
+									if(grecaptcha.getResponse() == '') {
+										return true;
+									} else {
+										return false;
+									}
+								}
+							}
+						},
                         highlight: function(element) {
                             $(element).closest('.control').removeClass('has-success').addClass('has-error');
-    //                        var id_attr = '#' + $( element ).attr('id') + '1';
-    //                        $(id_attr).removeClass('glyphicon-ok').addClass('glyphicon-remove');
+//	 						$(element).closest('.form-group').find('i.fa').remove();
+//							$(element).closest('.form-group').append('<i class=\"fa fa-exclamation fa-lg form-control-feedback\"></i>');
+//                            var id_attr = '#' + $( element ).attr('id') + '1';
+//                            $(id_attr).removeClass('glyphicon-ok').addClass('glyphicon-remove');  // requires a feedback <span> and has-feedback class to control
                         },
                         unhighlight: function(element) {
                             $(element).closest('.control').removeClass('has-error').addClass('has-success');
-    //                        var id_attr = '#' + $( element ).attr('id') + '1';
-    //                        $(id_attr).removeClass('glyphicon-remove').addClass('glyphicon-ok');
+//							$(element).closest('.form-group').find('i.fa').remove();
+//							$(element).closest('.form-group').append('<i class=\"fa fa-check fa-lg form-control-feedback\"></i>');
+//                            var id_attr = '#' + $( element ).attr('id') + '1';
+//                            $(id_attr).removeClass('glyphicon-remove').addClass('glyphicon-ok');  // requires a feedback <span> and has-feedback class to control
                         },
                         errorElement: 'span',
                         errorClass: '".(bs3()?"help-block":"control-desc")."',
@@ -392,7 +427,19 @@ class form extends baseform {
                 ";
             } else {
                 $content = "
-                    $('#" . $this->id . "').validate();
+                    $('#" . $this->id . "').validate({
+						rules: {
+							'hiddenRecaptcha': {
+								required: function() {
+									if(grecaptcha.getResponse() == '') {
+										return true;
+									} else {
+										return false;
+									}
+								}
+							}
+						},
+                    });
                 ";
             }
             expJavascript::pushToFoot(array(

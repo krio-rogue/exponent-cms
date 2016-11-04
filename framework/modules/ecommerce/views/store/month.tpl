@@ -1,5 +1,5 @@
 {*
- * Copyright (c) 2004-2014 OIC Group, Inc.
+ * Copyright (c) 2004-2016 OIC Group, Inc.
  *
  * This file is part of Exponent
  *
@@ -28,16 +28,16 @@
 		<tr class="daysoftheweek">
             {if $config.show_weeks}<th></th>{/if}
 			{if $smarty.const.DISPLAY_START_OF_WEEK == 0}
-			<th scope="col" abbr="{'Sun'|gettext}" title="'Sunday'|gettext}">{'Sunday'|gettext}</th>
-			{/if}
-			<th scope="col" abbr="{'Mon'|gettext}" title="{'Monday'|gettext}">{'Monday'|gettext}</th>
-			<th scope="col" abbr="{'Tue'|gettext}" title="{'Tuesday'|gettext}">{'Tuesday'|gettext}</th>
-			<th scope="col" abbr="{'Wed'|gettext}" title="{'Wednesday'|gettext}">{'Wednesday'|gettext}</th>
-			<th scope="col" abbr="{'Thu'|gettext}" title="{'Thursday'|gettext}">{'Thursday'|gettext}</th>
-			<th scope="col" abbr="{'Fri'|gettext}" title="{'Friday'|gettext}">{'Friday'|gettext}</th>
-			<th scope="col" abbr="{'Sat'|gettext}" title="{'Saturday'|gettext}">{'Saturday'|gettext}</th>
-			{if $smarty.const.DISPLAY_START_OF_WEEK != 0}
-			<th scope="col" abbr="{'Sun'|gettext}" title="{'Sunday'|gettext}">{'Sunday'|gettext}</th>
+            <th scope="col" abbr="{$daynames.med.0}" title="{$daynames.long.0}">{$daynames.long.0}</th>
+            {/if}
+            <th scope="col" abbr="{$daynames.med.1}" title="{$daynames.long.1}">{$daynames.long.1}</th>
+            <th scope="col" abbr="{$daynames.med.2}" title="{$daynames.long.2}">{$daynames.long.2}</th>
+            <th scope="col" abbr="{$daynames.med.3}" title="{$daynames.long.3}">{$daynames.long.3}</th>
+            <th scope="col" abbr="{$daynames.med.4}" title="{$daynames.long.4}">{$daynames.long.4}</th>
+            <th scope="col" abbr="{$daynames.med.5}" title="{$daynames.long.5}">{$daynames.long.5}</th>
+            <th scope="col" abbr="{$daynames.med.6}" title="{$daynames.long.6}">{$daynames.long.6}</th>
+            {if $smarty.const.DISPLAY_START_OF_WEEK != 0}
+            <th scope="col" abbr="{$daynames.med.0}" title="{$daynames.long.0}">{$daynames.long.0}</th>
 			{/if}
 		</tr>
         {$dayts=$now}
@@ -83,7 +83,7 @@
                                         title="{$title}">
                                         {if $item->expFile.mainimage[0]->url != ""}
                                             <div class="image">
-                                                {img file_id=$item->expFile.mainimage[0]->id alt=$item->image_alt_tag|default:"Image of `$item->title`" title=$title class="large-img" id="enlarged-image" w=92}
+                                                {img file_id=$item->expFile.mainimage[0]->id alt=$item->image_alt_tag|default:"Image of `$item->title`" title=$title w=92}
                                                 {clear}
                                             </div>
                                         {/if}
@@ -123,11 +123,20 @@
 {if $config.lightbox}
 {script unique="shadowbox" jquery='jquery.colorbox'}
 {literal}
-    $('a.calpopevent').click(function(e) {
+    $('.events_calendar.events a.calpopevent').click(function(e) {
         target = e.target;
         $.colorbox({
             href: EXPONENT.PATH_RELATIVE+"index.php?controller=eventregistration&action=show&ajax_action=1&title="+target.id,
-            maxWidth: 650
+            title: target.text + ' - ' + '{/literal}{'Event'|gettext}{literal}',
+            maxWidth: "100%",
+            onComplete : function() {
+                $('img').on('load', function() {
+                    $(this).colorbox.resize();
+                });
+            },
+            close:'<i class="fa fa-close" aria-label="close modal"></i>',
+            previous:'<i class="fa fa-chevron-left" aria-label="previous photo"></i>',
+            next:'<i class="fa fa-chevron-right" aria-label="next photo"></i>',
         });
         e.preventDefault();
     });

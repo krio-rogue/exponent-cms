@@ -1,5 +1,5 @@
 {*
- * Copyright (c) 2004-2014 OIC Group, Inc.
+ * Copyright (c) 2004-2016 OIC Group, Inc.
  *
  * This file is part of Exponent
  *
@@ -32,4 +32,6 @@
     {control type=editor name='report_def' label='Custom E-Mail, Single and Portfolio View Template'|gettext value=$config.report_def rows=10 cols=60
         plugin="fieldinsert" additionalConfig="fieldinsert_list : `$fieldlist`,"
         description='Leave blank to display all fields.  Use \'Fields\' dropdown to insert fields'}
+    {control type="dropdown" name="order" label="Sort records by"|gettext items=$fields value=$config.order|default:'id'}
+    {control type=radiogroup name='dir' label='Sorting Direction'|gettext default=$config.dir|default:'ASC' items='Ascending, Descending'|gettxtlist values='ASC,DESC'}
 {/group}

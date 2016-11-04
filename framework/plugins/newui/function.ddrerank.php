@@ -2,7 +2,7 @@
 
 ##################################################
 #
-# Copyright (c) 2004-2014 OIC Group, Inc.
+# Copyright (c) 2004-2016 OIC Group, Inc.
 #
 # This file is part of Exponent
 #
@@ -60,7 +60,7 @@ if (!function_exists('smarty_function_ddrerank')) {
         } elseif (property_exists($obj, 'location_data')) {
             $locsql = "location_data='" . serialize($loc) . "'";
         } else {
-            $locsql = null;
+            $locsql = '1';
         }
 //            $params['items'] = $obj->find('all',"location_data='".serialize($loc)."'".$only,"rank");
             $params['items'] = $obj->find('all', $locsql . $only, "rank"); // we MUST re-pull since we only received one page of $items
@@ -96,7 +96,7 @@ if (!function_exists('smarty_function_ddrerank')) {
                 $params['label'] = gt($params['label']);
             }
 //            if (BTN_SIZE == 'large') {
-//                $btn_size = '';  // actually default size, NOT true boostrap large
+//                $btn_size = '';  // actually default size, NOT true bootstrap large
 //                $icon_size = 'icon-2x';
 //            } elseif (BTN_SIZE == 'small') {
 //                $btn_size = 'btn-mini';
@@ -109,9 +109,9 @@ if (!function_exists('smarty_function_ddrerank')) {
             $icon_size = expTheme::iconSize();
 //            if (empty($params['uniqueid'])) {  // make a button
             if ($model != 'container') {  // make a button
-                echo '<a id="rerank' . $uniqueid . '" class="btn '.$btn_size.'" href="#"><i class="fa fa-exchange fa-rotate-90 '.$icon_size.'"></i> ' . gt("Order") . ' ' . $params['label'] . '</a>';
+                echo '<a id="rerank', $uniqueid, '" class="btn ',$btn_size,'" href="#"><i class="fa fa-exchange fa-rotate-90 ',$icon_size,'"></i> ', gt("Order"), ' ', $params['label'], '</a>';
             } else {  // make a menu item
-                echo '<a id="rerank' . $uniqueid . '" class="" href="#"><i class="fa fa-exchange fa-rotate-90 fa-fw"></i> ' . gt("Order") . ' ' . $params['label'] . '</a>';
+                echo '<a id="rerank', $uniqueid, '" class="" href="#"><i class="fa fa-exchange fa-rotate-90 fa-fw"></i> ', gt("Order"), ' ', $params['label'], '</a>';
             }
 
             $html = '
@@ -151,7 +151,7 @@ if (!function_exists('smarty_function_ddrerank')) {
                     <input type="hidden" name="rerank[]" value="' . $item->id . '" />
                     <div class="fpdrag"></div>';
                     //Do we include the picture? It depends on if there is one set.
-                    $html .= (!empty($item->expFile[0]->id) && !empty($item->expFile[0]->is_image)) ? '<img class="filepic" src="' . PATH_RELATIVE . 'thumb.php?id=' . $item->expFile[0]->id . '&w=16&h=16&zc=1">' : '';
+                    $html .= (!empty($item->expFile[0]->id) && !empty($item->expFile[0]->is_image)) ? '<img class="filepic" src="' . PATH_RELATIVE . 'thumb.php?id=' . $item->expFile[0]->id . '&w=16&h=16&zc=1" alt="item'.$item->id.'">' : '';
                     $html .= '<span class="label">' . (!empty($item->$sortfield) ? substr($item->$sortfield, 0, $stringlen) : gt('Untitled')) . '</span>
                     </li>';
                     $odd = $odd == "even" ? "odd" : "even";
@@ -177,7 +177,7 @@ if (!function_exists('smarty_function_ddrerank')) {
             echo $html;
 
             $script = "
-        YUI(EXPONENT.YUI3_CONFIG).use('node','dd','dd-plugin','dd-scroll','panel', function(Y) {
+        YUI(EXPONENT.YUI3_CONFIG).use('*', function(Y) {
             var panel = new Y.Panel({
                 srcNode      : '#panel" . $uniqueid . "',
                 width        : 500,
@@ -372,7 +372,7 @@ if (!function_exists('smarty_function_ddrerank')) {
             if (!expTheme::inPreview()) {
                 expJavascript::pushToFoot(array(
                     "unique"   => $uniqueid,
-                    "yui3mods" => 1,
+                    "yui3mods" => "node,dd,dd-plugin,dd-scroll,panel",
                     "content"  => $script,
                 ));
             }

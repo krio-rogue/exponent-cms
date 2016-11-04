@@ -2,7 +2,7 @@
 
 ##################################################
 #
-# Copyright (c) 2004-2014 OIC Group, Inc.
+# Copyright (c) 2004-2016 OIC Group, Inc.
 #
 # This file is part of Exponent
 #
@@ -33,8 +33,8 @@ class help extends expRecord {
      */
     public function __construct($params=array()) {
         parent::__construct($params);
-        $this->loc = expUnserialize($this->location_data);
-        $this->grouping_sql = " AND help_version_id='".$this->help_version_id."'";
+        if (!empty($this->location_data)) $this->loc = expUnserialize($this->location_data);
+        if (!empty($this->help_version_id)) $this->grouping_sql = " AND help_version_id='".$this->help_version_id."'";
     }
     
     // public function beforeSave($params=array()) {  
@@ -66,6 +66,15 @@ class help extends expRecord {
 			$params['section'] = $db->selectValue('sectionref', 'section', 'module = "help" AND source="' . $params['help_section'] .'"');
 			$params['src'] = $params['help_section'];
             $params['rank'] = 0;
+            // check for and update any child help docs to new section
+            if (isset($params['id'])) {
+                $child_docs = $this->find('all', 'parent='.$params['id']);
+                foreach ($child_docs as $key=>$doc) {
+                    $doc->section = $params['section'];
+                    $doc->src = $params['src'];
+                    $doc->save();
+                }
+            }
 		}
         parent::update($params);
     }

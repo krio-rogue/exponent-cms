@@ -1,7 +1,7 @@
 <?php
 ##################################################
 #
-# Copyright (c) 2004-2014 OIC Group, Inc.
+# Copyright (c) 2004-2016 OIC Group, Inc.
 #
 # This file is part of Exponent
 #
@@ -33,9 +33,9 @@ class expRecord {
     public $grouping_sql = '';
 
     // associated objects
-    public $has_extended_fields = array();
-    public $has_one = array();
-    public $has_many = array();
+    public $has_extended_fields = array();  // add single object db fields to this object (not the object methods)
+    public $has_one = array();  // associate single object w/ matching id
+    public $has_many = array();  // associate all objects w/ matching id's
     public $has_many_self = array();
     public $has_and_belongs_to_many = array();
     public $has_and_belongs_to_self = array();
@@ -57,7 +57,7 @@ class expRecord {
         'content_expTags'=>'expTag',
     );*/
     public $attachable_items_to_save;
-    // what associated objects should also receive attachments when associated
+    // what associated objects should also receive their attachments when associated
     public $get_attachable_for = array();
 
     // field validation settings
@@ -104,7 +104,7 @@ class expRecord {
         $needs_approval = $this->needs_approval && ENABLE_WORKFLOW;
 
         // if the user passed in arguments to this constructor then we need to
-        // retrieve objects 
+        // retrieve objects
 
         // If a number was sent in, we assume this is a DB record ID, so pull it
         if (!is_object($params) && !is_array($params)) {
@@ -112,7 +112,7 @@ class expRecord {
             if (is_numeric($params)) {
                 $this->build($db->selectArray($this->tablename, $this->identifier . '=' . $params, null, $supports_revisions));
                 $identifier = $this->identifier;
-                $params     = array($identifier=> $params); // Convert $params (given number value) into an key/value pair
+                $params     = array($identifier => $params); // Convert $params (given number value) into an key/value pair
             } else {
                 // try to look up by sef_url
                 $values = $db->selectArray($this->tablename, "sef_url='" . expString::sanitize($params) . "'", null, $supports_revisions, $needs_approval);
@@ -121,9 +121,8 @@ class expRecord {
                 $this->build($values);
                 $params = array('title'=> $params);
             }
-
         } else {
-            // Otherwise we assume that in inbound is an array or Object to be processed as is.        
+            // Otherwise we assume that in inbound is an array or Object to be processed as is.
             $this->build($params);
         }
 
@@ -136,17 +135,26 @@ class expRecord {
             $this->publish_date = $this->created_at;
         }
 
-        // setup the exception array if it's not there.  This array tells the getAssociatedObjectsForThisModel() function which 
+        // setup the exception array if it's not there.  This array tells the getAssociatedObjectsForThisModel() function which
         // modules NOT to setup.  This stops us from getting infinite loops with many to many relationships.
-        $params['except']         = isset($params['except']) ? $params['except'] : array();
-        $params['cascade_except'] = isset($params['cascade_except']) ? $params['cascade_except'] : false;
+        if (is_array($params)){
+            $params['except']         = isset($params['except']) ? $params['except'] : array();
+            $params['cascade_except'] = isset($params['cascade_except']) ? $params['cascade_except'] : false;
 
-        if ($get_assoc) $this->getAssociatedObjectsForThisModel($params['except'], $params['cascade_except']);
+            if ($get_assoc)
+                $this->getAssociatedObjectsForThisModel($params['except'], $params['cascade_except']);
+        } elseif (is_object($params)) {
+            $params->except         = isset($params->except) ? $params->except : array();
+            $params->cascade_except = isset($params->cascade_except) ? $params->cascade_except : false;
+
+            if ($get_assoc)
+                $this->getAssociatedObjectsForThisModel($params->except, $params->cascade_except);
+        }
         if ($get_attached) $this->getAttachableItems();
     }
 
     /**
-     * find an item
+     * find an item or items
      *
      * @param string $range
      * @param null   $where
@@ -172,8 +180,13 @@ class expRecord {
         //eDebug("Supports Revisions:" . $this->supports_revisions);
 //        if ($this->supports_revisions && $range != 'revisions') $sql .= " AND revision_id=(SELECT MAX(revision_id) FROM `" . $db->prefix . $this->tablename . "` WHERE $where)";
 //        $sql .= empty($order) ? '' : ' ORDER BY ' . $order;
+        $order = expString::escape($order);
+        if ($limit !== null)
+            $limit = intval($limit);
+        if ($limitstart !== null)
+            $limitstart = intval($limitstart);
         $supports_revisions = $this->supports_revisions && ENABLE_WORKFLOW;
-        if ($this->needs_approval && ENABLE_WORKFLOW) {
+        if (ENABLE_WORKFLOW && $this->needs_approval) {
             $needs_approval = $user->id;
         } else {
             $needs_approval = false;
@@ -204,9 +217,9 @@ class expRecord {
                 $records[] = new $this->classname($id);
             return $records;
         } elseif (strcasecmp($range, 'bytag') == 0) {  // return items tagged with request (id or title/sef_url)
-            if (!is_int($where))  $where = $db->selectObject(DB_TABLE_PREFIX . '_expTags',"title='" . $where . "' OR sef_url='" . $where . "'");
-            $sql = 'SELECT DISTINCT m.id FROM ' . DB_TABLE_PREFIX . '_' . $this->tablename . ' m ';
-            $sql .= 'JOIN ' . DB_TABLE_PREFIX . '_content_expTags ct ';
+            if (!is_int($where))  $where = $db->selectObject($db->prefix . 'expTags',"title='" . $where . "' OR sef_url='" . $where . "'");
+            $sql = 'SELECT DISTINCT m.id FROM ' . $db->prefix . $this->tablename . ' m ';
+            $sql .= 'JOIN ' . $db->prefix . 'content_expTags ct ';
             $sql .= 'ON m.id = ct.content_id WHERE ct.exptags_id=' . intval($where) . " AND ct.content_type='" . $this->classname . "'";
             if ($supports_revisions) $sql .= " AND revision_id=(SELECT MAX(revision_id) FROM `" . $db->prefix . $this->tablename . "` WHERE ct.exptags_id=" . intval($where) . " AND ct.content_type='" . $this->classname . "'";
             $tag_assocs = $db->selectObjectsBySql($sql);
@@ -216,9 +229,9 @@ class expRecord {
             }
             return $records;
         } elseif (strcasecmp($range, 'bycat') == 0) {  // return items categorized/grouped under request (id or title/sef_url)
-            if (!is_int($where))  $where = $db->selectObject(DB_TABLE_PREFIX . '_expCats',"title='" . $where . "' OR sef_url='" . $where . "'");
-            $sql = 'SELECT DISTINCT m.id FROM ' . DB_TABLE_PREFIX . '_' . $this->tablename . ' m ';
-            $sql .= 'JOIN ' . DB_TABLE_PREFIX . '_content_expCats ct ';
+            if (!is_int($where))  $where = $db->selectObject($db->prefix . 'expCats',"title='" . $where . "' OR sef_url='" . $where . "'");
+            $sql = 'SELECT DISTINCT m.id FROM ' . $db->prefix . $this->tablename . ' m ';
+            $sql .= 'JOIN ' . $db->prefix . 'content_expCats ct ';
             $sql .= 'ON m.id = ct.content_id WHERE ct.expcats_id=' . intval($where) . " AND ct.content_type='" . $this->classname . "'";
             if ($supports_revisions) $sql .= " AND revision_id=(SELECT MAX(revision_id) FROM `" . $db->prefix . $this->tablename . "` WHERE ct.expcats_id=" . intval($where) . " AND ct.content_type='" . $this->classname . "'";
             $cat_assocs = $db->selectObjectsBySql($sql);
@@ -301,7 +314,8 @@ class expRecord {
      * @return bool
      */
     public function refresh() {
-        if (empty($this->id)) return false;
+        if (empty($this->id))
+            return false;
         $this->__construct($this->id);
     }
 
@@ -352,10 +366,10 @@ class expRecord {
         foreach ($table as $col=> $colDef) {
             // check if the DB column has a corresponding value in the params array
             // if not, we check to see if the column is boolean...if so we set it to false
-            // if not, then we check to see if we had a previous value in this particular 
+            // if not, then we check to see if we had a previous value in this particular
             // record.  if so we reset it to itself so we don't lose the existing value.
-            // this is good for when the developer is trying to update just a field or two 
-            // in an existing record. 
+            // this is good for when the developer is trying to update just a field or two
+            // in an existing record.
             if (array_key_exists($col, $params)) {
                 $value = is_array($params) ? $params[$col] : $params->$col;
                 if ($colDef[0] == DB_DEF_INTEGER || $colDef[0] == DB_DEF_ID) {
@@ -386,7 +400,7 @@ class expRecord {
                 $this->$col = stripslashes($this->$col);
             }
             //}
-            if ($this->supports_revisions && ENABLE_WORKFLOW && $col == 'revision_id' && $this->$col == null)
+            if (ENABLE_WORKFLOW && $this->supports_revisions && $col == 'revision_id' && $this->$col == null)
                 $this->$col = 1;  // first revision is #1
         }
     }
@@ -412,10 +426,11 @@ class expRecord {
      *
      * @param        $item
      * @param string $subtype
+     * @param bool   $replace
      *
      * @return bool
      */
-    public function attachItem($item, $subtype = '') { //FIXME only placed used is in helpController->copydocs, & migration
+    public function attachItem($item, $subtype = '', $replace = true) { //FIXME only placed used is in helpController->copydocs (though we don't have attachments), & migration
         global $db;
 
         // make sure we have the info we need..otherwise return
@@ -424,7 +439,7 @@ class expRecord {
 //        $refname = strtolower($item->classname).'s_id';  //FIXME plural vs single?
 //        $refname = strtolower($item->classname) . '_id'; //FIXME plural vs single?
         $refname = strtolower($item->tablename) . '_id';
-        $db->delete($item->attachable_table, 'content_type="' . $this->classname . '" AND content_id=' . $this->id . ' AND ' . $refname . '=' . $item->id);
+        if ($replace) $db->delete($item->attachable_table, 'content_type="' . $this->classname . '" AND content_id=' . $this->id . ' AND ' . $refname . '=' . $item->id);
         $obj               = new stdClass();
         $obj->$refname     = $item->id;
         $obj->content_id   = $this->id;
@@ -454,7 +469,7 @@ class expRecord {
 
         // Save this object's associated objects to the database.
         // FIXME: we're not going to do this automagically until we get the refreshing figured out.
-        //$this->saveAssociatedObjects(); 
+        //$this->saveAssociatedObjects();
 
         //Only grab fields that are valid and save this object
         $saveObj = new stdClass();
@@ -463,8 +478,9 @@ class expRecord {
             $saveObj->$col = empty($this->$col) ? null : $this->$col;
         }
 
-        if ($this->supports_revisions && ENABLE_WORKFLOW && !$this->approved && expPermissions::check('approve', expUnserialize($this->location_data))) {
-            $saveObj->approved = true;  // auto-approve item if use has approve perm
+        if (ENABLE_WORKFLOW && $this->supports_revisions && !$this->approved && expPermissions::check('approve', expUnserialize($this->location_data))) {
+            $this->approved = true;  // auto-approve item if use has approve perm
+            $saveObj->approved = true;  // also set property in database item
         }
         $identifier = $this->identifier;
         if (!empty($saveObj->$identifier)) {
@@ -523,7 +539,7 @@ class expRecord {
         }
 
         // safeguard again loc data not being pass via forms...sometimes this happens when you're in a router
-        // mapped view and src hasn't been passed in via link to the form 
+        // mapped view and src hasn't been passed in via link to the form
         if (isset($this->id) && empty($this->location_data)) {
             $loc = $db->selectValue($this->tablename, 'location_data', 'id=' . $this->id);
             if (!empty($loc)) $this->location_data = $loc;
@@ -532,7 +548,7 @@ class expRecord {
         // run the validation as defined in the models
         if (!isset($this->validates)) return true;
         $messages = array();
-        $post     = empty($_POST) ? array() : $_POST;
+        $post     = empty($_POST) ? array() : expString::sanitize($_POST);
         foreach ($this->validates as $validation=> $field) {
             foreach ($field as $key=> $value) {
                 $fieldname = is_numeric($key) ? $value : $key;
@@ -734,17 +750,18 @@ class expRecord {
     public function delete($where = '') {
         global $db;
 
-        if (empty($this->id)) return false;
+        $id = $this->identifier;
+        if (empty($this->$id)) return false;
         $this->beforeDelete();
-        $db->delete($this->tablename, 'id=' . $this->id);
+        $db->delete($this->tablename, $id . '=' . $this->$id);
         if (!empty($where)) $where .= ' AND ';  // for help in reranking, NOT deleting object
         if (property_exists($this, 'rank')) $db->decrement($this->tablename, 'rank', 1, $where . 'rank>=' . $this->rank . $this->grouping_sql);
 
         // delete attached items
         foreach ($this->attachable_item_types as $content_table=> $type) {
-            $db->delete($content_table, 'content_type="' . $this->classname . '" AND content_id=' . $this->id);
+            $db->delete($content_table, 'content_type="' . $this->classname . '" AND content_id=' . $this->$id);
         }
-        //FIXME shouldn't we also delete associated items or leave them to the afterDelete method?
+        // leave associated items to the model afterDelete method?
         $this->afterDelete();
     }
 
@@ -878,8 +895,13 @@ class expRecord {
         }
     }
 
+    /**
+     *  used for import/export
+     *
+     * @return array
+     */
     function getAttachableItemTables() {
-        return $this->attachable_item_types;
+        return $this->attachable_item_types; //fixme this is the model name, NOT the table name
     }
 
     /**
@@ -896,7 +918,7 @@ class expRecord {
                 $this->$type = array();
             } else {
                 $sql = 'SELECT ef.*, cef.subtype AS subtype FROM ';
-                $sql .= DB_TABLE_PREFIX . '_' . $tablename . ' ef JOIN ' . DB_TABLE_PREFIX . '_' . $content_table . ' cef ';
+                $sql .= $db->prefix . $tablename . ' ef JOIN ' . $db->prefix . $content_table . ' cef ';
                 $sql .= "ON ef.id = cef." . $tablename . "_id";
                 $sql .= " WHERE content_id=" . $this->id;
                 $sql .= " AND content_type='" . $this->classname . "'";
@@ -1007,7 +1029,7 @@ class expRecord {
                 $assocObj  = new $assoc_object(null, false, false);
                 $tablename = $this->makeManyToManyTablename($assocObj->tablename);
 
-                $ret     = $db->selectObjects($assocObj->tablename, 'id IN (SELECT ' . $assocObj->tablename . '_id from ' . DB_TABLE_PREFIX . '_' . $tablename . ' WHERE ' . $this->tablename . '_id=' . $this->id . ')', $assocObj->default_sort_field != '' ? $assocObj->default_sort_field . " " . $assocObj->default_sort_direction : null);
+                $ret     = $db->selectObjects($assocObj->tablename, 'id IN (SELECT ' . $assocObj->tablename . '_id from ' . $db->prefix . $tablename . ' WHERE ' . $this->tablename . '_id=' . $this->id . ')', $assocObj->default_sort_field != '' ? $assocObj->default_sort_field . " " . $assocObj->default_sort_direction : null);
                 $records = array();
                 foreach ($ret as $record) {
                     $record_array = object2Array($record);
@@ -1031,7 +1053,7 @@ class expRecord {
                 $assocObj  = new $assoc_object(null, false, false);
                 $tablename = $this->makeManyToManyTablename($assocObj->classname);
 
-                $ret     = $db->selectObjects($assocObj->tablename, 'id IN (SELECT ' . $assocObj->classname . '_id from ' . DB_TABLE_PREFIX . '_' . $tablename . ' WHERE ' . $this->tablename . '_id=' . $this->id . ')');
+                $ret     = $db->selectObjects($assocObj->tablename, 'id IN (SELECT ' . $assocObj->classname . '_id from ' . $db->prefix . $tablename . ' WHERE ' . $this->tablename . '_id=' . $this->id . ')');
                 $records = array();
                 foreach ($ret as $record) {
                     $record_array = object2Array($record);
@@ -1111,12 +1133,13 @@ class expRecord {
     /**
      * return the item poster
      *
+     * @param null $display
      * @return null|string
      */
-    public function getPoster() {
+    public function getPoster($display = null) {
         if (isset($this->poster)) {
             $user = new user($this->poster);
-            return user::getUserAttribution($user->id);
+            return user::getUserAttribution($user->id, $display);
         } else {
             return null;
         }
@@ -1131,6 +1154,7 @@ class expRecord {
      */
     public function getTimestamp($type = 0) {
         if ($type == 0) $getType = 'created_at';
+        elseif ($type == 'publish') $getType = 'publish';
         else $getType = 'edited_at';
         if (isset($this->$getType)) return expDateTime::format_date($this->$getType, DISPLAY_DATETIME_FORMAT);
         else return null;

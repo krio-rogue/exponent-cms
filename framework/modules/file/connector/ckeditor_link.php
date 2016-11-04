@@ -2,7 +2,7 @@
 
 ##################################################
 #
-# Copyright (c) 2004-2014 OIC Group, Inc.
+# Copyright (c) 2004-2016 OIC Group, Inc.
 #
 # This file is part of Exponent
 #
@@ -33,25 +33,32 @@
 
 		<script type="text/javascript" src="<?PHP echo PATH_RELATIVE ?>exponent.js2.php"></script>
   		<script type="text/javascript">
-
+			// Helper function to get parameters from the url
 			function getUrlParam(paramName) {
+				var pathArray = window.location.pathname.split( '/' );
                 if (paramName == 'update' || paramName == 'filter') {
-                   // need to parse sef url also
-                    var pathArray = window.location.pathname.split( '/' );
                     if (paramName == 'update') {
                         var parmu = pathArray.indexOf('update');
-                        if (parmu > 0) return pathArray[parmu+1];
-                    } else if (paramName == 'filter') {
+                        if (parmu > 0) 
+							return pathArray[parmu+1];
+                    } else if (paramName == 'filter') {  //fixme we never get here?
                         var parmf = pathArray.indexOf('filter');
-                        if (parmf > 0) return pathArray[parmf+1];
+                        if (parmf > 0) 
+							return pathArray[parmf+1];
                     }
                 }
-				var reParam = new RegExp('(?:[\?&]|&amp;)' + paramName + '=([^&]+)', 'i') ;
-				var match = window.location.search.match(reParam) ;
-				return (match && match.length > 1) ? match[1] : '' ;
+				if (EXPONENT.SEF_URLS && pathArray.indexOf(paramName) != -1) {
+					var parm = pathArray.indexOf(paramName);
+					if (parm > 0)
+						return pathArray[parm+1];
+				} else {
+					var reParam = new RegExp('(?:[\?&]|&amp;)' + paramName + '=([^&]+)', 'i') ;
+					var match = window.location.search.match(reParam) ;
+					return (match && match.length > 1) ? match[1] : '' ;
+				}
 			}
 			
-			function onPageSelect(section) {
+			function onPageSelect(section, text, title) {
                 var update = getUrlParam('update');
                 if (update !== 'noupdate' && typeof top.tinymce !== 'undefined' && top.tinymce !== null) update = 'tiny';
                 var fileUrl = EXPONENT.PATH_RELATIVE+section;
@@ -62,7 +69,8 @@
                 } else if (update == 'tiny') {
        				// TinyMCE integration
                     // pass selected file path to TinyMCE
-                    top.tinymce.activeEditor.windowManager.getParams().setUrl(fileUrl);
+//                    top.tinymce.activeEditor.windowManager.getParams().setUrl(fileUrl);
+					top.tinymce.activeEditor.windowManager.getParams().oninsert(fileUrl, text, title);
                     // close popup window
                     top.tinymce.activeEditor.windowManager.close();
                 }
@@ -82,7 +90,8 @@
                 } else if (update == 'tiny') {
        				// TinyMCE integration
                     // pass selected file path to TinyMCE
-                    top.tinymce.activeEditor.windowManager.getParams().setUrl(fileUrl);
+//                    top.tinymce.activeEditor.windowManager.getParams().setUrl(fileUrl);
+					top.tinymce.activeEditor.windowManager.getParams().oninsert(fileUrl, document.getElementById("f_title").value, document.getElementById("f_alt").value);
                     // close popup window
                     top.tinymce.activeEditor.windowManager.close();
                 }
@@ -103,12 +112,21 @@
             function openFileManager() {
                 var update = getUrlParam('update');
                 if (typeof top.tinymce !== 'undefined' && top.tinymce !== null) update = 'tiny';
+				window.resizeTo(<?PHP echo FM_WIDTH ?>, <?PHP echo FM_HEIGHT ?>);
                 if (update == 'ck') {
                     var funcNum = getUrlParam('CKEditorFuncNum');
                     var partNum = getUrlParam('CKEditor');
-                    window.location.href=EXPONENT.PATH_RELATIVE+'file/picker?ajax_action=1&update=ck&CKEditor='+partNum+'&CKEditorFuncNum='+funcNum+'&langCode=en';
+                    if (EXPONENT.SEF_URLS) {
+                        window.location.href=EXPONENT.PATH_RELATIVE+'file/picker/ajax_action/1/update/ck/CKEditor/'+partNum+'/CKEditorFuncNum/'+funcNum+'/langCode/en/';
+                    } else {
+                        window.location.href=EXPONENT.PATH_RELATIVE+'file/picker?ajax_action=1&update=ck&CKEditor='+partNum+'&CKEditorFuncNum='+funcNum+'&langCode=en';
+                    }
                 } else if (update == 'tiny') {
-                    window.location.href=EXPONENT.PATH_RELATIVE+'file/picker?ajax_action=1&update=tiny';
+                    if (EXPONENT.SEF_URLS) {
+                        window.location.href = EXPONENT.PATH_RELATIVE + 'file/picker/ajax_action/1/update/tiny/';
+                    } else {
+                        window.location.href = EXPONENT.PATH_RELATIVE + 'file/picker?ajax_action=1&update=tiny';
+                    }
                 }
             }
 
@@ -193,6 +211,7 @@
 						<input id="f_href" type="hidden"/>
 						<input id="f_extern" checked="checked" type="hidden"/>
 						<input id="f_title" type="hidden"/>
+						<input id="f_alt" type="hidden"/>
                         <div id="f_text" style="color:red"><?PHP echo gt('nothing selected'); ?></div>
 						<div id="buttons">
 							<button type="button" name="ok" onclick="return onOK();"><?PHP echo gt('OK'); ?></button>
@@ -210,7 +229,7 @@
 		</table>
 <?PHP
 if ($user) {
-    $sections = navigationController::levelTemplate(0,0);
+    $sections = section::levelTemplate(0,0);
     $standalones = $db->selectObjects('section','parent = -1');
 ?>
 <strong><?PHP echo gt('Site Hierarchy'); ?></strong><hr size="1" />
@@ -222,7 +241,7 @@ if ($user) {
                <?PHP
                    if ($section->active) {
                ?>
-                       <a href="javascript:onPageSelect(<?PHP echo "'".$section->sef_name."'"; ?>)" class="navlink"><?PHP echo htmlentities($section->name); ?></a>&#160;
+                       <a href="javascript:onPageSelect(<?PHP echo "'".$section->sef_name."'"; ?>,<?PHP echo "'".addslashes($section->name)."'"; ?>,<?PHP echo "'".addslashes($section->page_title)."'"; ?>)" class="navlink"><?PHP echo htmlentities($section->name); ?></a>&#160;
                <?PHP
                    } else {
                        echo $section->name;
@@ -243,7 +262,7 @@ if ($user) {
            foreach ($standalones as $section) {
     ?>
                <tr><td style="padding-left: 20px">
-                   <a href="javascript:onPageSelect(<?PHP echo "'".$section->sef_name."'"; ?>)" class="navlink"><?PHP echo htmlentities($section->name); ?></a>&#160;
+                   <a href="javascript:onPageSelect(<?PHP echo "'".$section->sef_name."'"; ?>,<?PHP echo "'".$section->name."'"; ?>,<?PHP echo "'".$section->page_title."'"; ?>)" class="navlink"><?PHP echo htmlentities($section->name); ?></a>&#160;
                </td></tr>
     <?PHP
            }

@@ -1,5 +1,5 @@
 {*
- * Copyright (c) 2004-2014 OIC Group, Inc.
+ * Copyright (c) 2004-2016 OIC Group, Inc.
  *
  * This file is part of Exponent
  *
@@ -39,14 +39,14 @@
         {$config.moduledescription}
     {/if}
     <div id="popup">
-        <a href="javascript:void(0);" class="nav module-actions" id="J_popup_closeable{$__loc->src|replace:'@':'_'}">{'Go to Date'|gettext}</a>
+        <a href="javascript:void(0);" class="evnav module-actions" id="J_popup_closeable{$__loc->src|replace:'@':'_'}">{'Go to Date'|gettext}</a>
         <div id="month-cal-{$name}">
             {exp_include file='month.tpl'}
         </div>
     </div>
 </div>
 
-{script unique=$name|cat:'-popup' yui3mods=1}
+{script unique=$name|cat:'-popup' yui3mods="node,gallery-calendar,io,node-event-delegate" jquery="jquery.history"}
 {literal}
 EXPONENT.YUI3_CONFIG.modules = {
     'gallery-calendar': {
@@ -58,9 +58,21 @@ EXPONENT.YUI3_CONFIG.modules = {
         type: 'css'
     }
 }
-YUI(EXPONENT.YUI3_CONFIG).use('node','gallery-calendar','io','node-event-delegate',function(Y){
+YUI(EXPONENT.YUI3_CONFIG).use('*',function(Y){
 	var today = new Date({/literal}{$time}{literal}*1000);
     var monthcal = Y.one('#month-cal-{/literal}{$name}{literal}');
+    var page_parm_{/literal}{$name}{literal} = '';
+    if (EXPONENT.SEF_URLS) {
+        page_parm_{/literal}{$name}{literal} = '/time/';
+    } else {
+        page_parm_{/literal}{$name}{literal} = '&time=';
+    }
+    var History = window.History;
+    History.pushState({name:'{/literal}{$name}{literal}',rel:'{/literal}{$params.time}{literal}'});
+    {/literal}
+        {$orig_params = ['controller' => 'store', 'action' => 'eventsCalendar', 'src' => $params.src]}
+    {literal}
+    var orig_url_{/literal}{$name}{literal} = '{/literal}{makeLink($orig_params)}{literal}';
     var cfg = {
                 method: "POST",
                 headers: { 'X-Transaction': 'Load Month'},
@@ -80,11 +92,11 @@ YUI(EXPONENT.YUI3_CONFIG).use('node','gallery-calendar','io','node-event-delegat
 	}).on('select',function(d){
 		var unixtime = parseInt(d / 1000);
         {/literal}
-        {if $config.ajax_paging}
+        {if $smarty.const.AJAX_PAGING}
             {literal}
                 cfg.data = "time="+unixtime;
                 var request = Y.io(sUrl, cfg);
-                monthcal.setContent(Y.Node.create('<div class="loadingdiv">{/literal}{"Loading Month"|gettext}{literal}</div>'));
+                monthcal.setContent(Y.Node.create('{/literal}{loading title="Loading Month"|gettext}{literal}'));
             {/literal}
         {else}
             {if ($smarty.const.SEF_URLS == 1)} {literal}
@@ -101,23 +113,17 @@ YUI(EXPONENT.YUI3_CONFIG).use('node','gallery-calendar','io','node-event-delegat
 
     // ajax load new month
 	var handleSuccess = function(ioId, o){
-		Y.log("The success handler was called.  Id: " + ioId + ".", "info", "monthcal nav");
-
         if(o.responseText){
             monthcal.setContent(o.responseText);
             monthcal.all('script').each(function(n){
                 if(!n.get('src')){
                     eval(n.get('innerHTML'));
                 } else {
-                    var url = n.get('src');
-                    if (url.indexOf("ckeditor")) {
-                        Y.Get.script(url);
-                    };
+                    Y.Get.script(n.get('src'));
                 };
             });
             monthcal.all('link').each(function(n){
-                var url = n.get('href');
-                Y.Get.css(url);
+                Y.Get.css(n.get('href'));
             });
             Y.one('#lb-bg').setStyle('display','none');
 //            monthcal.setStyle('opacity',1);
@@ -130,7 +136,7 @@ YUI(EXPONENT.YUI3_CONFIG).use('node','gallery-calendar','io','node-event-delegat
 
 	//A function handler to use for failed requests:
 	var handleFailure = function(ioId, o){
-		Y.log("The failure handler was called.  Id: " + ioId + ".", "info", "monthcal evnav");
+		Y.log("The failure handler was called.  Id: " + ioId + ".", "info", "monthcal nav");
 	};
 
 	//Subscribe our handlers to IO's global custom events:
@@ -138,16 +144,28 @@ YUI(EXPONENT.YUI3_CONFIG).use('node','gallery-calendar','io','node-event-delegat
 	Y.on('io:failure', handleFailure);
 
 {/literal}
-{if $config.ajax_paging}
+{if $smarty.const.AJAX_PAGING}
     {literal}
     monthcal.delegate('click', function(e){
         e.halt();
+        History.pushState({name:'{/literal}{$name}{literal}',rel:e.currentTarget.get('rel')}, e.currentTarget.get('title').trim(), orig_url_{/literal}{$name}{literal} + page_parm_{/literal}{$name}{literal} + e.currentTarget.get('rel'));
         cfg.data = "time="+e.currentTarget.get('rel');
         var request = Y.io(sUrl, cfg);
-        monthcal.setContent(Y.Node.create('<div class="loadingdiv">{/literal}{"Loading Month"|gettext}{literal}</div>'));
+        monthcal.setContent(Y.Node.create('{/literal}{loading title="Loading Month"|gettext}{literal}'));
 //        monthcal.setStyle('opacity',0.5);
 //        Y.one('#lb-bg').setStyle('display','block');
-    }, 'a.nav');
+    }, 'a.evnav');
+
+    // Watches the browser history for changes
+    window.addEventListener('popstate', function(e) {
+        state = History.getState()
+        if (state.data.name == '{/literal}{$name}{literal}') {
+            // moving to a new month
+            cfg.data = "time="+state.data.rel;
+            var request = Y.io(sUrl, cfg);
+            monthcal.setContent(Y.Node.create('{/literal}{loading title="Loading Month"|gettext}{literal}'));
+        }
+    });
     {/literal}
 {/if}
 {literal}

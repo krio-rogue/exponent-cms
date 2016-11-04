@@ -2,7 +2,7 @@
 
 ##################################################
 #
-# Copyright (c) 2004-2014 OIC Group, Inc.
+# Copyright (c) 2004-2016 OIC Group, Inc.
 #
 # This file is part of Exponent
 #
@@ -52,11 +52,17 @@ $available_controllers = expModules::initializeControllers();
 $history = new expHistory(); //<--This is the new flow subsystem
 
 // Initialize the javascript subsystem
-if (expJavascript::inAjaxAction()) set_error_handler('handleErrors');
+if (expJavascript::inAjaxAction())
+	set_error_handler('handleErrors');
 
 // Validate the session and populate the $user variable
 if ($db->havedb) {
 	$user = new user();
+	//the default user is anonymous?
+//	if (!expSession::loggedIn()) {
+		//TODO: Maxims initial anonymous user implementation, we need an anonymous user record
+		//user::login("anonymous", "anonymous");
+//	}
 	expSession::validate();
 }
 
@@ -77,6 +83,6 @@ $router = new expRouter();
 
 // Initialize the navigation hierarchy
 if ($db->havedb)
-	$sections = navigationController::initializeNavigation();
+	$sections = section::initializeNavigation();
 
 ?>

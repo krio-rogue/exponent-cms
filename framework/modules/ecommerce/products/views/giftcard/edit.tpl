@@ -1,5 +1,5 @@
 {*
- * Copyright (c) 2004-2014 OIC Group, Inc.
+ * Copyright (c) 2004-2016 OIC Group, Inc.
  *
  * This file is part of Exponent
  *
@@ -31,7 +31,8 @@
         <div id="editproduct-tabs" class="yui-navset exp-skin-tabview hide">
             <ul class="yui-nav">
 	            <li class="selected"><a href="#tab1"><em>{'General Info'|gettext}</em></a></li>
-	            <li><a href="#tab2"><em>{'Files & Images'|gettext}</em></a></li>
+                <li><a href="#tab2"><em>{'Pricing'|gettext}</em></a></li>
+	            <li><a href="#tab3"><em>{'Files & Images'|gettext}</em></a></li>
             </ul>            
             <div class="yui-content">
 	            <div id="tab1">
@@ -39,24 +40,28 @@
 	                {*{control type="textarea" name="summary" label="Gift Card Summary"|gettext rows=3 cols=45 value=$record->summary}*}
 	                {control type="editor" name="body" label="Gift Card Description"|gettext height=250 value=$record->body}
 	            </div>
-	            <div id="tab2">
-	                {control type=files label="Main Images"|gettext name=files subtype="mainimage" accept="image/*" value=$record->expFile folder=$config.upload_folder}
+                <div id="tab2">
+   	                {control type="text" name="base_price" label="Purchase increment dollar amount"|gettext value=$record->base_price filter=money description='Enter the minimum/multiple amount for gift cards'|gettext}
+   	            </div>
+	            <div id="tab3">
+	                {control type=files label="Main Image"|gettext name=files subtype="mainimage" accept="image/*" value=$record->expFile limit=1 folder=$config.upload_folder}
 	            </div>
             </div>
         </div>
-	    <div class="loadingdiv">{'Loading'|gettext}</div>
+	    {*<div class="loadingdiv">{'Loading'|gettext}</div>*}
+        {loading}
         {control type="buttongroup" submit="Save Gift Card"|gettext cancel="Cancel"|gettext}
     {/form}
 </div>
 
-{script unique="authtabs" yui3mods=1}
+{script unique="authtabs" yui3mods="exptabs"}
 {literal}
     EXPONENT.YUI3_CONFIG.modules.exptabs = {
         fullpath: EXPONENT.JS_RELATIVE+'exp-tabs.js',
         requires: ['history','tabview','event-custom']
     };
 
-	YUI(EXPONENT.YUI3_CONFIG).use('exptabs', function(Y) {
+	YUI(EXPONENT.YUI3_CONFIG).use('*', function(Y) {
         Y.expTabs({srcNode: '#editproduct-tabs'});
 		Y.one('#editproduct-tabs').removeClass('hide');
 		Y.one('.loadingdiv').remove();

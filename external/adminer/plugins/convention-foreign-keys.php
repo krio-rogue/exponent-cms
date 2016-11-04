@@ -11,11 +11,14 @@
          function foreignKeys($table) {
            $ret = array();
            foreach(fields($table) as $field => $args){
-               if(ereg("^(.*)_id$", $field, $args)){
+//               if(ereg("^(.*)_id$", $field, $args)){
+               if(preg_match("^(.*)_id$^", $field, $args)){
                    if ($table == DB_TABLE_PREFIX . '_' . 'product' && $args[0] == 'product_type_id') {
                    } else {
                        $ret[] = array("table" => DB_TABLE_PREFIX . '_' . $args[1], "source" => array($field), "target" => array("id"));
                    }
+               } elseif(preg_match("~poster|editor~", $field, $args)) {
+                   $ret[] = array("table" => DB_TABLE_PREFIX . '_' . 'user', "source" => array($field), "target" => array("id"));
                }
            }
            return $ret;

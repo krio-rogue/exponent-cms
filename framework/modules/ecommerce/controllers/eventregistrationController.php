@@ -2,7 +2,7 @@
 
 ##################################################
 #
-# Copyright (c) 2004-2014 OIC Group, Inc.
+# Copyright (c) 2004-2016 OIC Group, Inc.
 #
 # This file is part of Exponent
 #
@@ -31,14 +31,18 @@ function compare($x, $y) {
 
 class eventregistrationController extends expController {
     public $basemodel_name = 'eventregistration';
-
     public $useractions = array(
         'showall'     => 'Show all events',
         'eventsCalendar'                  => 'Calendar View',
         'upcomingEvents'                  => 'Upcoming Events',
 //        'showByTitle' => "Show events by title",
     );
-
+    protected $add_permissions = array(
+//        'emailRegistrants'=> 'Email Registrants',
+    );
+    protected $manage_permissions = array(
+        'emailRegistrants'=> 'Email Registrants',
+    );
     // hide the configs we don't need
     public $remove_configs = array(
         'aggregation',
@@ -52,12 +56,8 @@ class eventregistrationController extends expController {
         'twitter',
     );  // all options: ('aggregation','categories','comments','ealerts','facebook','files','module_title','pagination','rss','tags','twitter',)
 
-    protected $add_permissions = array(
-        'view_registrants'=> 'View Registrants',
-    );
-
     static function displayname() {
-        return gt("Online Event Registration");
+        return gt("e-Commerce Online Event Registration");
     }
 
     static function description() {
@@ -202,7 +202,7 @@ class eventregistrationController extends expController {
                 // eDebug($event->signup_cutoff, true);
             }
 
-            $monthly[$week][$i] = self::getEventsForDates($dates);
+            $monthly[$week][$i] = $this->getEventsForDates($dates);
             $counts[$week][$i] = count($monthly[$week][$i]);
             if ($weekday >= (6 + DISPLAY_START_OF_WEEK)) {
                 $week++;
@@ -217,6 +217,7 @@ class eventregistrationController extends expController {
             $counts[$week][$i + $endofmonth] = -1;
         }
 
+        $this->params['time'] = $time;
         assign_to_template(array(
             'currentweek' => $currentweek,
             'monthly'     => $monthly,
@@ -228,7 +229,9 @@ class eventregistrationController extends expController {
             "nextmonth2"  => strtotime('+2 months', $timefirst),
             "nextmonth3"  => strtotime('+3 months', $timefirst),
             'now'         => $timefirst,
-            "today"       => expDateTime::startOfDayTimestamp(time())
+            "today"       => expDateTime::startOfDayTimestamp(time()),
+            'params'      => $this->params,
+            'daynames'    => event::dayNames(),
         ));
     }
 
@@ -422,12 +425,13 @@ class eventregistrationController extends expController {
 
         // figure out what metadata to pass back based on the action we are in.
         $action   = $router->params['action'];
-        $metainfo = array('title' => '', 'keywords' => '', 'description' => '', 'canonical'=> '', 'noindex' => '', 'nofollow' => '');
+        $metainfo = array('title' => '', 'keywords' => '', 'description' => '', 'canonical'=> '', 'noindex' => false, 'nofollow' => false);
+        $storename = ecomconfig::getConfig('storename');
         switch ($action) {
             case 'showall':
             case 'eventsCalendar':
             case 'upcomingEvents':
-                $metainfo['title']       = gt('Event Registration') . ' - ' . SITE_TITLE;
+                $metainfo['title']       = gt('Event Registration') . ' - ' . $storename;
                 $metainfo['keywords']    = gt('event registration online');
                 $metainfo['description'] = gt("Make an event registration");
                 break;
@@ -452,17 +456,18 @@ class eventregistrationController extends expController {
                         } else {
                             $keyw = SITE_KEYWORDS;
                         }
-                        $metainfo['title'] = empty($object->meta_title) ? $object->title : $object->meta_title;
+                        $metainfo['title'] = empty($object->meta_title) ? $object->title . " - " . $storename : $object->meta_title;
                         $metainfo['keywords'] = empty($object->meta_keywords) ? $keyw : $object->meta_keywords;
                         $metainfo['description'] = empty($object->meta_description) ? $desc : $object->meta_description;
-                        $metainfo['canonical'] = empty($object->canonical) ? URL_FULL.substr($router->sefPath, 1) : $object->canonical;
+//                        $metainfo['canonical'] = empty($object->canonical) ? URL_FULL.substr($router->sefPath, 1) : $object->canonical;
+                        $metainfo['canonical'] = empty($object->canonical) ? $router->plainPath() : $object->canonical;
                         $metainfo['noindex'] = empty($object->meta_noindex) ? false : $object->meta_noindex;
                         $metainfo['nofollow'] = empty($object->meta_nofollow) ? false : $object->meta_nofollow;
                     }
                     break;
                 }
             default:
-                $metainfo['title']       = $this->displayname() . " - " . SITE_TITLE;
+                $metainfo['title']       = self::displayname() . " - " . $storename;
                 $metainfo['keywords']    = SITE_KEYWORDS;
                 $metainfo['description'] = SITE_DESCRIPTION;
         }
@@ -739,7 +744,7 @@ class eventregistrationController extends expController {
 //        $event_id     = $this->params['event_id'];
 //        $connector_id = @$this->params['connector_id'];
 //        if (empty($connector_id)) {
-//            $connector_id = "admin-created" . rand() . time(); //Meaning it is been added by admin
+//            $connector_id = "admin-created" . mt_rand() . time(); //Meaning it is been added by admin
 //        }
 //        $reg_data   = $db->selectObjects("eventregistration_registrants", "connector_id ='{$connector_id}'");
 
@@ -778,6 +783,30 @@ class eventregistrationController extends expController {
         global $db, $user;
 
         $event = new eventregistration($this->params['event_id']);
+        // create a new order/invoice if needed
+        if (empty($this->params['id'])) {
+            //create new order
+            $orderc= expModules::getController('order');
+            $orderc->params = array(
+                'customer_type'   => 1,  // blank user/address
+                'addresses_id'    => 0,
+                'order_status_id' => order::getDefaultOrderStatus(),
+                'order_type_id'   => order::getDefaultOrderType(),
+                'no_redirect'     => true,
+            );
+            $orderc_id = $orderc->save_new_order();
+            //create new order item
+            $orderc->params = array(
+                'orderid'       => $orderc_id,
+                'product_id'    => $event->id,
+                'product_type'  => 'eventregistration',
+//                'products_price' => $event->getBasePrice(),
+//                'products_name'  => $event->title,
+                'quantity'      => $this->params['value'],
+                'no_redirect'     => true,
+            );
+            $orderi_id = $orderc->save_order_item();  // will redirect us to the new order view
+        }
         $f = new forms($event->forms_id);
         $registrant = new stdClass();
 //        if (!empty($this->params['id'])) $registrant = $db->selectObject('forms_' . $f->table_name, "id ='{$this->params['id']}'");
@@ -791,7 +820,7 @@ class eventregistrationController extends expController {
                 $def = call_user_func(array($control_type, "getFieldDefinition"));
                 if ($def != null) {
                     $emailValue = htmlspecialchars_decode(call_user_func(array($control_type, 'parseData'), $c->name, $this->params['registrant'], true));
-                    $value = stripslashes($db->escapeString($emailValue));
+                    $value = stripslashes(expString::escape($emailValue));
                     $varname = $c->name;
                     $registrant->$varname = $value;
                 }
@@ -799,10 +828,12 @@ class eventregistrationController extends expController {
             if (!empty($registrant->id)) {
 //                $db->updateObject($registrant, 'forms_' . $f->table_name);
                 $f->updateRecord($registrant);
-            } else {
+            } else {  // create new registrant record
                 $loc_data = new stdClass();
-                $loc_data->order_id = 'admin-created';
-                $loc_data->orderitem_id = 'admin-created';
+//                $loc_data->order_id = 'admin-created';
+//                $loc_data->orderitem_id = 'admin-created';
+                $loc_data->order_id = $orderc_id;
+                $loc_data->orderitem_id = $orderi_id;
                 $loc_data->event_id = $this->params['event_id'];
                 $locdata = serialize($loc_data);
                 $registrant->ip = $_SERVER['REMOTE_ADDR'];
@@ -820,16 +851,20 @@ class eventregistrationController extends expController {
         } else {
 //            $registrant = $db->selectObject("eventregistration_registrants", "id ='{$this->params['id']}'");
             $registrant = $event->getRecord($this->params['id']);
+            if (!is_object($registrant)) $registrant = new stdClass();
             $registrant->control_name = $this->params['control_name'];
+            //FIXME if $registrant->value != $this->params['value'] update order/invoice w/ new quantity???
             $registrant->value = $this->params['value'];
             if (!empty($registrant->id)) {
 //                $db->updateObject($registrant, "eventregistration_registrants");
                 $event->updateRecord($registrant);
-            } else {
+            } else {  // create new registrant record
                 $registrant->event_id = $this->params['event_id'];
-                $registrant->connector_id = 'admin-created';
-                $registrant->orderitem_id = 'admin-created';
+//                $registrant->connector_id = 'admin-created';
+//                $registrant->orderitem_id = 'admin-created';
                 $registrant->registered_date = time();
+                $registrant->connector_id = $orderc_id;
+                $registrant->orderitem_id = $orderi_id;
 //                $db->insertObject($registrant, "eventregistration_registrants");
                 $event->insertRecord($registrant);
             }
@@ -861,7 +896,7 @@ class eventregistrationController extends expController {
 //            }
 //        }
 
-//        $sql                = "SELECT connector_id FROM " . DB_TABLE_PREFIX . "_eventregistration_registrants GROUP BY connector_id";
+//        $sql                = "SELECT connector_id FROM " . $db->prefix . "eventregistration_registrants GROUP BY connector_id";
 //        $order_ids_complete = $db->selectColumn("eventregistration_registrants", "connector_id", "connector_id <> '0' AND event_id = {$event->id}", "registered_date", true);
 //
 //        $orders = new order();
@@ -1063,7 +1098,7 @@ class eventregistrationController extends expController {
             $mime_type = (EXPONENT_USER_BROWSER == 'IE' || EXPONENT_USER_BROWSER == 'OPERA') ? 'application/octet-stream;' : 'text/comma-separated-values;';
             header('Content-Type: ' . $mime_type . ' charset=' . LANG_CHARSET. "'");
             header('Expires: ' . gmdate('D, d M Y H:i:s') . ' GMT');
-            header("Content-length: ".filesize($tmpfname));
+            header('Content-length: '.filesize($tmpfname));
             header('Content-Transfer-Encoding: binary');
             header('Content-Encoding:');
             header('Content-Disposition: attachment; filename="' . $fn . '";');
@@ -1143,12 +1178,15 @@ class eventregistrationController extends expController {
             if (!empty($file)) $mail->attach_file_on_disk(BASE . $file, expFile::getMimeType(BASE . $file));
         }
 
+        $from = array(ecomconfig::getConfig('from_address') => ecomconfig::getConfig('from_name'));
+        if (empty($from[0])) $from = SMTP_FROMADDRESS;
         $mail->quickBatchSend(array(
             	'headers'=>$headers,
                 'html_message'=> $this->params['email_message'],
-                'text_message'=> strip_tags(str_replace("<br>", "\r\n", $this->params['email_message'])),
+//                'text_message'=> strip_tags(str_replace("<br>", "\r\n", $this->params['email_message'])),
+                'text_message'=> expString::html2text($this->params['email_message']),
                 'to'          => $email_addy,
-                'from'        => ecomconfig::getConfig('from_address'),
+                'from'        => $from,
                 'subject'     => $this->params['email_subject']
         ));
         if (!empty($file)) unlink(BASE . $file);  // delete temp file attachment
@@ -1211,9 +1249,9 @@ class eventregistrationController extends expController {
 //
 //            $category = new storeCategory($parent);
 
-            $sql = 'SELECT DISTINCT p.*, er.event_starttime, er.signup_cutoff FROM ' . DB_TABLE_PREFIX . '_product p ';
-//            $sql .= 'JOIN ' . DB_TABLE_PREFIX . '_product_storeCategories sc ON p.id = sc.product_id ';
-            $sql .= 'JOIN ' . DB_TABLE_PREFIX . '_eventregistration er ON p.product_type_id = er.id ';
+            $sql = 'SELECT DISTINCT p.*, er.event_starttime, er.signup_cutoff FROM ' . $db->prefix . 'product p ';
+//            $sql .= 'JOIN ' . $db->prefix . 'product_storeCategories sc ON p.id = sc.product_id ';
+            $sql .= 'JOIN ' . $db->prefix . 'eventregistration er ON p.product_type_id = er.id ';
             $sql .= 'WHERE 1 ';
 //            $sql .= ' AND sc.storecategories_id IN (SELECT id FROM exponent_storeCategories WHERE rgt BETWEEN ' . $category->lft . ' AND ' . $category->rgt . ')';
 //            if ($category->hide_closed_events) {

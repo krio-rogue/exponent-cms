@@ -1,5 +1,5 @@
 {*
- * Copyright (c) 2004-2014 OIC Group, Inc.
+ * Copyright (c) 2004-2016 OIC Group, Inc.
  *
  * This file is part of Exponent
  *
@@ -27,11 +27,12 @@
         <div class="yui-content">
 	        <div id="tab1">
 	            {control type="text" name="vendor" label="Vendor (Merchant)"|gettext value=$calculator->configdata.vendor}
+                (or)
 	            {control type="text" name="user" label="User"|gettext value=$calculator->configdata.user}
 	            {control type="text" name="partner" label="Partner"|gettext value=$calculator->configdata.partner}
 	            {control type="password" name="password" label="Password"|gettext value=$calculator->configdata.password}
 	            {control type="checkbox" name="testmode" label="Enable Test Mode?"|gettext value=1 checked=$calculator->configdata.testmode}
-	            {control type="radiogroup" name="process_mode" label="Processing Mode" items="Authorize and Capture, Authorize Only"|gettxtlist values="S,A" default=$calculator->configdata.process_mode}
+	            {control type="radiogroup" name="process_mode" label="Processing Mode" items="Authorize and Capture, Authorize Only"|gettxtlist values="S,A" default=$calculator->configdata.process_mode|default:'S'}
 	        </div>
 	        <div id="tab2">
 	            {control type="checkbox" name="accepted_cards[]" label="Master Card" value="MasterCard"|gettext checked=$calculator->configdata.accepted_cards}
@@ -44,21 +45,22 @@
 	        </div>
 	        <div id="tab4">
 	            {control type="checkbox" name="email_admin" label="Send a notification that a new order was received?"|gettext value=1 checked=$calculator->configdata.email_admin}
-                {control type=email name="notification_addy" label="Email addresses to send notifications to (comma separated list of email addresses)"|gettext value=$calculator->configdata.notification_addy}
+                {control type=text name="notification_addy" label="Email addresses to send notifications to (comma separated list of email addresses)"|gettext value=$calculator->configdata.notification_addy}
 	        </div>
         </div>
     </div>
-	<div class="loadingdiv">{'Loading'|gettext}</div>
+	{*<div class="loadingdiv">{'Loading'|gettext}</div>*}
+	{loading}
 </div>
 
-{script unique="authtabs" yui3mods=1}
+{script unique="authtabs" yui3mods="exptabs"}
 {literal}
     EXPONENT.YUI3_CONFIG.modules.exptabs = {
         fullpath: EXPONENT.JS_RELATIVE+'exp-tabs.js',
         requires: ['history','tabview','event-custom']
     };
 
-	YUI(EXPONENT.YUI3_CONFIG).use('exptabs', function(Y) {
+	YUI(EXPONENT.YUI3_CONFIG).use('*', function(Y) {
         Y.expTabs({srcNode: '#payflow-tabs'});
 		Y.one('#payflow-tabs').removeClass('hide');
 		Y.one('.loadingdiv').remove();

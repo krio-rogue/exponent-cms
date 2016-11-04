@@ -1,5 +1,5 @@
 {*
- * Copyright (c) 2004-2014 OIC Group, Inc.
+ * Copyright (c) 2004-2016 OIC Group, Inc.
  *
  * This file is part of Exponent
  *
@@ -18,11 +18,11 @@
         {form action=save_payment_info}
             {control type="hidden" name="id" value=$orderid}
             <div id="editbilling-tabs" class="">
-                <ul class="nav nav-tabs">
-                <li class="active"><a href="#tab1" data-toggle="tab"><em>{'Edit Payment Info'|gettext}</em></a></li>
+                <ul class="nav nav-tabs" role="tablist">
+                    <li role="presentation" class="active"><a href="#tab1" role="tab" data-toggle="tab"><em>{'Edit Payment Info'|gettext}</em></a></li>
                 </ul>
                 <div class="tab-content">
-                    <div id="tab1" class="tab-pane fade in active">
+                    <div id="tab1" role="tabpanel" class="tab-pane fade in active">
                         {foreach from=$opts item=field key=key}
                             {control type="text" name="result[`$key`]" label=$key value=$field}
                         {/foreach}
@@ -31,25 +31,11 @@
                     </div>
                 </div>
             </div>
-            <div class="loadingdiv">{'Loading'|gettext}</div>
+            {*<div class="loadingdiv">{'Loading'|gettext}</div>*}
+            {loading}
         {/form}
     </div>
 </div>
-
-{*{script unique="editform" yui3mods=1}*}
-{*{literal}*}
-    {*EXPONENT.YUI3_CONFIG.modules.exptabs = {*}
-        {*fullpath: EXPONENT.JS_RELATIVE+'exp-tabs.js',*}
-        {*requires: ['history','tabview','event-custom']*}
-    {*};*}
-
-	{*YUI(EXPONENT.YUI3_CONFIG).use('exptabs', function(Y) {*}
-        {*Y.expTabs({srcNode: '#editbilling-tabs'});*}
-		{*Y.one('#editbilling-tabs').removeClass('hide');*}
-		{*Y.one('.loadingdiv').remove();*}
-    {*});*}
-{*{/literal}*}
-{*{/script}*}
 
 {script unique="tabload" jquery=1 bootstrap="tab,transition"}
 {literal}

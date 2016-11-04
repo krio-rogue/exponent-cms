@@ -2,7 +2,7 @@
 
 ##################################################
 #
-# Copyright (c) 2004-2014 OIC Group, Inc.
+# Copyright (c) 2004-2016 OIC Group, Inc.
 #
 # This file is part of Exponent
 #
@@ -18,7 +18,7 @@
 
 /**
  * @subpackage Models
- * @package Core
+ * @package Modules
  */
 class billing extends expRecord {
     //public $table = 'billing';
@@ -53,7 +53,7 @@ class billing extends expRecord {
         if ($id==null)
         {   
             // since this is a new billingmethod object, lets initialize it with the users billing address.
-            global $order;                              
+            global $order;   //FIXME we do NOT want the global $order
             $address = new address();
             //FJD $defaultaddy = $address->find('first', 'user_id='.$user->id.' AND is_default=1');
             if (empty($order->billingmethod)) {
@@ -62,7 +62,7 @@ class billing extends expRecord {
             }
             $billingAddy = $address->find('first', 'user_id='.$user->id.' AND is_billing=1');
             $order->billingmethod[0]->setAddress($billingAddy);
-        }else{
+        } else {
             $order = new order($id);        
             if (empty($order->id)) return false;                    
         }
@@ -71,7 +71,7 @@ class billing extends expRecord {
         $this->address = new address($order->billingmethod[0]->addresses_id);
         //$this->address = new address($order->billingmethod[0]->id);
         $this->available_calculators = self::listAvailableCalculators();
-        $this->selectable_calculators = $this->selectableCalculators();
+        $this->selectable_calculators = self::selectableCalculators();
         $this->calculator_views = $this->getCalcViews();
         
         // if there is only one available calculator we'll force it on the user
@@ -98,17 +98,27 @@ class billing extends expRecord {
         
         $this->billingmethod = $order->billingmethod[0];
         
-        $options = unserialize($this->billingmethod->billing_options);
-        $this->info = empty($this->calculator->id) ? '' : $this->calculator->userView($options);
-		
+        $options = expUnserialize($this->billingmethod->billing_options);
+//        $this->info = empty($this->calculator->id) ? '' : $this->calculator->userView($options);
+        $this->info = (empty($this->calculator->id) || empty($options)) ? '' : $this->calculator->userView($this->billingmethod);
+
 		foreach($this->available_calculators as $key => $item) {
-			$calc  = new $item($key);
-			$this->form[$key] = $calc->userForm();
+            if (class_exists($item)) {
+                $calc = new $item($key);
+                if (!expJavascript::inAjaxAction()) {  //fixme kludge for now to get order pdf's to print out
+                    $this->form[$key] = $calc->userForm();
+                }
+            }
 		}
         
 		// eDebug($this->form, true);	
     }
 
+    /**
+     * Returns a list of all enabled/active billing calculators
+     *
+     * @return array
+     */
     public static function listAvailableCalculators() {
         global $db,$user;
         
@@ -125,15 +135,22 @@ class billing extends expRecord {
         return $calcs;
     }
 
-    public function selectableCalculators() {
+    /**
+     * Returns an array of all enabled/active billing calculator objects
+     *
+     * @return array
+     */
+    public static function selectableCalculators() {
         global $db,$user;
+
         $calcs = array();
         foreach ($db->selectObjects('billingcalculator', 'enabled=1') as $calcObj) {
             $calcNameReal = $calcObj->calculator_name;
-            $calc = new $calcNameReal($calcObj->id);
-            if($user->isAdmin() || $calc->isRestricted() == false)
-            {
-                $calcs[$calc->id] = $calc->user_title;
+            if (class_exists($calcNameReal)) {
+                $calc = new $calcNameReal($calcObj->id);
+                if ($user->isAdmin() || $calc->isRestricted() == false) {
+                    $calcs[$calc->id] = $calc->title;
+                }
             }
         }
         
@@ -161,9 +178,11 @@ class billing extends expRecord {
     
     public function getCalcForms() {
         //eDebug($this);
-        foreach ($this->available_calculators as $calcid=>$calcname) {            
-            $calc = new $calcname($calcid);
-            $forms[$calcname] = $calc->userForm();
+        foreach ($this->available_calculators as $calcid=>$calcname) {
+            if (class_exists($calcname)) {
+                $calc = new $calcname($calcid);
+                $forms[$calcname] = $calc->userForm();
+            }
         }        
         return array_reverse($forms);
     }
@@ -188,6 +207,30 @@ class billing extends expRecord {
         //parent::update()
                                     
     } */
+
+    public function getBillingInfo($opts = null) {
+        if ($this->calculator != null) {
+//            $billinginfo = $this->calculator->userView(unserialize($this->billingmethod->billing_options));
+            if (!empty($this->billingmethod->billing_options))
+                $billinginfo = $this->calculator->userView($this->billingmethod);
+            else
+                $billinginfo = '';
+        } else {
+            if (empty($opts)) {
+                $opts = expUnserialize($this->billingmethod->billing_options);
+            }
+            if (empty($opts)) {
+                $billinginfo = false;
+            } else {
+                $billinginfo = gt("No Cost");
+                if (!empty($opts->payment_due)) {
+                    $billinginfo .= '<br>'.gt('Payment Due') . ': ' . expCore::getCurrencySymbol() . number_format($opts->payment_due, 2, ".", ",");
+                }
+            }
+        }
+        return $billinginfo;
+    }
+
 }
 
 ?>

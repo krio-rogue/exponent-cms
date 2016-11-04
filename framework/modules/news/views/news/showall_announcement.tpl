@@ -1,5 +1,5 @@
 {*
- * Copyright (c) 2004-2014 OIC Group, Inc.
+ * Copyright (c) 2004-2016 OIC Group, Inc.
  *
  * This file is part of Exponent
  *
@@ -46,7 +46,7 @@
    	{/if}
     {$myloc=serialize($__loc)}
     {foreach from=$page->records item=item}
-        <div class="item announcement{if !$item->approved && $smarty.const.ENABLE_WORKFLOW} unapproved{/if}">
+        <div class="item announcement{if !$item->approved && $smarty.const.ENABLE_WORKFLOW} unapproved{/if}{if $item->is_featured} featured{/if}">
             <{$config.item_level|default:'h2'}>{$item->title}</{$config.item_level|default:'h2'}>
             {if $item->isRss != true}
                 {permissions}
@@ -61,6 +61,7 @@
                                 {/if}
                             {/if}
                             {icon action=edit record=$item}
+                            {icon action=copy record=$item}
                         {/if}
                         {if $permissions.delete || ($permissions.create && $item->poster == $user->id)}
                             {icon action=delete record=$item}
@@ -75,12 +76,13 @@
                 {if $config.ffloat != "Below"}
                     {filedisplayer view="`$config.filedisplay`" files=$item->expFile record=$item is_listing=1}
                 {/if}
+                {$link = '<a href="'|cat:makeLink([controller=>news, action=>show, title=>$item->sef_url])|cat:'"><em>'|cat:'(read more)'|gettext|cat:'</em></a>'}
                 {if $config.usebody==1}
                     {*<p>{$item->body|summarize:"html":"paralinks"}</p>*}
                 {elseif $config.usebody==3}
-                    {$item->body|summarize:"html":"parapaged"}
+                    {$item->body|summarize:"html":"parapaged":$link}
                 {elseif $config.usebody==2}
-                    <p>{$item->body|summarize:"html":"parahtml"}</p>
+                    <p>{$item->body|summarize:"html":"parahtml":$link}</p>
 				{else}
                     {$item->body}
                 {/if}

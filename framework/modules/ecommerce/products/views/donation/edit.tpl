@@ -1,5 +1,5 @@
 {*
- * Copyright (c) 2004-2014 OIC Group, Inc.
+ * Copyright (c) 2004-2016 OIC Group, Inc.
  *
  * This file is part of Exponent
  *
@@ -50,12 +50,12 @@
 	            </div>
 	            <div id="tab3">
 	                {*{control type=files name=files subtype=images accept="image/*" value=$record->expFile}*}
-                    {control type=files label="Main Images"|gettext name=mainimages subtype="mainimage" accept="image/*" value=$record->expFile limit=1 folder=$config.upload_folder}
+                    {control type=files label="Main Image"|gettext name=mainimages subtype="mainimage" accept="image/*" value=$record->expFile limit=1 folder=$config.upload_folder}
 	            </div>
 	            <!--div id="tab4">
 	                {control type="text" name="quantity" label="Quantity in stock"|gettext value=$record->quantity}
 	                {control type="text" name="minimum_order_quantity" label="Minimum order quantity"|gettext value=$record->minimum_order_quantity}
-	                {control type="checkbox" checked=1 name="allow_partial" label="Allow partial quantities?"|gettext value=$record->allow_partial}
+	                {*{control type="checkbox" checked=1 name="allow_partial" label="Allow partial quantities?"|gettext value=$record->allow_partial}*}
 	                {control type="checkbox" name="is_available" label="Is this product available?"|gettext value=$record->is_available}
 	                {control type="text" name="availability_note" label="Note to display when product is not available"|gettext value=$record->availability_note}
 	                {control type="radiogroup" name="availability_type" label="Quantity Display"|gettext
@@ -65,27 +65,29 @@
 	            </div-->
 	            <!--div id="tab5">
 	                {control type="checkbox" name="no_shipping" label="This item doesn\'t require shipping"|gettext value=1 checked=$record->no_shipping}
-	                {control type="text" name="weight" label="Item Weight"|gettext value=$record->weight}
+	                {control type="text" name="weight" label="Item Weight (in pounds)"|gettext value=$record->weight}
 	            </div-->
+                {control type="hidden" name="no_shipping" value=1}
 	            <div id="tab6">
                     {icon class="manage" controller="storeCategory" action="manage" text="Manage Store Categories"|gettext}
 	                {control type="tagtree" id="managecats" name="managecats" model="storeCategory" draggable=false checkable=true values=$record->storeCategory}
 	            </div>
             </div>
         </div>
-	    <div class="loadingdiv">{'Loading'|gettext}</div>
+	    {*<div class="loadingdiv">{'Loading'|gettext}</div>*}
+		{loading}
         {control type="buttongroup" submit="Save Product"|gettext cancel="Cancel"|gettext}
     {/form}
 </div>
 
-{script unique="authtabs" yui3mods=1}
+{script unique="authtabs" yui3mods="exptabs"}
 {literal}
     EXPONENT.YUI3_CONFIG.modules.exptabs = {
         fullpath: EXPONENT.JS_RELATIVE+'exp-tabs.js',
         requires: ['history','tabview','event-custom']
     };
 
-	YUI(EXPONENT.YUI3_CONFIG).use('exptabs', function(Y) {
+	YUI(EXPONENT.YUI3_CONFIG).use('*', function(Y) {
         Y.expTabs({srcNode: '#editproduct-tabs'});
 		Y.one('#editproduct-tabs').removeClass('hide');
 		Y.one('.loadingdiv').remove();

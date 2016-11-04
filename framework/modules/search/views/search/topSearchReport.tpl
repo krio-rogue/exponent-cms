@@ -1,5 +1,5 @@
 {*
- * Copyright (c) 2004-2014 OIC Group, Inc.
+ * Copyright (c) 2004-2016 OIC Group, Inc.
  *
  * This file is part of Exponent
  *
@@ -13,7 +13,7 @@
  *
  *}
 
-{css unique="topsearchreport" corecss="tables"}
+{css unique="topsearchreport" corecss="tables,admin-global"}
 {literal}
     .fullbody #centercol {
         width: 422px;
@@ -80,10 +80,11 @@
             </div>
 		</div>
 	</div>
-    <div class="loadingdiv">{'Loading'|gettext}</div>
+    {*<div class="loadingdiv">{'Loading'|gettext}</div>*}
+    {loading}
 </div>
 
-{script unique="topsearch" yui3mods=1}
+{script unique="topsearch" yui3mods="charts,exptabs"}
 {literal}
 EXPONENT.YUI3_CONFIG.modules.exptabs = {
     fullpath: EXPONENT.JS_RELATIVE+'exp-tabs.js',
@@ -93,7 +94,7 @@ EXPONENT.YUI3_CONFIG.modules.exptabs = {
 var renderIntoTabview,
     handlerArray = [];
 
-YUI(EXPONENT.YUI3_CONFIG).use('charts','exptabs', function(Y) {
+YUI(EXPONENT.YUI3_CONFIG).use('*', function(Y) {
     var tabhistory = Y.expTabs({srcNode: '#topsearch'});
     Y.one('#topsearch').removeClass('hide');
     Y.one('.loadingdiv').remove();

@@ -6,14 +6,14 @@
  *
  * @author Dmitry (dio) Levashov, dio@std42.ru
  **/
-elFinder.prototype.commands.getfile = function() {
+(elFinder.prototype.commands.getfile = function() {
 	var self   = this,
 		fm     = this.fm,
 		filter = function(files) {
 			var o = self.options;
 
 			files = $.map(files, function(file) {
-				return file.mime != 'directory' || o.folders ? file : null;
+				return (file.mime != 'directory' || o.folders) && file.read ? file : null;
 			});
 
 			return o.multiple || files.length == 1 ? files : [];
@@ -39,13 +39,26 @@ elFinder.prototype.commands.getfile = function() {
 			tmb   = fm.option('tmbUrl'),
 			dfrd  = $.Deferred()
 				.done(function(data) {
-					fm.trigger('getfile', {files : data});
-					self.callback(data, fm);
+					var res,
+						done = function() {
+							if (opts.oncomplete == 'close') {
+								fm.hide();
+							} else if (opts.oncomplete == 'destroy') {
+								fm.destroy();
+							}
+						};
 					
-					if (opts.oncomplete == 'close') {
-						fm.hide();
-					} else if (opts.oncomplete == 'destroy') {
-						fm.destroy();
+					fm.trigger('getfile', {files : data});
+					
+					res = self.callback(data, fm);
+					
+					if (typeof res === 'object' && typeof res.done === 'function') {
+						res.done(done)
+						.fail(function(error) {
+							error && fm.error(error);
+						});
+					} else {
+						done();
 					}
 				}),
 			result = function(file) {
@@ -56,10 +69,6 @@ elFinder.prototype.commands.getfile = function() {
 			req = [], 
 			i, file, dim;
 
-		if (this.getstate() == -1) {
-			return dfrd.reject();
-		}
-			
 		for (i = 0; i < cnt; i++) {
 			file = files[i];
 			if (file.mime == 'directory' && !opts.folders) {
@@ -90,7 +99,7 @@ elFinder.prototype.commands.getfile = function() {
 					dim = file.dim.split('x');
 					file.width = dim[0];
 					file.height = dim[1];
-				} else if (file.mime.indexOf('image') !== -1) {
+				} else if (opts.getImgSize && file.mime.indexOf('image') !== -1) {
 					req.push(fm.request({
 						data : {cmd : 'dim', target : file.hash},
 						notify : {type : 'dim', cnt : 1, hideCnt : true},
@@ -118,4 +127,4 @@ elFinder.prototype.commands.getfile = function() {
 		return dfrd.resolve(result(files));
 	}
 
-}
+}).prototype = { forceLoad : true }; // this is required command

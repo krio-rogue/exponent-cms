@@ -2,7 +2,7 @@
 
 ##################################################
 #
-# Copyright (c) 2004-2014 OIC Group, Inc.
+# Copyright (c) 2004-2016 OIC Group, Inc.
 #
 # This file is part of Exponent
 #
@@ -16,21 +16,19 @@
 #
 ##################################################
 
-if (!defined('EXPONENT')) {
+if (!defined('EXPONENT'))
     exit('');
-}
 
-global $user, $db;
+global $user;
 
 $active = ECOM;
-if (!$user->isAdmin() || empty($active)) {
+if (!$user->isAdmin() || empty($active))
     return false;
-}
 
-$new_status = $db->selectValue('order_status', 'id', 'is_default = 1');
-$new_orders = $db->countObjects('orders', 'purchased !=0 AND order_status_id = ' . $new_status);
+$new_orders = order::getOrdersCount('new');
+$open_orders = order::getOrdersCount('open');
 if ($new_orders > 0) {
-    $newo = '<em class="newalert">' . $new_orders . ' ' . gt('new orders') . '</em>';
+    $newo = '<em class="newalert">' . $new_orders . ' ' . gt('new order') . ($new_orders>1?'s':'') . '</em>';
 } else {
     $newo = '';
 };
@@ -43,7 +41,7 @@ $ecom = array(
         'id'       => 'ecomm',
         'itemdata' => array(
             array(
-                'text'      => $newo . '<form role="form" id="orderQuickfinder" method="POST" action="' . PATH_RELATIVE . 'index.php" enctype="multipart/form-data"><input type="hidden" name="controller" value="order"><input type="hidden" name="action" value="quickfinder"><input style="padding-top: 3px;" type="text" name="ordernum" id="ordernum" size="25" placeholder="' . gt(
+                'text'      => $newo . '<form role="form" id="orderQuickfinder" method="POST" action="' . PATH_RELATIVE . 'index.php" enctype="multipart/form-data"><input type="hidden" name="controller" value="order"><input type="hidden" name="action" value="quickfinder"><input class="form-control" type="text" name="ordernum" id="ordernum" aria-label="'.gt('order number').'" size="25" placeholder="' . gt(
                         "Order Quickfinder"
                     ) . '"></form>',
                 'info'      => '1',
@@ -68,8 +66,8 @@ $ecom = array(
                     'id'       => 'ordermenu',
                     'itemdata' => array(
                         array(
-                            'text'      => gt("View Orders") . " <em>(" . $new_orders . "  " . gt(
-                                    "New Orders"
+                            'text'      => gt("Manage Orders") . " <em>(" . $open_orders . "  " . gt(
+                                    "Open Orders"
                                 ) . ")</em>",
                             'icon'      => 'fa-search',
                             'classname' => 'search',
@@ -81,7 +79,7 @@ $ecom = array(
                             ),
                         ),
                         array(
-                            'text'      => gt("Create Order"),
+                            'text'      => gt("Create an Order"),
                             'icon'      => 'fa-plus-circle',
                             'classname' => 'add',
                             'url'       => makeLink(
@@ -146,6 +144,17 @@ $ecom = array(
                     'id'       => 'prodscats',
                     'itemdata' => array(
                         array(
+                            'text'      => gt("Manage Products"),
+                            'icon'      => 'fa-cog',
+                            'classname' => 'manage',
+                            'url'       => makeLink(
+                                array(
+                                    'controller' => 'store',
+                                    'action'     => 'manage'
+                                )
+                            ),
+                        ),
+                        array(
                             'text'      => gt("Add a Product"),
                             'icon'      => 'fa-plus-circle',
                             'classname' => 'add',
@@ -156,14 +165,27 @@ $ecom = array(
                                 )
                             ),
                         ),
+//                        array(
+//                            'text'      => gt("Export Products"),
+//                            'icon'      => 'fa-download',
+//                            'classname' => 'export',
+////                            'url'       => makeLink(array('controller' => 'importexport', 'action' => 'manage')),
+//                            'url'       => makeLink(
+//                                array(
+//                                    'controller' => 'store',
+//                                    'action'     => 'export'
+//                                )
+//                            ),
+//                        ),
                         array(
-                            'text'      => gt("Manage Products"),
-                            'icon'      => 'fa-cog',
-                            'classname' => 'manage',
+                            'text'      => gt("Import Products"),
+                            'icon'      => 'fa-upload',
+                            'classname' => 'import',
+//                            'url'       => makeLink(array('controller' => 'importexport', 'action' => 'manage')),
                             'url'       => makeLink(
                                 array(
                                     'controller' => 'store',
-                                    'action'     => 'manage'
+                                    'action'     => 'import'
                                 )
                             ),
                         ),
@@ -223,6 +245,39 @@ $ecom = array(
                                 )
                             )
                         ),
+                    ),
+                ),
+            ),
+            array(
+                'text'    => gt("Events"),
+                'icon'      => 'fa-calendar',
+                'classname' => 'events',
+                'submenu' => array(
+                    'id'       => 'purchase-order',
+                    'itemdata' => array(
+                        array(
+                            'text'      => gt('Manage Event Registrations'),
+                            'icon'      => 'fa-calendar-o',
+                            'classname' => 'events',
+                            'url'       => makeLink(
+                                array(
+                                    'controller' => 'eventregistration',
+                                    'action' => 'manage'
+                                )
+                            ),
+                        ),
+                        array(
+                            'text'      => gt('Add an event'),
+                            'icon'      => 'fa-plus-circle',
+                            'classname' => 'add',
+                            'url'       => makeLink(
+                                array(
+                                    'controller' => 'store',
+                                    'action' => 'edit',
+                                    'product_type' => 'eventregistration'
+                                )
+                            ),
+                        )
                     ),
                 ),
             ),
@@ -414,18 +469,6 @@ $ecom = array(
                             ),
                         ),
                         array(
-                            'text'      => gt("Import Products"),
-                            'icon'      => 'fa-upload',
-                            'classname' => 'import',
-//                            'url'       => makeLink(array('controller' => 'importexport', 'action' => 'manage')),
-                            'url'       => makeLink(
-                                array(
-                                    'controller' => 'store',
-                                    'action'     => 'import'
-                                )
-                            ),
-                        ),
-                        array(
                             'text'      => gt("Import External Addresses"),
                             'icon'      => 'fa-upload',
                             'classname' => 'import',
@@ -443,5 +486,6 @@ $ecom = array(
         ),
     )
 );
+
 return $ecom;
 ?>

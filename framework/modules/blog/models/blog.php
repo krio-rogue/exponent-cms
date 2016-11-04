@@ -2,7 +2,7 @@
 
 ##################################################
 #
-# Copyright (c) 2004-2014 OIC Group, Inc.
+# Copyright (c) 2004-2016 OIC Group, Inc.
 #
 # This file is part of Exponent
 #
@@ -51,6 +51,18 @@ class blog extends expRecord {
 //        }
 //
 //    }
+
+    function __construct($params = null, $get_assoc = true, $get_attached = true) {
+        parent::__construct($params, $get_assoc, $get_attached);
+        if (!empty($this->meta_fb))
+            $this->meta_fb = expUnserialize($this->meta_fb);
+        if (!empty($this->meta_fb['fbimage']) && !empty($this->meta_fb['fbimage'][0]))
+            $this->meta_fb['fbimage'][0] = new expFile($this->meta_fb['fbimage'][0]);
+        if (!empty($this->meta_tw))
+            $this->meta_tw = expUnserialize($this->meta_tw);
+        if (!empty($this->meta_tw['twimage']) && !empty($this->meta_tw['twimage'][0]))
+            $this->meta_tw['twimage'][0] = new expFile($this->meta_tw['twimage'][0]);
+    }
 
     public function beforeCreate() {
    	    if (empty($this->publish) || $this->publish == 'on') {
@@ -101,7 +113,25 @@ class blog extends expRecord {
 //            return $records;
 //        }
 //    }
-	
+
+    public function update($params = array()) {
+        if (isset($params['expFile']['fbimage'][0]) && is_numeric($params['expFile']['fbimage'][0]))
+            $params['fb']['fbimage'][0] = $params['expFile']['fbimage'][0];
+        unset ($params['expFile']['fbimage']);
+        if (isset($params['fb'])) {
+            $params['meta_fb'] = serialize($params['fb']);
+            unset ($params['fb']);
+        }
+        if (isset($params['expFile']['twimage'][0]) && is_numeric($params['expFile']['twimage'][0]))
+            $params['tw']['twimage'][0] = $params['expFile']['twimage'][0];
+        unset ($params['expFile']['twimage']);
+        if (isset($params['tw'])) {
+            $params['meta_tw'] = serialize($params['tw']);
+            unset ($params['tw']);
+        }
+        parent::update($params);
+    }
+
 }
 
 ?>

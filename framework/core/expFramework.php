@@ -1,7 +1,7 @@
 <?php
 ##################################################
 #
-# Copyright (c) 2004-2014 OIC Group, Inc.
+# Copyright (c) 2004-2016 OIC Group, Inc.
 #
 # This file is part of Exponent
 #
@@ -38,6 +38,12 @@ $validateTheme = array("headerinfo"=>false,"footerinfo"=>false);
  * @name $module_scope
  */
 $module_scope = array();
+/**
+ * Stores the theme framework
+ * @var integer $framework
+ * @name $framework
+ */
+$framework = null;
 
 // expLang
 /**
@@ -52,6 +58,12 @@ $cur_lang = array();
  * @name $default_lang
  */
 $default_lang = array();
+/**
+ * Stores the list of language specific strings specific to the theme
+ * @var array $custom_lang
+ * @name $custom_lang
+ */
+$custom_lang = array();
 /**
  * Stores the name of the default language file
  * @var array $default_lang_file
@@ -139,7 +151,7 @@ $js2foot = array();
  * @var array $yui3js
  * @name $yui3js
  */
-$yui3js = array();
+$yui3js = false;
 /**
  * Stores the jquery javascript files list
  * @var array $jqueryjs
@@ -240,7 +252,7 @@ $timer = null;
 $order = null;
 
 /**
- * Main module display logic/routine for MVC modules
+ * Main module action/display logic/routine; initializes/checks controller before calling action/method
  *
  * @param array $parms
  * @return bool|mixed|string
@@ -258,15 +270,12 @@ function renderAction(array $parms=array()) {
     }
 
     if (isset($parms['view'])) $parms['view'] = urldecode($parms['view']);
-    // Figure out the action to use...if the specified action doesn't exist then
-    // we look for the index action.
+    // Figure out the action to use...if the specified action doesn't exist then we look for the showall action.
     if ($controllerClass->hasMethod($parms['action'])) {
         $action = $parms['action'];
-        /* TODO:  Not sure if this needs to be here. FJD
+        /* TODO:  Not sure if we need to check for private methods to be here. FJD
 		$meth = $controllerClass->getMethod($action);
         if ($meth->isPrivate()) expQueue::flashAndFlow('error', gt('The requested action could not be performed: Action not found'));*/
-//    } elseif ($controllerClass->hasMethod('index')) {
-//        $action = 'index';
     } elseif ($controllerClass->hasMethod('showall')) {
         $parms['action'] = 'showall';
         $action = 'showall';
@@ -276,14 +285,14 @@ function renderAction(array $parms=array()) {
 
     // initialize the controller.
     $src = isset($parms['src']) ? $parms['src'] : null;
-    $controller = new $fullControllerName($src, $parms);    
-    
-    //Set up the template to use for this action
+    $controller = new $fullControllerName($src, $parms);
+
+    //Set up the correct template to use for this action
     global $template;
     $view = !empty($parms['view']) ? $parms['view'] : $action;
     $template = expTemplate::get_template_for_action($controller, $view, $controller->loc);
-    
-     //setup some default models for this controller's actions to use
+
+    //setup default model(s) for this controller's actions to use
     foreach ($controller->getModels() as $model) {
         $controller->$model = new $model(null,false,false);   //added null,false,false to reduce unnecessary queries. FJD
         // flag for needing approval check
@@ -298,9 +307,10 @@ function renderAction(array $parms=array()) {
         }
     }
 
+// FIXME this is now handled by the template class during get_template_for_action since it only sets template variables
     // have the controller assign knowledge about itself to the template.
     // this has to be done after the controller gets the template for its actions
-//    $controller->moduleSelfAwareness();  // FIXME this is now handled by the template class during get_template_for_action
+//    $controller->moduleSelfAwareness();
 
     //if this controller is being called by a container then we should have a module title.
     if (isset($parms['moduletitle'])) {
@@ -313,30 +323,31 @@ function renderAction(array $parms=array()) {
         $template->assign('moduletitle', $db->selectValue('container', 'title', "internal='".serialize($title)."'"));
     }
 
-    // add the $_REQUEST values to the controller <- pb: took this out and passed in the params to the controller constructor above
-    //$controller->params = $parms;
     // check the perms for this action
-    $perms = $controller->permissions();
-    
+    $perms = $controller->permissions_all();
+
+    $common_action = null;
+    // action convention for controllers that manage more than one model (datatype).
+    // if you preface the name action name with a common crud action name we can check perms on
+    // it with the developer needing to specify any...better safe than sorry.
+    // i.e if the action is edit_mymodel it will be checked against the edit permission
+    if (stristr($parms['action'], '_'))
+        $parts = explode("_", $parms['action']);
+    else
+        $parts = preg_split('/(?=[A-Z])/', $parms['action']);  // account for actions with camelCase action/perm such as editItem
+    $common_action = isset($parts[0]) ? $parts[0] : null;
     // we have to treat the update permission a little different..it's tied to the create/edit
     // permissions.  Really the only way this will fail will be if someone bypasses the perm check
     // on the edit form somehow..like a hacker trying to bypass the form and just submit straight to
     // the action. To safeguard, we'll catch if the action is update and change it either to create or
     // edit depending on whether an id param is passed to. that should be sufficient.
-    $common_action = null;
-    if ($parms['action'] == 'update') {
+    if ($parms['action'] == 'update' || $common_action == 'update') {
         $perm_action = (!isset($parms['id']) || $parms['id'] == 0) ? 'create' : 'edit';
-    } elseif ($parms['action'] == 'edit' && (!isset($parms['id']) || $parms['id'] == 0)) {
+    } elseif (($parms['action'] == 'edit' || $common_action == 'edit') && (!isset($parms['id']) || $parms['id'] == 0)) {
         $perm_action = 'create';
     } elseif ($parms['action'] == 'saveconfig') {
         $perm_action = 'configure';
     } else {
-        // action convention for controllers that manage more than one model (datatype). 
-        // if you preface the name action name with a common crud action name we can check perms on 
-        // it with the developer needing to specify any...better safe than sorry.
-        // i.e if the action is edit_mymodel it will be checked against the edit permission
-        if (stristr($parms['action'], '_')) $parts = explode("_", $parms['action']);
-        $common_action = isset($parts[0]) ? $parts[0] : null;
         $perm_action = $parms['action'];
     }
 
@@ -391,6 +402,7 @@ function renderAction(array $parms=array()) {
         }
     }
 
+    //FIXME? if the assoc $perm doesn't exist, the 'action' will ALWAYS be allowed, e.g., default is to allow action
     if (array_key_exists($perm_action, $perms)) {
         if (!expPermissions::check($perm_action, $controller->loc)) {
             if (expTheme::inAction()) {
@@ -412,30 +424,25 @@ function renderAction(array $parms=array()) {
             }
         }
     } elseif (array_key_exists($perm_action, $controller->requires_login)) {
-        // check if the action requires the user to be logged in
+        // check if the action requires the user to at least be logged in
         if (!$user->isLoggedIn()) {
-            $msg = empty($controller->requires_login[$perm_action]) ? gt("You must be logged in to perform this action") : $controller->requires_login[$perm_action];
+            $msg = empty($controller->requires_login[$perm_action]) ? gt("You must be logged in to perform this action") : gt($controller->requires_login[$perm_action]);
             flash('error', $msg);
             notfoundController::handle_not_authorized();
             expHistory::redirecto_login();
         }
     } elseif (array_key_exists($common_action, $controller->requires_login)) {
-        // check if the action requires the user to be logged in
+        // check if the action requires the user to at least be logged in
         if (!$user->isLoggedIn()) {
-            $msg = empty($controller->requires_login[$common_action]) ? gt("You must be logged in to perform this action") : $controller->requires_login[$common_action];
+            $msg = empty($controller->requires_login[$common_action]) ? gt("You must be logged in to perform this action") : gt($controller->requires_login[$common_action]);
             flash('error', $msg);
             notfoundController::handle_not_authorized();
             expHistory::redirecto_login();
         }
-    } 
-    
+    }
+
     // register this controllers permissions to the view for in view perm checks
     $template->register_permissions(array_keys($perms), $controller->loc);
-    
-    // pass this controllers config to the view
-//    $template->assign('config', $controller->config);
-    // assign the controllers basemodel to the view
-//    $template->assign('modelname', $controller->basemodel_name);
 
     // globalizing $user inside all templates
     $template->assign('user', $user);
@@ -481,7 +488,7 @@ function redirect_to($params=array(), $secure=false) {
     $link = (!is_array($params)) ? $params : $router->makeLink($params, false, $secure);
     header("Location: " . $link);
     exit();
-}   
+}
 
 function flash($name, $msg) {
     expQueue::flash($name, $msg);
@@ -509,7 +516,7 @@ function show_msg_queue($name=null) {
  */
 function assign_to_template(array $vars=array()) {
     global $template;
-    
+
     if (empty($template) || count($vars) == 0) return false;
     foreach ($vars as $key=>$val) {
         $template->assign($key, $val);
@@ -526,30 +533,30 @@ function get_model_for_controller($controller_name) {
     }
 }
 
-//FIXME DEPRECATED, moved to expTemplate subsystem
+/**
+ * @deprecated 2.3.3 moved to expTemplate subsystem
+ */
 function get_common_template($view, $loc, $controllername='') {
     return expTemplate::get_common_template($view, $loc, $controllername);
-
-    $framework = expSession::get('framework');
 
     $controller = new stdClass();
     $controller->baseclassname = empty($controllername) ? 'common' : $controllername;
     $controller->loc = $loc;
-    
+
     $themepath = BASE . 'themes/' . DISPLAY_THEME . '/modules/common/views/' . $controllername . '/' . $view . '.tpl';
     $basenewuipath = BASE . 'framework/modules/common/views/' . $controllername . '/' . $view . '.newui.tpl';
     $basepath = BASE . 'framework/modules/common/views/' . $controllername . '/' . $view . '.tpl';
 
-    if ($framework == "bootstrap" || $framework == "bootstrap3") {
+    if (bs(true)) {
         $basebstrap3path = BASE . 'framework/modules/common/views/' . $controllername . '/' . $view . '.bootstrap3.tpl';
         $basebstrappath = BASE . 'framework/modules/common/views/' . $controllername . '/' . $view . '.bootstrap.tpl';
         if (file_exists($themepath)) {
             return new controllertemplate($controller, $themepath);
-        } elseif ($framework == "bootstrap3" && file_exists($basebstrap3path)) {
+        } elseif (bs3(true) && file_exists($basebstrap3path)) {
             return new controllertemplate($controller, $basebstrap3path);
         } elseif (file_exists($basebstrappath)) {
             return new controllertemplate($controller, $basebstrappath);
-        } elseif(NEWUI && file_exists($basenewuipath)) {  //FIXME is this the correct sequence spot?
+        } elseif(newui() && file_exists($basenewuipath)) {  //FIXME is this the correct sequence spot?
             return new controllertemplate($controller,$basenewuipath);
         } elseif (file_exists($basepath)) {
             return new controllertemplate($controller, $basepath);
@@ -559,7 +566,7 @@ function get_common_template($view, $loc, $controllername='') {
     } else {
         if (file_exists($themepath)) {
             return new controllertemplate($controller,$themepath);
-        } elseif (NEWUI && file_exists($basenewuipath)) {
+        } elseif (newui() && file_exists($basenewuipath)) {
             return new controllertemplate($controller,$basenewuipath);
         } elseif(file_exists($basepath)) {
             return new controllertemplate($controller,$basepath);
@@ -569,24 +576,26 @@ function get_common_template($view, $loc, $controllername='') {
     }
 }
 
-//FIXME DEPRECATED, moved to expTemplate subsystem
+/**
+ * @deprecated 2.3.3 moved to expTemplate subsystem
+ */
 function get_config_templates($controller, $loc) {
     return expTemplate::get_config_templates($controller, $loc);
 
 //    global $db;
-    
+
     // set paths we will search in for the view
     $commonpaths = array(
         BASE.'framework/modules/common/views/configure',
         BASE.'themes/'.DISPLAY_THEME.'/modules/common/views/configure',
     );
-    
+
     $modpaths = array(
         $controller->viewpath.'/configure',
 	    BASE.'themes/'.DISPLAY_THEME.'/modules/'.$controller->relative_viewpath.'/configure'
     );
-    
-    // get the common configuration files    
+
+    // get the common configuration files
     $common_views = expTemplate::find_config_views($commonpaths, $controller->remove_configs);
     foreach ($common_views as $key=>$value) {
         $common_views[$key]['name'] = gt($value['name']);
@@ -601,7 +610,7 @@ function get_config_templates($controller, $loc) {
         $module_views[$key]['name'] = gt($value['name']);
     }
 
-    // look for a config form for this module's current view    
+    // look for a config form for this module's current view
 //    $controller->loc->mod = expModules::getControllerClassName($controller->loc->mod);
     //check to see if hcview was passed along, indicating a hard-coded module
 //    if (!empty($controller->params['hcview'])) {
@@ -618,7 +627,7 @@ function get_config_templates($controller, $loc) {
 //            $module_views[$viewname]['file'] =$path.'/'.$viewconfig;
 //        }
 //    }
-    
+
     // sort the views highest to lowest by filename
     // we are reverse sorting now so our array merge
     // will overwrite property..we will run array_reverse
@@ -633,11 +642,12 @@ function get_config_templates($controller, $loc) {
     return $views;
 }
 
-//FIXME DEPRECATED, moved to expTemplate subsystem
+/**
+ * @deprecated 2.3.3 moved to expTemplate subsystem
+ */
 function find_config_views($paths=array(), $excludes=array()) {
     return expTemplate::find_config_views($paths, $excludes);
 
-    $framework = expSession::get('framework');
     $views = array();
     foreach ($paths as $path) {
         if (is_readable($path)) {
@@ -649,13 +659,13 @@ function find_config_views($paths=array(), $excludes=array()) {
                         $fileparts = explode('_', $filename);
                         $views[$filename]['name'] = ucwords(implode(' ', $fileparts));
                         $views[$filename]['file'] = $path.'/'.$file;
-                        if (($framework == 'bootstrap' || $framework == 'bootstrap3') && file_exists($path.'/'.$filename.'.bootstrap.tpl')) {
+                        if ((bs(true)) && file_exists($path.'/'.$filename.'.bootstrap.tpl')) {
                             $views[$filename]['file'] = $path . '/' . $filename . '.bootstrap.tpl';
                         }
-                        if ($framework == 'bootstrap3' && file_exists($path.'/'.$filename.'.bootstrap3.tpl')) {
+                        if (bs3() && file_exists($path.'/'.$filename.'.bootstrap3.tpl')) {
                             $views[$filename]['file'] = $path.'/'.$filename.'.bootstrap3.tpl';
                         }
-                        if (NEWUI && file_exists($path.'/'.$filename.'.newui.tpl')) {  //FIXME newui take priority
+                        if (newui() && file_exists($path.'/'.$filename.'.newui.tpl')) {  //FIXME newui take priority
                             $views[$filename]['file'] = $path.'/'.$filename.'.newui.tpl';
                         }
                     }
@@ -663,15 +673,15 @@ function find_config_views($paths=array(), $excludes=array()) {
             }
         }
     }
-    
+
     return $views;
 }
 
-//FIXME DEPRECATED, moved to expTemplate subsystem
+/**
+ * @deprecated 2.3.3 moved to expTemplate subsystem
+ */
 function get_template_for_action($controller, $action, $loc=null) {
     expTemplate::get_template_for_action($controller, $action, $loc);
-
-    $framework = expSession::get('framework');
 
     // set paths we will search in for the view
     $themepath = BASE.'themes/'.DISPLAY_THEME.'/modules/'.$controller->relative_viewpath.'/'.$action.'.tpl';
@@ -686,21 +696,21 @@ function get_template_for_action($controller, $action, $loc=null) {
     $rootthemepath = BASE . 'themes/' . DISPLAY_THEME . '/modules/' . $controller->relative_viewpath . '/' . $root_action[0] . '.tpl';
     $rootbasepath = $controller->viewpath . '/' . $root_action[0] . '.tpl';
 
-    if (NEWUI) {
+    if (newui()) {
         if (file_exists($newuithemepath)) {
             return new controllertemplate($controller, $newuithemepath);
         } elseif (file_exists($basenewuipath)) {
             return new controllertemplate($controller, $basenewuipath);
         }
     }
-    if ($framework == "bootstrap" || $framework == "bootstrap3") {
+    if (bs(true)) {
         $rootbstrap3path = $controller->viewpath . '/' . $root_action[0] . '.bootstrap3.tpl';
         $basebstrap3path = $controller->viewpath . '/' . $action . '.bootstrap3.tpl';
         $rootbstrappath = $controller->viewpath . '/' . $root_action[0] . '.bootstrap.tpl';
         $basebstrappath = $controller->viewpath . '/' . $action . '.bootstrap.tpl';
         if (file_exists($themepath)) {
             return new controllertemplate($controller, $themepath);
-        } elseif ($framework == "bootstrap3" && file_exists($basebstrap3path)) {
+        } elseif (bs3(true) && file_exists($basebstrap3path)) {
             return new controllertemplate($controller, $basebstrap3path);
         } elseif (file_exists($basebstrappath)) {
             return new controllertemplate($controller, $basebstrappath);
@@ -709,7 +719,7 @@ function get_template_for_action($controller, $action, $loc=null) {
         } elseif ($root_action[0] != $action) {
             if (file_exists($rootthemepath)) {
                 return new controllertemplate($controller, $rootthemepath);
-            } elseif (file_exists($framework == "bootstrap3" && file_exists($rootbstrap3path))) {
+            } elseif (bs3(true) && file_exists($rootbstrap3path)) {
                 return new controllertemplate($controller, $rootbstrap3path);
             } elseif (file_exists($rootbstrappath)) {
                 return new controllertemplate($controller, $rootbstrappath);
@@ -733,14 +743,16 @@ function get_template_for_action($controller, $action, $loc=null) {
 
     // if we get here it means there were no views for the this action to be found.
     // we will check to see if we have a scaffolded version or else just grab a blank template.
-    if (file_exists(BASE . 'framework/modules/common/views/scaffold/' . $action . (NEWUI?'.newui':'') . '.tpl')) {
-        return new controllertemplate($controller, BASE . 'framework/modules/common/views/scaffold/' . $action . (NEWUI?'.newui':'') . '.tpl');
+    if (file_exists(BASE . 'framework/modules/common/views/scaffold/' . $action . (newui()?'.newui':'') . '.tpl')) {
+        return new controllertemplate($controller, BASE . 'framework/modules/common/views/scaffold/' . $action . (newui()?'.newui':'') . '.tpl');
     } else {
         return new controllertemplate($controller, BASE . 'framework/modules/common/views/scaffold/blank.tpl');
     }
 }
 
-//FIXME DEPRECATED, moved to expTemplate subsystem
+/**
+ * @deprecated 2.3.3 moved to expTemplate subsystem
+ */
 function get_action_views($ctl, $action, $human_readable) {
     expTemplate::get_action_views($ctl, $action, $human_readable);
 
@@ -749,12 +761,12 @@ function get_action_views($ctl, $action, $human_readable) {
 //    $controller = new $controllerName();
     $controller = expModules::getController($ctl);
 
-    // set path information 
+    // set path information
     $paths = array(
         $controller->viewpath,
         BASE.'themes/'.DISPLAY_THEME.'/modules/'.$controller->relative_viewpath,
     );
-    
+
     $views = array();
     foreach ($paths as $path) {
         if (is_readable($path)) {
@@ -784,7 +796,9 @@ function get_action_views($ctl, $action, $human_readable) {
     return $views;
 }
 
-//FIXME DEPRECATED, moved to expTemplate subsystem
+/**
+ * @deprecated 2.3.3 moved to expTemplate subsystem
+ */
 function get_filedisplay_views() {
     expTemplate::get_filedisplay_views();
 
@@ -792,7 +806,7 @@ function get_filedisplay_views() {
         BASE.'framework/modules/common/views/file/',
         BASE.'themes/'.DISPLAY_THEME.'modules/common/views/file/',
     );
-    
+
     $views = array();
     foreach ($paths as $path) {
         if (is_readable($path)) {
@@ -805,7 +819,7 @@ function get_filedisplay_views() {
             }
         }
     }
-    
+
     return $views;
 }
 
@@ -822,6 +836,7 @@ function object2Array($object=null) {
 
 function expUnserialize($serial_str) {
     if ($serial_str === 'Array') return null;  // empty array string??
+    if (is_array($serial_str) || is_object($serial_str)) return $serial_str;  // already unserialized
 //    $out1 = @preg_replace('!s:(\d+):"(.*?)";!se', "'s:'.strlen('$2').':\"$2\";'", $serial_str );
     $out = preg_replace_callback(
         '!s:(\d+):"(.*?)";!s',
@@ -870,21 +885,51 @@ function expProcessBuffer($buffer, $mode=null) {
     return (str_replace("<!-- MINIFY REPLACE -->", $cssForHead, $buffer));
 }
 
-function createValidId ($id) {
-    $badvals = array("[", "]", ",", " ", "'", "\"", "&", "#", "%", "@", "!", "$", "(", ")", "{", "}");
-    return str_replace($badvals, "",$id);
+/**
+ * Ensure we have a valid html 'id' attribute
+ *
+ * @param $id
+ * @return mixed
+ */
+function createValidId($id, $value='') {
+    $badvals = array("[", "]", ",", " ", "'", "\"", "&", "#", "%", "@", "!", "$", "(", ")", "{", "}");  //FIXME do we need to update this to HTML5 and only include the space?
+    if (strpos($id, '[]') !== false)
+        $id .= $value;
+    $new_id = str_replace($badvals, "_", trim($id));
+    return $new_id;
 }
 
 function curPageURL() {
-    $pageURL = 'http';
-    if (!empty($_SERVER["HTTPS"]) && $_SERVER["HTTPS"] == "on") {$pageURL .= "s";}
-    $pageURL .= "://";
-    if ($_SERVER["SERVER_PORT"] != "80") {
-        $pageURL .= $_SERVER["SERVER_NAME"].":".$_SERVER["SERVER_PORT"].$_SERVER["REQUEST_URI"];
+    if (expJavascript::inAjaxAction()) {
+        $new_request = $_REQUEST;
+        unset($new_request['ajax_action']);
+        if ($new_request['controller'] == 'store' && $new_request['action'] == 'edit')
+            unset($new_request['view']);
+        $pageURL = makeLink($new_request);
     } else {
-        $pageURL .= $_SERVER["SERVER_NAME"].$_SERVER["REQUEST_URI"];
+        $pageURL = 'http';
+        if (!empty($_SERVER["HTTPS"]) && $_SERVER["HTTPS"] == "on") {
+            $pageURL .= "s";
+        }
+        $pageURL .= "://";
+        if ($_SERVER["SERVER_PORT"] != "80") {
+            $pageURL .= $_SERVER["SERVER_NAME"] . ":" . $_SERVER["SERVER_PORT"] . $_SERVER["REQUEST_URI"];
+        } else {
+            $pageURL .= $_SERVER["SERVER_NAME"] . $_SERVER["REQUEST_URI"];
+        }
     }
     return $pageURL;
+}
+
+/**
+ * Return status of e-commerce
+ */
+function ecom_active() {
+    global $db;
+
+    return ($db->selectValue('modstate', 'active', 'module="store"') ||
+        $db->selectValue('modstate', 'active', 'module="eventregistration"') ||
+        $db->selectValue('modstate', 'active', 'module="donation"') || FORCE_ECOM);
 }
 
 /**
@@ -893,25 +938,56 @@ function curPageURL() {
  * @return bool
  */
 function framework() {
-    $framework = expSession::get('framework');
-    if (empty($framework)) {
-        if (NEWUI) {
-            $framework = 'newui';
-        } else {
-            $framework = 'yui';  // yui is the 2.x default framework
-        }
-    }
+    global $framework;
+
     return $framework;
+}
+
+/**
+ * Is the current framework Bootstrap v2 based?
+ *
+ * @return bool
+ */
+function bs2() {
+    global $framework;
+
+    if ($framework == 'bootstrap') {
+        return true;
+    } else {
+        return false;
+    }
 }
 
 /**
  * Is the current framework Bootstrap v3 based?
  *
+ * @param bool $strict must be bootstrap3 and NOT newui
  * @return bool
  */
-function bs3() {
-    $framework = framework();
-    if ($framework == 'bootstrap3' || $framework == 'newui') {
+function bs3($strict = false) {
+    global $framework;
+
+    if ($framework == 'bootstrap3') {
+        return true;
+    } elseif ($framework == 'newui' && !$strict) {
+        return true;
+    } else {
+        return false;
+    }
+}
+
+/**
+ * Is the current framework Bootstrap based?
+ *
+ * @param bool $strict must be bootstrap 2 or 3 and NOT newui
+ * @return bool
+ */
+function bs($strict = false) {
+    global $framework;
+
+    if ($framework == 'bootstrap3' || $framework == 'bootstrap') {
+        return true;
+    } elseif ($framework == 'newui' && !$strict) {
         return true;
     } else {
         return false;
@@ -924,7 +1000,9 @@ function bs3() {
  * @return bool
  */
 function newui() {
-    if (framework() == 'newui') {
+    global $framework;
+
+    if ($framework == 'newui') {
         return true;
     } else {
         return false;
@@ -961,7 +1039,7 @@ function glist($s){
  * @param $errline
  */
 function handleErrors($errno, $errstr, $errfile, $errline) {
-    if (DEVELOPMENT > 0) {
+    if (DEVELOPMENT > 0 && AJAX_ERROR_REPORTING == 1) {
         switch ($errno) {
             case E_ERROR:
             case E_USER_ERROR:
@@ -984,7 +1062,7 @@ function handleErrors($errno, $errstr, $errfile, $errline) {
         $msg .= !empty($errfile) ? ' in file '.$errfile : "";
         $msg .= !empty($errline) ? ' on line '.$errline : "";
         // send to the debug output
-        if (AJAX_ERROR_REPORTING == 1) eDebug($msg);
+        eDebug($msg);
     }
 }
 
@@ -993,22 +1071,28 @@ function handleErrors($errno, $errstr, $errfile, $errline) {
  *
  * @param mixed $var the variable to dump
  * @param bool $halt if set to true will halt execution
+ * @param bool $disable_log if set to true will disable logging and force to screen
  * @return void
  */
-function eDebug($var, $halt=false){
+function eDebug($var, $halt=false, $disable_log=false){
 	if (DEVELOPMENT) {
-        if (LOGGER) {
+        if (LOGGER && !$disable_log) {
 //            if(is_array($var) || is_object($var)) {
 //                $pvar = print_r($var, true);
 //            } else {
 //                $pvar = $var;
 //            }
-//            echo("<script>YUI().use('node', function(Y) {Y.log('".json_encode($pvar)."','info','exp')});;</script>");
+//            echo("<script>YUI(EXPONENT.YUI3_CONFIG).use('node', function(Y) {Y.log('".json_encode($pvar)."','info','exp')});;</script>");
             eLog($var, gt('DEBUG'));
         } else {
-            echo "<pre>";
-  		    print_r($var);
-            echo "</pre>";
+            if (file_exists(BASE . 'external/kint/Kint.class.php')) {
+                require_once BASE . 'external/kint/Kint.class.php';
+                d($var);  // kint
+            } else {
+                echo "<pre>";
+                print_r($var);
+                echo "</pre>";
+            }
         }
 
 		if ($halt) die();
@@ -1030,20 +1114,21 @@ function eLog($var, $type='', $path='', $minlevel='0') {
 	if (DEVELOPMENT >= $minlevel) {
 		if (is_writable ($path) || !file_exists($path)) {
 			if (!$log = fopen ($path, "ab")) {
-				eDebug(gt("Error opening log file for writing."));
+				eDebug(gt("Error opening log file for writing."), false, true);
 			} else {
                 if(is_array($var) || is_object($var)) {
-                    $pvar = print_r($var, true);
+//                    $pvar = print_r($var, true);
+                    $pvar = json_encode($var, true);  // json is easier to deal with as data
                 } else {
                     $pvar = $var;
                 }
 				if (fwrite ($log, $type . ": " . $pvar . "\r\n") === FALSE) {
-					eDebug(gt("Error writing to log file")." (".$path.").");
+					eDebug(gt("Error writing to log file")." (".$path.").", false, true);
 				}
 				fclose ($log);
 			}
 		} else {
-			eDebug(gt("Log file"." (".$path)." ".gt("not writable."));
+			eDebug(gt("Log file"." (".$path)." ".gt("not writable."), false, true);
 		}
 	}
 }

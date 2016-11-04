@@ -1,7 +1,7 @@
 <?php
 ##################################################
 #
-# Copyright (c) 2004-2014 OIC Group, Inc.
+# Copyright (c) 2004-2016 OIC Group, Inc.
 #
 # This file is part of Exponent
 #
@@ -76,8 +76,8 @@ abstract class expNestedNode extends expRecord {
 			$this->lft = $adjust_val + 1;
 			$this->rgt = $adjust_val + 2;
 
-			$db->sql('UPDATE `'.DB_TABLE_PREFIX.'_'.$this->table.'` SET rgt = rgt + 2 WHERE rgt > '.$adjust_val);
-			$db->sql('UPDATE `'.DB_TABLE_PREFIX.'_'.$this->table.'` SET lft = lft + 2 WHERE lft > '.$adjust_val);
+			$db->sql('UPDATE `'.$db->prefix.$this->table.'` SET rgt = rgt + 2 WHERE rgt > '.$adjust_val);
+			$db->sql('UPDATE `'.$db->prefix.$this->table.'` SET lft = lft + 2 WHERE lft > '.$adjust_val);
 		}
 		$this->save(true);
 	}
@@ -269,7 +269,7 @@ abstract class expNestedNode extends expRecord {
 		
 		$tree = array();
 		foreach($db->selectNestedTree($this->table) as $node) {
-            $obj = new $this->classname($node->id, false, false);
+            $obj = new $this->classname($node->id, false, true);
             $obj->depth = $node->depth;
 			$tree[] = $obj;
 		}

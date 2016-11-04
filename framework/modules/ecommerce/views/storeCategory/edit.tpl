@@ -1,5 +1,5 @@
 {*
- * Copyright (c) 2004-2014 OIC Group, Inc.
+ * Copyright (c) 2004-2016 OIC Group, Inc.
  *
  * This file is part of Exponent
  *
@@ -70,20 +70,21 @@
                     {/if}
                 </div>
             </div>
-            <div class="loadingdiv">{'Loading'|gettext}</div>
+            {*<div class="loadingdiv">{'Loading'|gettext}</div>*}
+            {loading}
             {control type=buttongroup submit="Save"|gettext cancel="Cancel"|gettext}
         {/form}
     </div>
 </div>
 
-{script unique="cat-tabs" src="`$smarty.const.PATH_RELATIVE`framework/core/forms/controls/listbuildercontrol.js" yui3mods=1}
+{script unique="cat-tabs" src="`$smarty.const.PATH_RELATIVE`framework/core/forms/controls/listbuildercontrol.js" yui3mods="exptabs"}
 {literal}
     EXPONENT.YUI3_CONFIG.modules.exptabs = {
         fullpath: EXPONENT.JS_RELATIVE+'exp-tabs.js',
         requires: ['history','tabview','event-custom']
     };
 
-    YUI(EXPONENT.YUI3_CONFIG).use('exptabs', function(Y) {
+    YUI(EXPONENT.YUI3_CONFIG).use('*', function(Y) {
         Y.expTabs({srcNode: '#cattabs'});
         Y.one('#cattabs').removeClass('hide');
         Y.one('.loadingdiv').remove();

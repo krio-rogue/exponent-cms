@@ -1,7 +1,7 @@
 <?php
 ##################################################
 #
-# Copyright (c) 2004-2014 OIC Group, Inc.
+# Copyright (c) 2004-2016 OIC Group, Inc.
 #
 # This file is part of Exponent
 #
@@ -23,6 +23,9 @@
  */
 
 class expCatController extends expController {
+    protected $manage_permissions = array(
+        'change' => 'Change Cats'
+    );
 
 	/**
 	 * name of module
@@ -70,7 +73,7 @@ class expCatController extends expController {
                 'page'=>(isset($this->params['page']) ? $this->params['page'] : 1),
                 'controller'=>$this->params['model'],
 //                        'action'=>$this->params['action'],
-//                        'src'=>$this->hasSources() == true ? $this->loc->src : null,
+//                        'src'=>static::hasSources() == true ? $this->loc->src : null,
 //                        'columns'=>array(gt('ID#')=>'id',gt('Title')=>'title',gt('Body')=>'body'),
             ));
             if ($this->params['model'] == 'faq') {
@@ -86,12 +89,12 @@ class expCatController extends expController {
         $cats = new expPaginator(array(
             'model'=>$this->basemodel_name,
             'where'=>empty($this->params['model']) ? null : "module='".$this->params['model']."'",
-            'limit'=>50,
+//            'limit'=>50,
             'order'=>'module,rank',
             'page'=>(isset($this->params['page']) ? $this->params['page'] : 1),
             'controller'=>$this->baseclassname,
             'action'=>$this->params['action'],
-            'src'=>$this->hasSources() == true ? $this->loc->src : null,
+            'src'=>static::hasSources() == true ? $this->loc->src : null,
             'columns'=>array(
                 gt('ID#')=>'id',
                 gt('Title')=>'title',
@@ -116,12 +119,15 @@ class expCatController extends expController {
         foreach ($cats->records as $record) {
             $cats->modules[$record->module][] = $record;
         }
+        if (SITE_FILE_MANAGER == 'elfinder') {
+            unset($cats->modules['file']);  // we're not using the traditional file manager
+        }
         if (!empty($this->params['model']) && $this->params['model'] == 'file') {
             $catlist[0] = gt('Root Folder');
         } else {
             $catlist[0] = gt('Uncategorized');
         }
-        if (!empty($cats->modules)) foreach ($cats->modules as $module) {
+        if (!empty($cats->modules)) foreach ($cats->modules as $key=>$module) {
             foreach ($module as $listing) {
                 $catlist[$listing->id] = $listing->title;
             }
@@ -248,7 +254,7 @@ class expCatController extends expController {
                     $cats[$record->catid]->name = $record->cat;
                     $cats[$record->catid]->color = $record->color;
                 } else {
-                    $cats[$record->catid]->count += 1;
+                    $cats[$record->catid]->count++;
                 }
                 if (empty($grouplimit)) {
                     $cats[$record->catid]->records[] = $record;

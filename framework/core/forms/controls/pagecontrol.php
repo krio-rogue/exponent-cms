@@ -2,7 +2,7 @@
 
 ##################################################
 #
-# Copyright (c) 2004-2014 OIC Group, Inc.
+# Copyright (c) 2004-2016 OIC Group, Inc.
 #
 # This file is part of Exponent
 #
@@ -28,6 +28,7 @@ if (!defined('EXPONENT')) exit('');
 class pagecontrol extends formcontrol {
 
     var $caption = "";
+    var $design_time = false;
 //    var $placeholder = "";
 //    var $pattern = "";
 //    var $size = 40;
@@ -61,13 +62,13 @@ class pagecontrol extends formcontrol {
     function toHTML($label,$name) {
         $caption = !empty($this->caption) ? $this->caption : str_replace(array(":","*"), "", ucwords($label));
         $description = !empty($this->description) ? $this->description : $caption;
-        $html  = '<fieldset title="'.$caption.'">
+        $html  = '<fieldset '.($this->horizontal&&bs3()&&$this->design_time?'class="col-sm-10" ':'').'title="'.$caption.'">
                   <legend>'.$description.'</legend>';
         return $html;
 	}
 
     function controlToHTML($name, $label) {
-        $html = "<label class=\"".(bs3()?"control-label":"label")."\">".gt('Page Break').' - '.$label."</label>";
+        $html = "<label class=\"".(bs3()?"control-label":"label").($this->horizontal&&bs3()&&$this->design_time?' col-sm-2':'')."\">".$label."</label>";
         $html .= $this->toHTML($name, $label);
         return $html . '</fieldset>';
     }
@@ -116,7 +117,8 @@ class pagecontrol extends formcontrol {
 //        $form->register("size",gt('Size'), new textcontrol((($object->size==0)?"":$object->size),4,false,3,"integer"));
 //        $form->register("maxlength",gt('Maximum Length'), new textcontrol((($object->maxlength==0)?"":$object->maxlength),4,false,3,"integer"));
 //        $form->register("required", gt('Make this a required field.'), new checkboxcontrol($object->required,false));
-        $form->register("submit","",new buttongroupcontrol(gt('Save'),'',gt('Cancel'),"",'editable'));
+        if (!expJavascript::inAjaxAction())
+            $form->register("submit","",new buttongroupcontrol(gt('Save'),'',gt('Cancel'),"",'editable'));
         return $form;
     }
 
@@ -125,7 +127,7 @@ class pagecontrol extends formcontrol {
 //        if ($object == null) $object = new textcontrol();
         if ($object == null) $object = new $this_control();
         if ($values['identifier'] == "") {
-            $post = $_POST;
+			$post = expString::sanitize($_POST);
             $post['_formError'] = gt('Identifier is required.');
             expSession::set("last_POST",$post);
             return null;

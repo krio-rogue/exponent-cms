@@ -1,5 +1,5 @@
 {*
- * Copyright (c) 2004-2014 OIC Group, Inc.
+ * Copyright (c) 2004-2016 OIC Group, Inc.
  *
  * This file is part of Exponent
  *
@@ -19,17 +19,18 @@
             <hr>
             <span style="float:left">
                 {if $record->prev}
-                    <a class="nav" href="{link action=show title=$record->prev->sef_url}" rel="{$record->prev->sef_url}" title="{$record->prev->body|summarize:"html":"para"}">
-                        {icon img='page_prev.png' title='Previous Item'|gettext}
+                    <a class="blognav" href="{link action=show title=$record->prev->sef_url}" rel="{$record->prev->sef_url}" title="{$record->prev->body|summarize:"html":"para"}">
+                        {icon img='page_prev.png' live=1 title='Previous Item'|gettext}
                         {$record->prev->title}
                     </a>
                 {/if}
             </span>
+            <span class="loader"></span>
             <span style="float:right">
                 {if $record->next}
-                    <a class="nav" href="{link action=show title=$record->next->sef_url}" rel="{$record->next->sef_url}" title="{$record->next->body|summarize:"html":"para"}">
+                    <a class="blognav" href="{link action=show title=$record->next->sef_url}" rel="{$record->next->sef_url}" title="{$record->next->body|summarize:"html":"para"}">
                         {$record->next->title}
-                        {icon img='page_next.png' title='Next Item'|gettext}
+                        {icon img='page_next.png' live=1 title='Next Item'|gettext}
                     </a>
                 {/if}
             </span>
@@ -46,8 +47,10 @@
             </p>
         {/if}
         <{$config.heading_level|default:'h1'}>{$record->title}</{$config.heading_level|default:'h1'}>
-        {printer_friendly_link view='show'}{export_pdf_link view='show' prepend='&#160;&#160;|&#160;&#160;'}
-        {subscribe_link prepend='<br/>'}
+        <div class="item-actions">
+            {printer_friendly_link view='show'}{export_pdf_link view='show' prepend='&#160;&#160;|&#160;&#160;'|not_bs}
+            {subscribe_link prepend='<br/>'}
+        </div>
         {$myloc=serialize($__loc)}
         <div class="post-info">
             <span class="attribution">
@@ -59,20 +62,21 @@
                 {if !$config.displayauthor}
                     <span class="label posted">{'Posted by'|gettext}</span>
                     <a href="{link action=showall_by_author author=$record->poster|username}" title='{"View all posts by"|gettext} {attribution user_id=$record->poster}'>{attribution user_id=$record->poster}</a>
-                    {$prepend = '&#160;&#160;|&#160;&#160;'}
+                    {$prepend = '&#160;&#160;|&#160;&#160;'|not_bs}
                 {/if}
                 {if !empty($config.usecategories)}
-                    {'in'|gettext} <a href="{link action=showall src=$record->src cat=$record->expCat[0]->id}" title='{"View all posts filed under"|gettext} {$item->expCat[0]->title}'>{if $record->expCat[0]->title!= ""}{$record->expCat[0]->title}{elseif $config.uncat!=''}{$config.uncat}{else}{'Uncategorized'|gettext}{/if}</a>
+                    {'in'|gettext} <a href="{link action=showall src=$record->src cat=$record->expCat[0]->id}" title='{"View all posts filed under"|gettext} {$record->expCat[0]->title}'>{if $record->expCat[0]->title!= ""}{$record->expCat[0]->title}{elseif $config.uncat!=''}{$config.uncat}{else}{'Uncategorized'|gettext}{/if}</a>
                 {/if}
                 {if !$config.datetag}
                     {'on'|gettext} <span class="date">{$record->publish_date|format_date}</span>
                 {/if}
                 {if $record->publish_date > $smarty.now}
                     </strong>&#160;
-                {/if}
+                {/if},
             </span>
-            {comments_count record=$record prepend=$prepend}
-            {tags_assigned record=$record prepend='&#160;&#160;|&#160;&#160;'}
+            {comments_count record=$record show=1 prepend=$prepend}
+            {$prepend = '&#160;&#160;|&#160;&#160;'|not_bs}
+            {tags_assigned record=$record prepend=','|cat:$prepend}
         </div>
         {permissions}
             <div class="item-actions">
@@ -146,17 +150,18 @@
             <hr>
             <span style="float:left">
                 {if $record->prev}
-                    <a class="nav" href="{link action=show title=$record->prev->sef_url}" rel="{$record->prev->sef_url}" title="{$record->prev->body|summarize:"html":"para"}">
-                        {icon img='page_prev.png' title='Previous Item'|gettext}
+                    <a class="blognav" href="{link action=show title=$record->prev->sef_url}" rel="{$record->prev->sef_url}" title="{$record->prev->body|summarize:"html":"para"}">
+                        {icon img='page_prev.png' live=1 title='Previous Item'|gettext}
                         {$record->prev->title}
                     </a>
                 {/if}
             </span>
+            <span class="loader"></span>
             <span style="float:right">
                 {if $record->next}
-                    <a class="nav" href="{link action=show title=$record->next->sef_url}" rel="{$record->next->sef_url}" title="{$record->next->body|summarize:"html":"para"}">
+                    <a class="blognav" href="{link action=show title=$record->next->sef_url}" rel="{$record->next->sef_url}" title="{$record->next->body|summarize:"html":"para"}">
                         {$record->next->title}
-                        {icon img='page_next.png' title='Next Item'|gettext}
+                        {icon img='page_next.png' live=1 title='Next Item'|gettext}
                     </a>
                 {/if}
             </span>
